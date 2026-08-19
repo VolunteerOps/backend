@@ -257,6 +257,7 @@ export class AuthService {
     const refreshPayload = {
       userId: user.id,
       family,
+      jti: crypto.randomUUID(),
       tokenType: 'refresh',
     };
 
