@@ -1,0 +1,389 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  COORDINATOR
+  TEAM_LEAD
+  VOLUNTEER
+}
+
+enum VolunteerStatus {
+  ACTIVE
+  DEPLOYED
+  AVAILABLE
+  RESTRICTED
+  INACTIVE
+}
+
+enum MissionPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum MissionStatus {
+  STAGED
+  ACTIVE
+  CONTAINED
+  COMPLETED
+  CANCELLED
+}
+
+enum DeploymentStatus {
+  ASSIGNED
+  EN_ROUTE
+  ON_SITE
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+}
+
+enum ContactStatus {
+  NEW
+  IN_REVIEW
+  RESPONDED
+  RESOLVED
+  ARCHIVED
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  fullName     String     @map("full_name")
+  role         UserRole   @default(VOLUNTEER)
+  phoneNumber  String?    @map("phone_number")
+  avatarUrl    String?    @map("avatar_url")
+  isActive     Boolean    @default(true) @map("is_active")
+  lastLoginAt  DateTime?  @map("last_login_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  volunteer     Volunteer?
+  auditLogs     AuditLog[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model Volunteer {
+  id                  Int             @id @default(autoincrement())
+  userId              Int?            @unique @map("user_id")
+  fullName            String          @map("full_name")
+  phoneNumber         String          @map("phone_number")
+  email               String          @unique
+  registrationChannel String          @default("inbuilt") @map("registration_channel")
+  consentGiven        Boolean         @default(true) @map("consent_given")
+  registrationDate    DateTime        @default(now()) @map("registration_date")
+  status              VolunteerStatus @default(AVAILABLE)
+  dateOfBirth         DateTime?       @map("date_of_birth")
+  emergencyContact    String?         @map("emergency_contact")
+  bio                 String?
+  availabilitySchedule Json?          @map("availability_schedule")
+  address             String?
+  latitude            Decimal?        @db.Decimal(10, 7)
+  longitude           Decimal?        @db.Decimal(10, 7)
+  avatarUrl           String?         @map("avatar_url")
+  totalHours          Decimal         @default(0) @db.Decimal(10, 2) @map("total_hours")
+  badgeCount          Int             @default(0) @map("badge_count")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  user                User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  skills              VolunteerSkill[]
+  deployments         Deployment[]
+  notifications       Notification[]
+  feedback            Feedback[]
+  telemetryPings      TelemetryPing[]
+
+  @@index([status], map: "idx_volunteers_status")
+  @@index([latitude, longitude], map: "idx_volunteers_geo")
+  @@map("volunteers")
+}
+
+model Skill {
+  id          Int      @id @default(autoincrement())
+  skillName   String   @unique @map("skill_name")
+  category    String
+  demandLevel String   @default("medium") @map("demand_level")
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  volunteerSkills VolunteerSkill[]
+
+  @@index([category], map: "idx_skills_category")
+  @@map("skills")
+}
+
+model VolunteerSkill {
+  id               Int       @id @default(autoincrement())
+  volunteerId      Int       @map("volunteer_id")
+  skillId          Int       @map("skill_id")
+  proficiencyLevel String    @default("intermediate") @map("proficiency_level")
+  isCertified      Boolean   @default(false) @map("is_certified")
+  certificationDate DateTime? @map("certification_date")
+  certifiedBy      String?   @map("certified_by")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  volunteer        Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  skill            Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([volunteerId, skillId])
+  @@map("volunteer_skills")
+}
+
+model Location {
+  id           Int      @id @default(autoincrement())
+  name         String
+  address      String
+  city         String?
+  state        String?
+  country      String?  @default("USA")
+  latitude     Decimal  @db.Decimal(10, 7)
+  longitude    Decimal  @db.Decimal(10, 7)
+  osmId        Int?     @map("osm_id")
+  hazardLevel  String   @default("low") @map("hazard_level")
+  radiusMeters Int      @default(5000) @map("radius_meters")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  events       Event[]
+
+  @@index([latitude, longitude], map: "idx_locations_coords")
+  @@map("locations")
+}
+
+model Event {
+  id                 Int             @id @default(autoincrement())
+  eventName          String          @map("event_name")
+  eventType          String          @map("event_type")
+  priority           MissionPriority @default(MEDIUM)
+  description        String
+  startDate          DateTime        @map("start_date")
+  endDate            DateTime?       @map("end_date")
+  locationId         Int             @map("location_id")
+  status             MissionStatus   @default(ACTIVE)
+  requiredVolunteers Int             @default(10) @map("required_volunteers")
+  coordinatorName    String?         @map("coordinator_name")
+  coordinatorId      Int?            @map("coordinator_id")
+  requiredSkills     Json?           @map("required_skills")
+  tags               String[]        @default([])
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  location           Location        @relation(fields: [locationId], references: [id])
+  deployments        Deployment[]
+  notifications      Notification[]
+  communications     Communication[]
+  feedback           Feedback[]
+
+  @@index([status, priority], map: "idx_events_status_priority")
+  @@map("events")
+}
+
+model Deployment {
+  id               Int              @id @default(autoincrement())
+  volunteerId      Int              @map("volunteer_id")
+  eventId          Int              @map("event_id")
+  assignedBy       Int?             @map("assigned_by")
+  assignedAt       DateTime         @default(now()) @map("assigned_at")
+  checkInTime      DateTime?        @map("check_in_time")
+  checkInLatitude  Decimal?         @map("check_in_latitude") @db.Decimal(10, 7)
+  checkInLongitude Decimal?         @map("check_in_longitude") @db.Decimal(10, 7)
+  checkInMethod    String?          @map("check_in_method")
+  completedAt      DateTime?        @map("completed_at")
+  status           DeploymentStatus @default(ASSIGNED)
+  notes            String?
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  volunteer        Volunteer        @relation(fields: [volunteerId], references: [id])
+  event            Event            @relation(fields: [eventId], references: [id])
+  fieldReports     FieldReport[]
+  feedback         Feedback[]
+
+  @@index([volunteerId, eventId], map: "idx_deployments_volunteer_event")
+  @@index([status], map: "idx_deployments_status")
+  @@map("deployments")
+}
+
+model FieldReport {
+  id            Int      @id @default(autoincrement())
+  deploymentId  Int      @map("deployment_id")
+  reportTime    DateTime @default(now()) @map("report_time")
+  reportType    String   @map("report_type")
+  priority      String   @default("medium")
+  textResponse  String   @map("text_response")
+  mediaUrl      String?  @map("media_url")
+  fileUploadUrl String?  @map("file_upload_url")
+  latitude      Decimal? @db.Decimal(10, 7)
+  longitude     Decimal? @db.Decimal(10, 7)
+  submittedVia  String   @default("mobile_app") @map("submitted_via")
+  status        String   @default("submitted")
+  verifiedBy    String?  @map("verified_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  deployment    Deployment @relation(fields: [deploymentId], references: [id])
+
+  @@index([reportType, status], map: "idx_field_reports_type_status")
+  @@map("field_reports")
+}
+
+model Communication {
+  id          Int      @id @default(autoincrement())
+  eventId     Int?     @map("event_id")
+  channelId   String   @default("general") @map("channel_id")
+  senderId    Int?     @map("sender_id")
+  senderName  String   @map("sender_name")
+  senderRole  String   @default("coordinator") @map("sender_role")
+  message     String
+  priority    String   @default("normal")
+  messageType String   @default("text") @map("message_type")
+  mediaUrl    String?  @map("media_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([channelId, createdAt], map: "idx_communications_channel")
+  @@map("communications")
+}
+
+model Notification {
+  id               Int      @id @default(autoincrement())
+  volunteerId      Int?     @map("volunteer_id")
+  eventId          Int?     @map("event_id")
+  notificationType String   @map("notification_type")
+  priority         String   @default("normal")
+  title            String   @default("Operational Alert")
+  message          String
+  sentAt           DateTime @default(now()) @map("sent_at")
+  sentBy           Int?     @map("sent_by")
+  status           String   @default("sent")
+  readAt           DateTime? @map("read_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  volunteer        Volunteer? @relation(fields: [volunteerId], references: [id], onDelete: SetNull)
+  event            Event?     @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([volunteerId, status], map: "idx_notifications_volunteer")
+  @@map("notifications")
+}
+
+model Feedback {
+  id           Int         @id @default(autoincrement())
+  volunteerId  Int         @map("volunteer_id")
+  deploymentId Int?        @map("deployment_id")
+  eventId      Int?        @map("event_id")
+  feedbackTime DateTime    @default(now()) @map("feedback_time")
+  rating       Int
+  comments     String
+  submittedVia String      @default("mobile_app") @map("submitted_via")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  volunteer    Volunteer   @relation(fields: [volunteerId], references: [id])
+  deployment   Deployment? @relation(fields: [deploymentId], references: [id])
+  event        Event?      @relation(fields: [eventId], references: [id])
+
+  @@map("feedback")
+}
+
+model ContactSubmission {
+  id            Int           @id @default(autoincrement())
+  name          String
+  email         String
+  subject       String
+  message       String
+  organization  String?
+  inquiryType   String        @default("general") @map("inquiry_type")
+  status        ContactStatus @default(NEW)
+  responseNotes String?       @map("response_notes")
+  ipAddress     String?       @map("ip_address")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([status, createdAt], map: "idx_contact_status")
+  @@map("contact_submissions")
+}
+
+model TelemetryPing {
+  id           Int      @id @default(autoincrement())
+  volunteerId  Int      @map("volunteer_id")
+  latitude     Decimal  @db.Decimal(10, 7)
+  longitude    Decimal  @db.Decimal(10, 7)
+  altitude     Decimal? @db.Decimal(8, 2)
+  batteryLevel Int?     @map("battery_level")
+  speed        Decimal? @db.Decimal(6, 2)
+  heading      Decimal? @db.Decimal(5, 2)
+  isDistress   Boolean  @default(false) @map("is_distress")
+  recordedAt   DateTime @default(now()) @map("recorded_at")
+
+  volunteer    Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@index([volunteerId, recordedAt], map: "idx_telemetry_volunteer_time")
+  @@map("telemetry_pings")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   Int?     @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId], map: "idx_audit_entity")
+  @@map("audit_logs")
+}
+
+model DispatchJob {
+  id          Int       @id @default(autoincrement())
+  jobType     String    @map("job_type")
+  payload     Json
+  priority    Int       @default(10)
+  status      String    @default("PENDING")
+  lockedAt    DateTime? @map("locked_at")
+  lockedBy    String?   @map("locked_by")
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3) @map("max_attempts")
+  lastError   String?   @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  processedAt DateTime? @map("processed_at")
+
+  @@index([status, priority, createdAt], map: "idx_dispatch_jobs_queue")
+  @@map("dispatch_jobs")
+}
+
+model RefreshToken {
+  id         Int      @id @default(autoincrement())
+  tokenHash  String   @unique @map("token_hash")
+  userId     Int      @map("user_id")
+  family     String   @default(uuid())
+  isRevoked  Boolean  @default(false) @map("is_revoked")
+  expiresAt  DateTime @map("expires_at")
+  userAgent  String?  @map("user_agent")
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_refresh_tokens_user")
+  @@index([tokenHash], map: "idx_refresh_tokens_hash")
+  @@index([family], map: "idx_refresh_tokens_family")
+  @@map("refresh_tokens")
+}
+

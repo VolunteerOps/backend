@@ -1,0 +1,109 @@
+import { PrismaClient, Prisma } from '@prisma/client';
+import { withAccelerate } from '@prisma/extension-accelerate';
+import { logger } from './logger.js';
+
+const basePrisma = new PrismaClient({
+  log:
+    process.env.NODE_ENV === 'development'
+      ? [
+          { emit: 'event', level: 'query' },
+          { emit: 'stdout', level: 'info' },
+          { emit: 'stdout', level: 'warn' },
+          { emit: 'stdout', level: 'error' },
+        ]
+      : [{ emit: 'stdout', level: 'error' }],
+});
+
+if (process.env.NODE_ENV === 'development') {
+  (basePrisma as any).$on('query', (e: any) => {
+    logger.debug(`[SQL Query] ${e.query} - ${e.duration}ms`);
+  });
+}
+
+// Extend Prisma Client with Accelerate & PostgreSQL 18 Feature Compatibility Layer
+export const prisma = basePrisma
+  .$extends(withAccelerate())
+  .$extends({
+    name: 'postgres18-compatibility-layer',
+  result: {
+    volunteer: {
+      isAvailable: {
+        needs: { status: true },
+        compute(volunteer) {
+          return volunteer.status === 'AVAILABLE' || (volunteer.status as any) === 'ACTIVE' || (volunteer.status as any) === 'active';
+        },
+      },
+      geoCoordinates: {
+        needs: { latitude: true, longitude: true },
+        compute(volunteer) {
+          if (!volunteer.latitude || !volunteer.longitude) return null;
+          return {
+            type: 'Point',
+            coordinates: [parseFloat(volunteer.longitude.toString()), parseFloat(volunteer.latitude.toString())],
+          };
+        },
+      },
+    },
+    event: {
+      durationHours: {
+        needs: { startDate: true, endDate: true },
+        compute(event) {
+          if (!event.endDate || !event.startDate) return null;
+          const diffMs = new Date(event.endDate).getTime() - new Date(event.startDate).getTime();
+          return parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+        },
+      },
+    },
+    location: {
+      geoPoint: {
+        needs: { latitude: true, longitude: true },
+        compute(loc) {
+          return {
+            type: 'Point',
+            coordinates: [parseFloat(loc.longitude.toString()), parseFloat(loc.latitude.toString())],
+          };
+        },
+      },
+    },
+  },
+});
+
+export type ExtendedPrismaClient = typeof prisma;
+
+// PostgreSQL 18 Explain Analyzer Helper (analyzes query plans & memory/buffer usage)
+export async function explainAnalyzeQuery(sqlQuery: string): Promise<string> {
+  try {
+    const plan = await (basePrisma as any).$queryRawUnsafe(`EXPLAIN (ANALYZE, BUFFERS) ${sqlQuery}`);
+    return JSON.stringify(plan, null, 2);
+  } catch (error) {
+    logger.error('Failed to run EXPLAIN (ANALYZE, BUFFERS)', {}, error);
+    throw error;
+  }
+}
+
+// PostgreSQL 18 OLD & NEW in RETURNING Emulation via Atomic Tx
+export async function updateWithAudit<T>(
+  modelName: string,
+  id: number,
+  userId: number | undefined,
+  updateFn: (tx: Prisma.TransactionClient) => Promise<T>,
+  action = 'UPDATE'
+): Promise<{ oldState: any; newState: T }> {
+  return await basePrisma.$transaction(async (tx: any) => {
+    const oldState = await tx[modelName].findUnique({ where: { id } });
+    const newState = await updateFn(tx);
+
+    await tx.auditLog.create({
+      data: {
+        userId,
+        action,
+        entityType: modelName,
+        entityId: id,
+        oldValues: oldState ? JSON.parse(JSON.stringify(oldState)) : undefined,
+        newValues: newState ? JSON.parse(JSON.stringify(newState)) : undefined,
+      },
+    });
+
+    return { oldState, newState };
+  });
+}

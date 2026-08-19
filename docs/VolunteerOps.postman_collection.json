@@ -1,0 +1,1684 @@
+{
+  "info": {
+    "name": "VolunteerOps Enterprise Platform API",
+    "description": "Production REST API for VolunteerOps real-time disaster response and operational field management platform.\n\nSupports:\n- Volunteer & Field Responder App (Android / iOS / Web)\n- Admin & Command Portal (Desktop / Android / iOS / Web)\n- Public Landing Site & Contact Ingestion Pipeline\n\nAuthentication:\n- Dual-mode support: httpOnly cookie 'vops_session' OR 'Authorization: Bearer {{authToken}}' header.\n- Run '02 Auth -> Login (Admin)' to automatically capture the JWT token into the {{authToken}} collection variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "volunteerId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "deploymentId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "skillId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "locationId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "contactId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "channelId",
+      "value": "alerts",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01 Health & Diagnostics",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Authentication & Identity",
+      "item": [
+        {
+          "name": "POST /auth/login (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    var token = json.access_token || json.accessToken || json.token;",
+                  "    var refresh = json.refresh_token || json.refreshToken;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('authToken', token);",
+                  "        console.log('Saved authToken variable');",
+                  "    }",
+                  "    if (refresh) {",
+                  "        pm.collectionVariables.set('refreshToken', refresh);",
+                  "        console.log('Saved refreshToken variable');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@volunteerops.org\",\n  \"password\": \"AdminPass@2026!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/login (Volunteer)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"volunteer@volunteerops.org\",\n  \"password\": \"changeme123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/refresh (Rotate Tokens)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    var token = json.access_token || json.accessToken || json.token;",
+                  "    var refresh = json.refresh_token || json.refreshToken;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('authToken', token);",
+                  "        console.log('Updated authToken variable');",
+                  "    }",
+                  "    if (refresh) {",
+                  "        pm.collectionVariables.set('refreshToken', refresh);",
+                  "        console.log('Updated refreshToken variable');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/signup",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"new.responder@volunteerops.org\",\n  \"password\": \"SecurePassword@2026\",\n  \"full_name\": \"Captain Nathan Drake\",\n  \"role\": \"VOLUNTEER\",\n  \"phone_number\": \"+1 (555) 345-6789\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "signup"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /auth/me",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /auth/profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Chief Operations Commander Alex Vance\",\n  \"phone_number\": \"+1 (555) 019-9000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/change-password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"AdminPass@2026!\",\n  \"new_password\": \"NewSecureAdminPass@2026!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/logout",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Volunteers & Field Responders",
+      "item": [
+        {
+          "name": "GET /volunteers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/volunteers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "volunteers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /volunteers/available",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/volunteers/available",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "volunteers",
+                "available"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /volunteers/nearby",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/volunteers/nearby?lat=37.7749&lng=-122.4194&radius_km=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "volunteers",
+                "nearby"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "37.7749"
+                },
+                {
+                  "key": "lng",
+                  "value": "-122.4194"
+                },
+                {
+                  "key": "radius_km",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /volunteers/:id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/volunteers/{{volunteerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "volunteers",
+                "{{volunteerId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /volunteers/by-skill/:skillId",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/volunteers/by-skill/{{skillId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "volunteers",
+                "by-skill",
+                "{{skillId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /volunteers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Elena Rostova\",\n  \"phone_number\": \"+1 (555) 789-0123\",\n  \"email\": \"elena.rostova@volunteerops.net\",\n  \"status\": \"AVAILABLE\",\n  \"emergency_contact\": \"Mikhail Rostova - +1 (555) 789-0124\",\n  \"bio\": \"Trauma nurse specialist\",\n  \"latitude\": 37.7833,\n  \"longitude\": -122.4167\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/volunteers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "volunteers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /volunteers/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"AVAILABLE\",\n  \"bio\": \"Updated responder dossier\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/volunteers/{{volunteerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "volunteers",
+                "{{volunteerId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /volunteers/:id/skills",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skill_id\": 1,\n  \"proficiency_level\": \"expert\",\n  \"is_certified\": true,\n  \"certified_by\": \"FEMA ICS\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/volunteers/{{volunteerId}}/skills",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "volunteers",
+                "{{volunteerId}}",
+                "skills"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /volunteers/:id",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/volunteers/{{volunteerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "volunteers",
+                "{{volunteerId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Skills Database & AI Semantic Match",
+      "item": [
+        {
+          "name": "GET /skills",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/skills",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "skills"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /skills/categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/skills/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "skills",
+                "categories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /skills/:id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/skills/{{skillId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "skills",
+                "{{skillId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /skills/:id/volunteer-count",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/skills/{{skillId}}/volunteer-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "skills",
+                "{{skillId}}",
+                "volunteer-count"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /skills/semantic-match",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"incident_description\": \"Mass casualty structural collapse requiring rapid trauma surgery and heavy excavator debris clearing\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/skills/semantic-match",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "skills",
+                "semantic-match"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /skills",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skill_name\": \"Sub-Surface Sonar Search\",\n  \"category\": \"Search & Rescue\",\n  \"demand_level\": \"critical\",\n  \"description\": \"Operating sonar equipment in submerged flood zones\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/skills",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "skills"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Locations & Hazard Zones",
+      "item": [
+        {
+          "name": "GET /locations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /locations/:id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/locations/{{locationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "{{locationId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /locations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Forward Operating Base Delta\",\n  \"address\": \"500 Relief Way\",\n  \"city\": \"Oakland\",\n  \"state\": \"CA\",\n  \"latitude\": 37.8044,\n  \"longitude\": -122.2712,\n  \"hazard_level\": \"medium\",\n  \"radius_meters\": 8000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Events & Crisis Missions",
+      "item": [
+        {
+          "name": "GET /events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /events/active",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/events/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "active"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /events/:id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /events",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_name\": \"Operation Wildfire Shield\",\n  \"event_type\": \"Wildfire\",\n  \"priority\": \"CRITICAL\",\n  \"description\": \"Perimeter defense and evacuation coordination\",\n  \"start_date\": \"2026-08-18T11:47:22.646Z\",\n  \"location_id\": 1,\n  \"required_volunteers\": 50,\n  \"tags\": [\n    \"WILDFIRE\",\n    \"CRITICAL\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /events/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"priority\": \"HIGH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Deployments & Transactional Dispatch",
+      "item": [
+        {
+          "name": "GET /deployments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/deployments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deployments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /deployments/:id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/deployments/{{deploymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deployments",
+                "{{deploymentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /deployments",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"volunteer_id\": 1,\n  \"event_id\": 1,\n  \"status\": \"ASSIGNED\",\n  \"notes\": \"Immediate field deployment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/deployments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deployments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /deployments/auto-dispatch (SKIP LOCKED)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": 1,\n  \"count\": 3,\n  \"required_skill_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/deployments/auto-dispatch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deployments",
+                "auto-dispatch"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /deployments/:id/check-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 37.7749,\n  \"longitude\": -122.4194,\n  \"method\": \"GPS_GEOFENCE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/deployments/{{deploymentId}}/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deployments",
+                "{{deploymentId}}",
+                "check-in"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /deployments/:id/complete",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/deployments/{{deploymentId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deployments",
+                "{{deploymentId}}",
+                "complete"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /deployments/:id/cancel",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/deployments/{{deploymentId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "deployments",
+                "{{deploymentId}}",
+                "cancel"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Field Reports & Ground Triage",
+      "item": [
+        {
+          "name": "GET /field-reports",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/field-reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "field-reports"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /field-reports/:id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/field-reports/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "field-reports",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /field-reports",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deployment_id\": 1,\n  \"report_type\": \"DAMAGE_ASSESSMENT\",\n  \"priority\": \"critical\",\n  \"text_response\": \"Major levee breach along sector 4. 20 residential properties inundated.\",\n  \"media_url\": \"https://images.unsplash.com/photo-1547082299-de196ea013d6?w=600\",\n  \"latitude\": 37.7749,\n  \"longitude\": -122.4194,\n  \"submitted_via\": \"mobile_ios\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/field-reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "field-reports"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Communications & Real-Time Alerts",
+      "item": [
+        {
+          "name": "GET /communications/channels",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/communications/channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communications",
+                "channels"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /communications/messages/:channelId",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/communications/messages/{{channelId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communications",
+                "messages",
+                "{{channelId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /communications/messages",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_id\": \"general\",\n  \"message\": \"Water purification convoy has cleared checkpoint 3.\",\n  \"priority\": \"normal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communications/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communications",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /communications/broadcast-alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Flash Flood Warning\",\n  \"message\": \"All teams in Sector 2 evacuate to high ground immediately.\",\n  \"priority\": \"critical\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/communications/broadcast-alert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communications",
+                "broadcast-alert"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /communications/stream (SSE Live Stream)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/communications/stream",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "communications",
+                "stream"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Telemetry & SOS Emergency Beacon",
+      "item": [
+        {
+          "name": "POST /telemetry/ping",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"volunteer_id\": 1,\n  \"latitude\": 37.7749,\n  \"longitude\": -122.4194,\n  \"altitude\": 25.4,\n  \"battery_level\": 92,\n  \"speed\": 14.2,\n  \"heading\": 180\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/telemetry/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "telemetry",
+                "ping"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /telemetry/sos (Distress Beacon)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"volunteer_id\": 1,\n  \"latitude\": 37.7749,\n  \"longitude\": -122.4194,\n  \"distress_message\": \"Responder surrounded by rising floodwaters on rooftop\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/telemetry/sos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "telemetry",
+                "sos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /telemetry/active-fleet",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/telemetry/active-fleet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "telemetry",
+                "active-fleet"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Landing Contact Form Pipeline",
+      "item": [
+        {
+          "name": "POST /contact (Public Lead Ingestion)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Director Robert Davis\",\n  \"email\": \"rdavis@redcross.org\",\n  \"organization\": \"American Red Cross\",\n  \"subject\": \"Regional Fleet Telemetry Integration\",\n  \"message\": \"We would like to connect our regional medical response units to the VolunteerOps live dispatch gateway.\",\n  \"inquiry_type\": \"partnership\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contact",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /contact (Admin Triage)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/contact",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /contact/:id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/contact/{{contactId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact",
+                "{{contactId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /contact/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_REVIEW\",\n  \"response_notes\": \"Assigned to regional coordinator for partnership follow-up.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contact/{{contactId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact",
+                "{{contactId}}",
+                "status"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Notifications System",
+      "item": [
+        {
+          "name": "GET /notifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /notifications/by-volunteer/:vid",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/notifications/by-volunteer/{{volunteerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "by-volunteer",
+                "{{volunteerId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /notifications/bulk",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"volunteer_ids\": [\n    1,\n    2,\n    3\n  ],\n  \"notification\": {\n    \"title\": \"Urgent Shift Briefing\",\n    \"message\": \"All medical personnel report to Station 4 for briefing.\",\n    \"priority\": \"high\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notifications/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "bulk"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /notifications/:id/read",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/notifications/1/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "1",
+                "read"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Feedback & After-Action Reviews",
+      "item": [
+        {
+          "name": "GET /feedback",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/feedback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "feedback"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /feedback/average-rating/:vid",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/feedback/average-rating/{{volunteerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "feedback",
+                "average-rating",
+                "{{volunteerId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"volunteer_id\": 1,\n  \"deployment_id\": 1,\n  \"rating\": 5,\n  \"comments\": \"Exceptional trauma triage leadership during earthquake response.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/feedback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "feedback"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Operational Analytics & AI Insights",
+      "item": [
+        {
+          "name": "GET /analytics/overview",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "overview"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /analytics/volunteer-stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/volunteer-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "volunteer-stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /analytics/event-stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/event-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "event-stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /analytics/deployment-stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/deployment-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "deployment-stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /analytics/skill-distribution",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/skill-distribution",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "skill-distribution"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /analytics/monthly-deployments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/monthly-deployments?year=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "monthly-deployments"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2026"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /analytics/top-volunteers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/top-volunteers?limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "top-volunteers"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /analytics/response-time-stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/analytics/response-time-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "response-time-stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /analytics/ai-query",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"What are the response time trends and volunteer mobilization bottlenecks in Sector A?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/analytics/ai-query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "ai-query"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Admin & System Operations",
+      "item": [
+        {
+          "name": "GET /admin/audit-logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "audit-logs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /admin/dispatch-jobs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/dispatch-jobs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "dispatch-jobs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /admin/refresh-materialized-views",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/refresh-materialized-views",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "refresh-materialized-views"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /admin/db-maintenance",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/db-maintenance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "db-maintenance"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
