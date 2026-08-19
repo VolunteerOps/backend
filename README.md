@@ -216,7 +216,8 @@ Once seeded, the following accounts are pre-configured for development and opera
 
 ## 📡 Core API Reference
 
-### Health & Diagnostics
+### Base & Health Diagnostics
+- `GET /` & `GET /api` - Public API discovery index and module routing map.
 - `GET /api/health` - Server uptime, memory utilization, and operational status.
 
 ### Authentication & Identity (`/api/auth`)
@@ -227,6 +228,12 @@ Once seeded, the following accounts are pre-configured for development and opera
 - `PATCH /api/auth/profile` - Update profile information (Requires Auth).
 - `POST /api/auth/change-password` - Change password and invalidate active refresh tokens (Requires Auth).
 - `POST /api/auth/logout` - Revoke refresh token and clear authentication cookies.
+
+### Users & System Accounts (`/api/users`)
+- `GET /api/users` - Paginated system user directory with search and role filtering (Coordinator/Admin).
+- `GET /api/users/:id` - Detailed user dossier with linked volunteer profile (Coordinator/Admin).
+- `PATCH /api/users/:id/role` - Elevate or modify user permission role (`SUPER_ADMIN`, `COORDINATOR`, `TEAM_LEAD`, `VOLUNTEER`) (Admin only).
+- `PATCH /api/users/:id/status` - Activate or deactivate user account and invalidate active sessions (Admin only).
 
 ### Volunteer Management (`/api/volunteers`)
 - `GET /api/volunteers` - Paginated volunteer roster with filtering by status and search.

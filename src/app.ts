@@ -9,6 +9,7 @@ import { generalRateLimiter } from './middleware/rateLimiter.js';
 
 // Domain Module Routers
 import authRouter from './modules/auth/auth.controller.js';
+import usersRouter from './modules/users/users.controller.js';
 import volunteersRouter from './modules/volunteers/volunteers.controller.js';
 import skillsRouter from './modules/skills/skills.controller.js';
 import locationsRouter from './modules/locations/locations.controller.js';
@@ -26,9 +27,11 @@ import adminRouter from './modules/admin/admin.controller.js';
 export const app = express();
 
 // Security Headers & CORS
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
 app.use(
   cors({
@@ -42,7 +45,7 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-Refresh-Token'],
   })
 );
 
@@ -51,6 +54,41 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(generalRateLimiter);
 app.use(authenticate);
+
+// API Root Discovery Handler
+const apiDiscoveryHandler = (_req: express.Request, res: express.Response) => {
+  res.json({
+    message: 'VolunteerOps Backend API',
+    service: 'VolunteerOps-Enterprise-Backend',
+    version: '2.0.0',
+    status: 'OPERATIONAL',
+    environment: config.NODE_ENV,
+    description: 'RESTful API for the VolunteerOps disaster response and operational field management platform',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      users: '/api/users',
+      volunteers: '/api/volunteers',
+      skills: '/api/skills',
+      locations: '/api/locations',
+      events: '/api/events',
+      deployments: '/api/deployments',
+      field_reports: '/api/field-reports',
+      communications: '/api/communications',
+      telemetry: '/api/telemetry',
+      contact: '/api/contact',
+      notifications: '/api/notifications',
+      feedback: '/api/feedback',
+      analytics: '/api/analytics',
+      admin: '/api/admin',
+    },
+  });
+};
+
+// Root & API Discovery Endpoints
+app.get('/', apiDiscoveryHandler);
+app.get('/api', apiDiscoveryHandler);
 
 // System Health & Diagnostics
 app.get('/api/health', (_req, res) => {
@@ -67,6 +105,7 @@ app.get('/api/health', (_req, res) => {
 
 // REST Domain Routes
 app.use('/api/auth', authRouter);
+app.use('/api/users', usersRouter);
 app.use('/api/volunteers', volunteersRouter);
 app.use('/api/skills', skillsRouter);
 app.use('/api/locations', locationsRouter);
