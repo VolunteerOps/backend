@@ -49,7 +49,7 @@ The repository has completed the migration-ownership handoff in phase 4 of Prism
 - Prisma 8 now owns schema migrations through the checked-in `migrations/app/` graph. The existing database is signed at the graph tip and the checked-in `db` ref points there.
 - The existing `npm run prisma:*` deployment aliases now call Prisma 8, so deployment jobs do not fall back to the retired Prisma 7 migration history.
 - `npm run build` emits both the Prisma 7 client and Prisma 8 contract before TypeScript compilation.
-- Node is now pinned to `>=22.18.0`, including both Docker stages, because Prisma 8 requires it.
+- The application supports Node `>=22.18.0`; both Docker stages use Node 24.20 so their bundled npm 11 can resolve this repository's Prisma 7/8 transition graph reliably.
 - `DATABASE_URL` remains the `prisma+postgres://` runtime/Accelerate URL. `DIRECT_URL` must be the direct `postgres://...@db.prisma.io/...` URL used by both Prisma CLIs for schema work.
 
 Do not replace `@prisma/client` with an 8.x version: Prisma 8's application API is `@prisma/orm-postgres`, not the generated Prisma 7 Client API. Removing the compatibility client before routes are rewritten would break the backend.
@@ -66,7 +66,7 @@ If production must be PostgreSQL 18, host PostgreSQL 18 with another provider, e
 - A GitHub repository containing this backend. Prisma Compute deploy-on-push uses GitHub.
 - Node.js 22.18 or newer for Prisma 8. The workstation verification used Node 24.20.0.
 - Bun for local `@prisma/cli app build` parity; Compute uses Bun to bundle Express into a self-contained artifact.
-- npm 10+.
+- npm 11.6 or newer. npm 10's Arborist resolver can crash on the Prisma 7/8 peer-dependency graph with `Cannot read properties of null (reading 'edgesOut')` even when `--omit=dev` is used.
 - Production frontend origins and a production API domain decision.
 - A password manager or secret manager for one-time database and bucket credentials.
 
@@ -81,6 +81,22 @@ npm run build
 ```
 
 Never run `npm run db:seed` against an existing production database. The current seed script intentionally deletes records before inserting demonstration data.
+
+### 3.1 Docker install/build troubleshooting
+
+Both Docker stages must copy `package.json`, `package-lock.json`, and `.npmrc` before running `npm ci`. The committed lockfile uses `legacy-peer-deps=true`. Without `.npmrc`, npm attempts a different peer-dependency graph and reports `EUSAGE` with missing packages such as `vitest`, `react-dom`, and `vite`. `--omit=dev` does not skip dependency resolution, so the production stage needs this setting too. Updating Node alone does not fix this configuration mismatch.
+
+Keep `npm ci` and the committed lockfile; no application rewrite or additional frontend dependencies are required for this error. See the [npm ci documentation on matching lockfile settings](https://docs.npmjs.com/cli/v11/commands/npm-ci/).
+
+To verify the actual Linux image on a Docker-enabled workstation:
+
+```bash
+docker build --pull --no-cache -t volunteerops-backend:build-check .
+```
+
+The Docker build workflow also builds the image and checks generated Prisma client/Accelerate/S3 imports, entrypoint syntax, native Argon2 hashing, and the absence of development tools and `.env`. It runs without network access. Startup and HTTP health tests need valid runtime configuration because the Prisma client contacts Accelerate during initialization; perform the production smoke tests in section 10 after deployment. `.dockerignore` excludes local secrets, installed dependencies, and generated clients so builds regenerate their own artifacts.
+
+After committing and pushing the fix, redeploy the new commit and check that **both** install stages copy `.npmrc`. If the log still shows `COPY package*.json ./`, the deployment is building an older Dockerfile. Changing the copy instruction invalidates the affected install layers automatically.
 
 ## 4. Create and connect Prisma Postgres
 
@@ -99,10 +115,10 @@ Console path:
 CLI alternative (verify current help before automation):
 
 ```bash
-npx @prisma/cli@latest auth login
-npx @prisma/cli@latest auth whoami --json
-npx @prisma/cli@latest project create volunteerops --json
-npx @prisma/cli@latest database create volunteerops-production --branch main --json
+npx prisma auth login
+npx prisma auth whoami --json
+npx prisma project create volunteerops --json
+npx prisma postgres create volunteerops-production --json
 ```
 
 Connection strings and access-key secrets are one-time values. Do not paste them into commits, tickets, logs, screenshots, or mobile configuration.
@@ -304,14 +320,14 @@ The service must:
 
 The committed config names the framework as `express`; do not mislabel it as NestJS or Hono or replace its entrypoint with the unbundled `dist/` directory.
 
-### 8.2 Verify the Compute configuration
+### 8.2 Verify the Compute configuration and CLI
 
-Use the Prisma Platform CLI for Compute operations. This is `@prisma/cli`, not the Prisma ORM 8 CLI in the `prisma` package:
+Prisma 8 provides a unified CLI (`prisma`, also distributed as `@prisma/cli@latest`) containing both ORM and Platform/Compute commands. Do not use legacy pre-release `app ...` subcommands:
 
 ```bash
-npx @prisma/cli@latest --help
-npx @prisma/cli@latest app deploy --help
-npx @prisma/cli@latest app build
+npx prisma --help
+npx prisma project --help
+npx prisma service --help
 ```
 
 The application already reads `process.env.PORT` and binds `0.0.0.0`. Locally, run the framework server normally after building:
@@ -324,39 +340,54 @@ curl -i http://localhost:3001/api/health
 
 Do not deploy until Prisma 7 generation/validation, Prisma 8 contract emission, TypeScript, health, auth, database, and storage tests pass.
 
-### 8.3 Create/link project and GitHub
+### 8.3 Link project and connect GitHub (Deploy-on-Push)
+
+Prisma Compute natively deploys via GitHub Deploy-on-Push driven by `prisma.compute.json`:
 
 ```bash
-npx @prisma/cli@latest auth login
-npx @prisma/cli@latest auth whoami --json
-npx @prisma/cli@latest auth workspace list --json
-npx @prisma/cli@latest project link volunteerops
-npx @prisma/cli@latest project show --json
-npx @prisma/cli@latest git connect <github-repository-url> --project <project-id>
+# 1. Authenticate and select your target workspace:
+npx prisma auth login
+npx prisma auth whoami --json
+npx prisma auth workspace list --json
+# (If your project is in a team/organization workspace, switch to it):
+# npx prisma auth workspace use <workspace-id-or-name>
+
+# 2. Link this directory to your Prisma project:
+npx prisma project list
+npx prisma project link <project-id-or-name>
+npx prisma project show --json
+
+# 3. Connect the GitHub repository for automatic deployment:
+npx prisma git connect https://github.com/VolunteerOps/backend.git
 ```
 
-The default Git branch deploys to production; other branches are isolated previews. Configure preview database and bucket credentials before pushing a preview branch.
+The default Git branch (`main`) deploys to production; other branches create isolated previews. Configure preview database and bucket credentials before pushing a preview branch.
 
 For CI, use workspace-scoped `PRISMA_SERVICE_TOKEN` and explicit workspace/project targets. Never print the token. Prefer `--json --no-interactive` and branch on stable error codes.
 
 ### 8.4 Deploy and verify
 
-Run migrations first from a protected CI job using `DIRECT_URL`, then create a candidate deployment without changing production:
+Run database migrations first from a protected CI job or terminal using `DIRECT_URL`:
 
 ```bash
 npm ci
 npm run prisma:generate
 npm run prisma:deploy
 npm run build
-npx @prisma/cli@latest app deploy --no-promote --json --no-interactive
 ```
 
-Capture the deployment and build IDs from the JSON result. Inspect build and runtime logs separately:
-
+Then trigger deployment:
+1. **GitHub Deploy-on-Push (Standard):** Push to `main` (or preview branch). Prisma Compute detects `prisma.compute.json`, bundles the service, and deploys it automatically.
+2. **Inspect Services & Deployments:**
 ```bash
-npx @prisma/cli@latest build logs <build-id> --follow
-npx @prisma/cli@latest app show-deploy <deployment-id> --json
-npx @prisma/cli@latest app logs --deployment <deployment-id> --json
+# Inspect services and versions in the project:
+npx prisma service list
+npx prisma service show
+npx prisma service logs
+
+# Inspect and manage versions:
+npx prisma service version list
+npx prisma service version promote <version>
 ```
 
 Verify the exact public URL returned by the deployment:
@@ -364,12 +395,6 @@ Verify the exact public URL returned by the deployment:
 ```bash
 curl -i "https://<compute-url>/api/health"
 curl -i "https://<compute-url>/api"
-```
-
-After the candidate URL passes smoke tests, promote that exact deployment:
-
-```bash
-npx @prisma/cli@latest app promote <deployment-id> --yes
 ```
 
 For GitHub-connected Console deployments, the default branch is the production path and other branches create previews. Prisma Console may open a compatibility PR; merge that PR, then push this repository update and inspect the **Prisma Compute Deploy** check/build logs. Compute deployment itself does not run database migrations or seed data.

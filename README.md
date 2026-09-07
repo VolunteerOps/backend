@@ -112,7 +112,7 @@ Built with a modular, **NestJS-inspired clean architecture** on top of **Node.js
 
 Ensure you have the following installed on your machine:
 - **Node.js**: `v22.18.0` or higher (`node -v`)
-- **npm**: `v10.x` or higher (`npm -v`)
+- **npm**: `v11.6.0` or higher (`npm -v`)
 - **PostgreSQL Database** or **Prisma Console (Prisma Postgres)** instance
 
 ### 2. Installation
