@@ -11,3 +11,6 @@ src/generated/prisma8/
 .npm-cache/
 .prisma-composer/
 .alchemy/
+.claude/
+.cursor/
+.devin/

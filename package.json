@@ -74,6 +74,9 @@
     "@effect/sql-d1": "4.0.0-rc.112",
     "@effect/sql-pg": "4.0.0-rc.112",
     "@effect/vitest": "4.0.0-rc.112",
+    "@prisma/config": {
+      "effect": "3.20.0"
+    },
     "effect": "4.0.0-rc.112"
   }
 }

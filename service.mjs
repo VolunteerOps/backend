@@ -2,7 +2,7 @@
 import node from "@prisma/composer/node";
 import { compute } from "@prisma/composer-prisma-cloud";
 import { postgres, dataContract } from "@prisma/composer-prisma-cloud/orm";
-import volunteeropsBackendContractJson from "./src/prisma/contract.json" with { type: "json" };
+import volunteeropsBackendContractJson from "./src/generated/prisma8/contract.json" with { type: "json" };
 
 export default compute({
   name: "volunteerops-backend",

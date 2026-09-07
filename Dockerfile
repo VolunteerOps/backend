@@ -1,4 +1,4 @@
-FROM node:24.20-alpine AS builder
+FROM node:24.20-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN npm ci
 COPY src ./src/
 RUN npm run build
 
-FROM node:24.20-alpine AS runner
+FROM node:24.20-bookworm-slim AS runner
 
 WORKDIR /app
 
