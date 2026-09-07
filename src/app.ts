@@ -23,6 +23,7 @@ import notificationsRouter from './modules/notifications/notifications.controlle
 import feedbackRouter from './modules/feedback/feedback.controller.js';
 import analyticsRouter from './modules/analytics/analytics.controller.js';
 import adminRouter from './modules/admin/admin.controller.js';
+import storageRouter from './modules/storage/storage.controller.js';
 
 export const app = express();
 
@@ -41,7 +42,9 @@ app.use(
       if (config.CORS_ORIGIN.includes('*') || config.CORS_ORIGIN.includes(origin)) {
         return callback(null, true);
       }
-      return callback(null, true); // Permissive in dev, pin in production
+      // Keep local iteration convenient, but never reflect an unapproved origin
+      // from a production deployment.
+      return callback(null, config.NODE_ENV !== 'production');
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -82,6 +85,7 @@ const apiDiscoveryHandler = (_req: express.Request, res: express.Response) => {
       feedback: '/api/feedback',
       analytics: '/api/analytics',
       admin: '/api/admin',
+      storage: '/api/storage',
     },
   });
 };
@@ -119,6 +123,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/feedback', feedbackRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/storage', storageRouter);
 
 // Centralized Error Handlers
 app.use(notFoundHandler);

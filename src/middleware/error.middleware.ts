@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client.js';
 import { ApiError } from '../core/errors.js';
 import { logger } from '../core/logger.js';
 
@@ -31,6 +31,19 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
         message: e.message,
         code: e.code,
       })),
+    });
+    return;
+  }
+
+  if (
+    err instanceof SyntaxError &&
+    'status' in err &&
+    (err as SyntaxError & { status?: number }).status === 400 &&
+    'body' in err
+  ) {
+    res.status(400).json({
+      error: 'malformed_json',
+      message: 'Request body contains invalid JSON',
     });
     return;
   }

@@ -1,5 +1,7 @@
 # The Postgres Consolidation Blueprint: Reversing Stack Bloat and Leveraging PostgreSQL 18 & Prisma
 
+> Historical research document. Its `17.2` statements are point-in-time notes, not deployment configuration. Use [`../DEPLOYMENT_RUNBOOK.md`](../DEPLOYMENT_RUNBOOK.md) for the current Prisma Postgres/Compute topology and verified version constraints.
+
 Modern software engineering often feels like a "subscription management simulator," where developers are led by cloud vendors to stitch together a fragile, overengineered, and overpriced distributed web of highly specialized SaaS and microservices [31, 44]. Instead of provisioning independent databases, caching layers, message brokers, and search engines, you can use a single, battle-tested, 40-year-old open-source tool as your absolute source of truth: **PostgreSQL** [28, 31, 32]. 
 
 This comprehensive blueprint outlines the low-level architecture that gives Postgres its power, recounts its remarkable community-led history, details how it can replace 12 diverse specialized technologies, breaks down the latest features in **PostgreSQL 18**, and provides a practical guide for utilizing these capabilities on a database hosted on **Prisma Console (Prisma Postgres, running Postgres 17.2)**.

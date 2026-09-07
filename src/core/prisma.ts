@@ -1,8 +1,10 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from '../generated/prisma/client.js';
 import { withAccelerate } from '@prisma/extension-accelerate';
+import { config } from './config.js';
 import { logger } from './logger.js';
 
 const basePrisma = new PrismaClient({
+  accelerateUrl: config.DATABASE_URL,
   log:
     process.env.NODE_ENV === 'development'
       ? [
@@ -20,57 +22,58 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// Extend Prisma Client with Accelerate & PostgreSQL 18 Feature Compatibility Layer
+// Prisma Postgres includes Accelerate pooling and global query caching. The
+// prisma+postgres URL must be passed explicitly when using Prisma's JS engine.
 export const prisma = basePrisma
   .$extends(withAccelerate())
   .$extends({
-    name: 'postgres18-compatibility-layer',
-  result: {
-    volunteer: {
-      isAvailable: {
-        needs: { status: true },
-        compute(volunteer) {
-          return volunteer.status === 'AVAILABLE' || (volunteer.status as any) === 'ACTIVE' || (volunteer.status as any) === 'active';
+    name: 'volunteerops-computed-fields',
+    result: {
+      volunteer: {
+        isAvailable: {
+          needs: { status: true },
+          compute(volunteer) {
+            return volunteer.status === 'AVAILABLE' || (volunteer.status as any) === 'ACTIVE' || (volunteer.status as any) === 'active';
+          },
+        },
+        geoCoordinates: {
+          needs: { latitude: true, longitude: true },
+          compute(volunteer) {
+            if (!volunteer.latitude || !volunteer.longitude) return null;
+            return {
+              type: 'Point',
+              coordinates: [parseFloat(volunteer.longitude.toString()), parseFloat(volunteer.latitude.toString())],
+            };
+          },
         },
       },
-      geoCoordinates: {
-        needs: { latitude: true, longitude: true },
-        compute(volunteer) {
-          if (!volunteer.latitude || !volunteer.longitude) return null;
-          return {
-            type: 'Point',
-            coordinates: [parseFloat(volunteer.longitude.toString()), parseFloat(volunteer.latitude.toString())],
-          };
+      event: {
+        durationHours: {
+          needs: { startDate: true, endDate: true },
+          compute(event) {
+            if (!event.endDate || !event.startDate) return null;
+            const diffMs = new Date(event.endDate).getTime() - new Date(event.startDate).getTime();
+            return parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+          },
+        },
+      },
+      location: {
+        geoPoint: {
+          needs: { latitude: true, longitude: true },
+          compute(loc) {
+            return {
+              type: 'Point',
+              coordinates: [parseFloat(loc.longitude.toString()), parseFloat(loc.latitude.toString())],
+            };
+          },
         },
       },
     },
-    event: {
-      durationHours: {
-        needs: { startDate: true, endDate: true },
-        compute(event) {
-          if (!event.endDate || !event.startDate) return null;
-          const diffMs = new Date(event.endDate).getTime() - new Date(event.startDate).getTime();
-          return parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
-        },
-      },
-    },
-    location: {
-      geoPoint: {
-        needs: { latitude: true, longitude: true },
-        compute(loc) {
-          return {
-            type: 'Point',
-            coordinates: [parseFloat(loc.longitude.toString()), parseFloat(loc.latitude.toString())],
-          };
-        },
-      },
-    },
-  },
-});
+  });
 
 export type ExtendedPrismaClient = typeof prisma;
 
-// PostgreSQL 18 Explain Analyzer Helper (analyzes query plans & memory/buffer usage)
+// PostgreSQL explain-plan helper (analyzes query plans and buffer usage).
 export async function explainAnalyzeQuery(sqlQuery: string): Promise<string> {
   try {
     const plan = await (basePrisma as any).$queryRawUnsafe(`EXPLAIN (ANALYZE, BUFFERS) ${sqlQuery}`);
@@ -81,7 +84,7 @@ export async function explainAnalyzeQuery(sqlQuery: string): Promise<string> {
   }
 }
 
-// PostgreSQL 18 OLD & NEW in RETURNING Emulation via Atomic Tx
+// Capture old/new values atomically for the audit log.
 export async function updateWithAudit<T>(
   modelName: string,
   id: number,

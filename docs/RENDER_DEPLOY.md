@@ -1,4 +1,6 @@
-# Deploying the backend to Render
+# Deploying the backend to Render (archived)
+
+> This deployment target has been retired. Do not create a new Render service. Use the [Prisma Compute deployment runbook](../DEPLOYMENT_RUNBOOK.md).
 
 Step-by-step guide for hosting the VolunteerOps backend on [Render](https://render.com). This pairs with the Netlify-hosted frontend; once the backend is live, point the `/api/*` proxy in [netlify.toml](../netlify.toml) at the URL Render gives you.
 

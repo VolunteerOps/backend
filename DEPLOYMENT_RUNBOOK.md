@@ -1,797 +1,437 @@
-# VolunteerOps Enterprise Production Deployment Runbook
-## Comprehensive Guide: Database Deployment on Prisma Console & Backend Deployment on Render Cloud
+# VolunteerOps deployment runbook
 
-**Version:** 2.0.0  
-**Target Backend:** Node.js (v20+) / Express / TypeScript / Prisma ORM  
-**Target Database:** PostgreSQL 17.2 / 18-Compatible (Prisma Postgres / Prisma Console)  
-**Target Hosting:** Render Cloud Web Service (Native Node / Docker Container)  
-**Last Updated:** August 2026  
+Last verified: 7 September 2026
 
----
+This is the source of truth for deploying the VolunteerOps API, its Prisma Postgres database, Accelerate query caching, and Prisma Object Store integration. The production API target is **Prisma Compute**, not Render.
 
-## Table of Contents
+## 1. What this system is
 
-1. [System Architecture & Deployment Topology](#1-system-architecture--deployment-topology)
-2. [Pre-Deployment Checklist & Prerequisites](#2-pre-deployment-checklist--prerequisites)
-3. [Phase 1: Database Deployment on Prisma Console](#3-phase-1-database-deployment-on-prisma-console)
-   - [3.1 Setting Up Prisma Console Workspace](#31-setting-up-prisma-console-workspace)
-   - [3.2 Provisioning Prisma Postgres Instance](#32-provisioning-prisma-postgres-instance)
-   - [3.3 Region Matching & Latency Optimization](#33-region-matching--latency-optimization)
-   - [3.4 Obtaining Database Connection Strings](#34-obtaining-database-connection-strings)
-   - [3.5 Applying Schema Migrations](#35-applying-schema-migrations)
-   - [3.6 Seeding Initial Production Data](#36-seeding-initial-production-data)
-   - [3.7 Verifying Data via Prisma Studio & Data Browser](#37-verifying-data-via-prisma-studio--data-browser)
-4. [Phase 2: Backend Deployment on Render Cloud](#4-phase-2-backend-deployment-on-render-cloud)
-   - [4.1 Deployment Strategy Selection (Blueprint vs Manual)](#41-deployment-strategy-selection-blueprint-vs-manual)
-   - [4.2 Option A: Automated Blueprint Deployment (`render.yaml`)](#42-option-a-automated-blueprint-deployment-renderyaml)
-   - [4.3 Option B: Manual Web Service Setup via Dashboard](#43-option-b-manual-web-service-setup-via-dashboard)
-   - [4.4 Complete Environment Variables Matrix](#44-complete-environment-variables-matrix)
-   - [4.5 Setting Up & Generating Secure JWT Secret (`JWT_SECRET`)](#45-setting-up--generating-secure-jwt-secret-jwt_secret)
-   - [4.6 Health Check & Zero-Downtime Deployment Configuration](#46-health-check--zero-downtime-deployment-configuration)
-   - [4.7 Scaling & Resource Allocation Recommendations](#47-scaling--resource-allocation-recommendations)
-5. [Phase 3: Client & Frontend Integration](#5-phase-3-client--frontend-integration)
-   - [5.1 Web Frontend / Netlify Reverse Proxy Configuration](#51-web-frontend--netlify-reverse-proxy-configuration)
-   - [5.2 Vite / React Direct API Integration](#52-vite--react-direct-api-integration)
-   - [5.3 Kotlin Multiplatform (Mobile/Desktop) Bearer Integration](#53-kotlin-multiplatform-mobiledesktop-bearer-integration)
-6. [Phase 4: Post-Deployment Smoke Testing & Verification](#6-phase-4-post-deployment-smoke-testing--verification)
-   - [6.1 Automated Verification Script (Curl / Bash)](#61-automated-verification-script-curl--bash)
-   - [6.2 Authentication & Cookie Flow Testing](#62-authentication--cookie-flow-testing)
-   - [6.3 CORS & Preflight Testing](#63-cors--preflight-testing)
-7. [Phase 5: Day-2 Operations, Migrations & Maintenance](#7-phase-5-day-2-operations-migrations--maintenance)
-   - [7.1 Executing Future Schema Migrations](#71-executing-future-schema-migrations)
-   - [7.2 Rolling Back Failed Migrations](#72-rolling-back-failed-migrations)
-   - [7.3 Live Log Streaming & Performance Diagnostics](#73-live-log-streaming--performance-diagnostics)
-   - [7.4 Disaster Recovery & Database Backups](#74-disaster-recovery--database-backups)
-8. [Phase 6: Incident Troubleshooting & Resolution Matrix](#8-phase-6-incident-troubleshooting--resolution-matrix)
+VolunteerOps is a disaster-response operations platform:
 
----
+- `backend/` is an Express + TypeScript REST API for authentication, volunteers, missions/events, deployments, field reports, communications, telemetry, notifications, feedback, and operational analytics.
+- `volunteer/` is a Kotlin Multiplatform client for responders.
+- `admin/` is a Kotlin Multiplatform operations console.
+- PostgreSQL stores authoritative operational data. Prisma ORM is the data layer.
+- Prisma Object Store holds binary objects such as avatars, field-report media, PDFs, and attachments. PostgreSQL stores only an object key or application URL.
 
-## 1. System Architecture & Deployment Topology
+The two KMP apps are currently local-state prototypes. Their `shared` modules have no Ktor/HTTP data-source dependency and their repositories operate on in-memory/local snapshots. Connecting them to the deployed backend is a real client-integration step; changing only an API base URL is not enough.
 
-VolunteerOps is architected as an enterprise real-time disaster response and operational field management platform. The production topology decouples the data layer, application runtime, and multi-platform clients:
+## 2. Version decision: Prisma 8 is not PostgreSQL 18
 
-```
-                                  ┌─────────────────────────────────────────────────────────┐
-                                  │                     CLIENT LAYER                        │
-                                  │  ┌───────────────────┐  ┌────────────────────────────┐  │
-                                  │  │ Web Client (React)│  │ Mobile / Desktop App (KMP) │  │
-                                  │  │ Netlify / Vite    │  │ Android, iOS, JVM Desktop  │  │
-                                  │  └─────────┬─────────┘  └─────────────┬──────────────┘  │
-                                  └────────────┼──────────────────────────┼─────────────────┘
-                                               │ HTTPS (Cookies/Proxy)    │ HTTPS (Bearer JWT)
-                                               ▼                          ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    RENDER CLOUD                                           │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────┐  │
-│  │ Web Service: volunteerops-backend                                                   │  │
-│  │ Node.js 20+ Runtime (Native / Docker Container)                                     │  │
-│  │                                                                                     │  │
-│  │ • Port: Dynamic $PORT (Internal: 3001)                                              │  │
-│  │ • Build: npm install && npm run prisma:generate && npm run build && prisma:deploy   │  │
-│  │ • Start: npm start (node dist/index.js)                                             │  │
-│  │ • Healthcheck Endpoint: /api/health                                                 │  │
-│  │ • Security: Helmet, Argon2id, Express Rate Limit, Dual Cookie/Bearer Auth           │  │
-│  └──────────────────────────────────────────┬──────────────────────────────────────────┘  │
-└─────────────────────────────────────────────┼─────────────────────────────────────────────┘
-                                              │ TLS / SSL (Port 5432)
-                                              ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   PRISMA CONSOLE                                          │
-│  ┌─────────────────────────────────────────────────────────────────────────────────────┐  │
-│  │ Database Instance: Prisma Postgres (PostgreSQL 17.2 / 18 Compatibility Layer)       │  │
-│  │                                                                                     │  │
-│  │ • Connection Pooling / Direct TCP Socket with SSL (?sslmode=require)                │  │
-│  │ • Extensions: JSONB, GIN Indexes, PostGIS Geo-coordinates, SKIP LOCKED Queuing      │  │
-│  │ • Migrations: Managed via Prisma Migrate engine (backend/prisma/migrations)         │  │
-│  │ • Data Management: Prisma Studio & Console Data Browser                             │  │
-│  └─────────────────────────────────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────────────────────────────────────┘
-```
+Do not couple the ORM major version to the database server major version.
 
----
+| Component | Verified state | Deployment decision |
+| --- | --- | --- |
+| This repository before this change | Prisma ORM 6.12 | Migrated to Prisma ORM 7.10 first, as required by the supported upgrade path |
+| Production runtime in this repository | Prisma ORM 7.10 + `@prisma/extension-accelerate` 3.0.1 | Supported bridge release; build and live Accelerate query verified |
+| `prisma@latest` on 7 Sep 2026 | `8.0.0-rc.13` in npm; Node `>=22.18.0` | Do not silently put a release candidate into this incident-management backend |
+| Prisma Postgres managed database | PostgreSQL 17 | This is the server version available when hosting the database in Prisma Console |
+| External/self-hosted PostgreSQL | Prisma ORM supports PostgreSQL 18 | Use only if PostgreSQL 18 is a hard requirement and host the database outside Prisma Postgres |
 
-## 2. Pre-Deployment Checklist & Prerequisites
+Prisma's import documentation explicitly says Prisma Postgres runs PostgreSQL 17 and requires a special downgrade-compatible path when importing from PostgreSQL 18 or later. Therefore, a production topology of “Prisma Console database + PostgreSQL 18” is not currently selectable.
 
-Ensure the following accounts, tools, and credentials are in place before starting deployment:
+Official references:
 
-| Requirement | Purpose | Status / Link |
-| :--- | :--- | :--- |
-| **Prisma Data Platform Account** | Provisioning and hosting the managed PostgreSQL database | [console.prisma.io](https://console.prisma.io) |
-| **Render Cloud Account** | Hosting the Node.js / Express backend service | [render.com](https://render.com) |
-| **Git Repository** | Hosted on GitHub, GitLab, or Bitbucket containing `backend/` | Target repo |
-| **Node.js 20.x or higher** | Local testing, compiling TypeScript, and running migrations | Local environment |
-| **OpenSSL CLI** | Generating cryptographically secure JWT secrets | `openssl rand -hex 64` |
-| **Curl or Postman** | Executing API health checks and smoke tests | Verification tooling |
+- [Prisma 7 to Prisma 8 PostgreSQL migration](https://www.prisma.io/docs/guides/upgrade-prisma-orm/postgresql)
+- [Prisma Postgres overview](https://www.prisma.io/docs/postgres)
+- [Importing PostgreSQL into Prisma Postgres](https://www.prisma.io/docs/prisma-postgres/import-from-existing-database-postgresql)
+- [Prisma ORM database version support](https://www.prisma.io/docs/orm/v6/reference/supported-databases)
 
----
+### 2.1 What changed in the backend now
 
-## 3. Phase 1: Database Deployment on Prisma Console
+- Prisma ORM is pinned to `7.10.0`; do not use a floating major in production.
+- The modern `prisma-client` generator writes to `src/generated/prisma`.
+- Connection configuration moved from `schema.prisma` to `prisma.config.ts`.
+- `DATABASE_URL` is the `prisma+postgres://` runtime/Accelerate URL.
+- `DIRECT_URL` is the direct TCP URL used by migrations and other schema operations.
+- `new PrismaClient({ accelerateUrl: DATABASE_URL })` is used as required by the JavaScript engine.
+- Docker now uses Node 22; Prisma 7 requires Node 20.19+, 22.12+, or 24+.
 
-Prisma Console provides serverless managed PostgreSQL (Prisma Postgres) with built-in connection pooling, zero cold-starts, global edge caching, and a web-based Data Browser.
+### 2.2 Optional PostgreSQL 18 development target
 
-### 3.1 Setting Up Prisma Console Workspace
+There was no PostgreSQL container or `17.2` image in this repository to update. If a local/self-hosted database is added, pin its image to `postgres:18` (prefer an exact `18.x` patch in a production infrastructure repository), use a direct `postgresql://` connection, and use `@prisma/adapter-pg` rather than passing that URL as `accelerateUrl`.
 
-1. Navigate to **[console.prisma.io](https://console.prisma.io)** and log in (via GitHub, Google, or Email).
-2. If this is your first time, create a new Workspace (e.g., `VolunteerOps-Production`).
+If production must be PostgreSQL 18, host PostgreSQL 18 with another provider, enable standalone Accelerate for that database in Prisma Console, and keep Compute as the web-service host. That is a different topology from managed Prisma Postgres.
 
-### 3.2 Provisioning Prisma Postgres Instance
+## 3. Prerequisites
 
-1. In your Workspace dashboard, click **New Project** or **Create Database**.
-2. Select **Prisma Postgres** as the database engine.
-3. Configure the database parameters:
-   - **Project Name:** `volunteerops-db-prod`
-   - **Environment:** `Production`
-   - **Database Engine:** `PostgreSQL 17+`
+- A Prisma Data Platform account and workspace.
+- A GitHub repository containing this backend. Prisma Compute deploy-on-push uses GitHub.
+- Node.js 22.18 or newer for the current Prisma 8 platform CLI/Composer workflow. The workstation used during this audit had Node 22.15 and must be upgraded before running those commands.
+- npm 10+.
+- Production frontend origins and a production API domain decision.
+- A password manager or secret manager for one-time database and bucket credentials.
 
-### 3.3 Region Matching & Latency Optimization
-
-> [!IMPORTANT]
-> **Cloud Region Placement:** To minimize network round-trip latency between Render and Prisma Postgres, select the cloud region geographically closest to your Render service:
-> - If Render Web Service is in **US West (Oregon)** $\rightarrow$ Select Prisma Region **`us-west-2` (Oregon)**.
-> - If Render Web Service is in **US East (Ohio / Virginia)** $\rightarrow$ Select Prisma Region **`us-east-1` (N. Virginia)**.
-> - If Render Web Service is in **Europe (Frankfurt)** $\rightarrow$ Select Prisma Region **`eu-central-1` (Frankfurt)**.
-
-### 3.4 Obtaining Database Connection Strings
-
-Once provisioned, Prisma Console provides two connection URIs:
-
-1. **Direct Connection String (Standard TCP PostgreSQL):**
-   ```text
-   postgres://USER:PASSWORD@db.prisma.io:5432/postgres?sslmode=require
-   ```
-2. **Accelerate / Pooled Connection String (Optional for Edge runtimes):**
-   ```text
-   prisma+postgres://accelerate.prisma-data.net/?api_key=...
-   ```
-
-> [!TIP]
-> For the VolunteerOps backend (which runs a persistent Express server on Render with `@prisma/client`), use the **Direct Connection String** with `?sslmode=require`. Save this URI securely — this will become your `DATABASE_URL` environment variable.
-
----
-
-### 3.5 Applying Schema Migrations
-
-The VolunteerOps backend contains a migration history in [`backend/prisma/migrations/20260818000000_enterprise_v2/migration.sql`](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/prisma/migrations/20260818000000_enterprise_v2/migration.sql).
-
-You can apply migrations to the remote Prisma Postgres instance using either **Method A (Local CLI)** or **Method B (Render Build Command)**.
-
-#### Method A: Apply Migrations from Local Terminal
+From `backend/`, establish a clean local baseline:
 
 ```bash
-# 1. Navigate to the backend directory
-cd backend
-
-# 2. Set the production DATABASE_URL temporarily (replace with your Prisma Console URL)
-export DATABASE_URL="postgres://USER:PASSWORD@db.prisma.io:5432/postgres?sslmode=require"
-
-# On Windows PowerShell:
-# $env:DATABASE_URL="postgres://USER:PASSWORD@db.prisma.io:5432/postgres?sslmode=require"
-
-# 3. Deploy pending migrations
-npx prisma migrate deploy
+npm ci
+npm run prisma:generate
+npm run prisma:validate
+npm run build
 ```
 
-Expected output:
-```text
-Prisma schema loaded from prisma/schema.prisma
-Datasource "db": PostgreSQL database "postgres", schema "public" at "db.prisma.io:5432"
+Never run `npm run db:seed` against an existing production database. The current seed script intentionally deletes records before inserting demonstration data.
 
-1 migration found in prisma/migrations
+## 4. Create and connect Prisma Postgres
 
-Applying migration `20260818000000_enterprise_v2`
+### 4.1 Create the project and database
 
-The following migration has been applied:
-  - 20260818000000_enterprise_v2
+Console path:
 
-All migrations have been successfully applied.
-```
+1. Open [Prisma Console](https://console.prisma.io).
+2. Create or select the VolunteerOps workspace.
+3. Create a project named `volunteerops`.
+4. Create a Prisma Postgres database named `volunteerops-production` in the nearest available region to Compute users.
+5. Store both connection values immediately when shown:
+   - accelerated/pooled `prisma+postgres://...` URL for runtime queries;
+   - direct `postgres://...db.prisma.io:5432/postgres?sslmode=require` URL for migrations.
 
----
-
-### 3.6 Seeding Initial Production Data
-
-The database seed ([`backend/prisma/seed.ts`](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/prisma/seed.ts)) populates foundational administrative users, skills, locations, mission categories, sample responders, and initial triage dispatches.
-
-#### Seeding Execution
+CLI alternative (verify current help before automation):
 
 ```bash
-# From the backend directory with DATABASE_URL set to your Prisma Postgres database:
-npm run db:seed
+npx prisma@latest auth login
+npx prisma@latest auth whoami
+npx prisma@latest project create volunteerops
+npx prisma@latest postgres create volunteerops-production
 ```
 
-#### Pre-Configured Seed Accounts
+Connection strings and access-key secrets are one-time values. Do not paste them into commits, tickets, logs, screenshots, or mobile configuration.
 
-Once seeded, the following credentials are ready for operational testing:
+### 4.2 Local environment
 
-| Email | Role | Default Password | Access Level |
-| :--- | :--- | :--- | :--- |
-| `admin@volunteerops.org` | `SUPER_ADMIN` | `AdminPass@2026!` | Complete administrative and system access |
-| `sarah.chen@fema.gov` | `COORDINATOR` | `changeme123` | Mission dispatch, event and team leadership |
-| `m.rodriguez@redcross.org` | `COORDINATOR` | `changeme123` | Logistics and supply chain coordination |
-| `emma.johnson@teamrubicon.org` | `TEAM_LEAD` | `changeme123` | Search & rescue field team deployment |
-| `tech@volunteerops.org` | `SUPER_ADMIN` | `changeme123` | System architecture, audit logs, API telemetry |
-| `volunteer@volunteerops.org` | `VOLUNTEER` | `changeme123` | Field medic responder access |
+Create `.env` from `.env.example` and replace every placeholder:
 
-> [!WARNING]
-> **Data Reset Warning:** The seed script executes `deleteMany()` on relational tables before inserting seed records. Do not run `npm run db:seed` on an active database containing real operational incident data.
-
----
-
-### 3.7 Verifying Data via Prisma Studio & Data Browser
-
-1. **Prisma Console Web Data Browser:**
-   - Open your project in [console.prisma.io](https://console.prisma.io).
-   - Click **Data Browser** in the left sidebar.
-   - Inspect tables: `users`, `volunteers`, `skills`, `locations`, `events`, `deployments`, `field_reports`.
-
-2. **Local Prisma Studio:**
-   ```bash
-   DATABASE_URL="postgres://..." npx prisma studio
-   ```
-   - Opens local GUI at `http://localhost:5555` connected to the remote database.
-
----
-
-## 4. Phase 2: Backend Deployment on Render Cloud
-
-Render provides fully managed hosting for Node.js web services with automated SSL certificates, zero-downtime rolling deploys, Git integration, and health check monitoring.
-
-### 4.1 Deployment Strategy Selection (Blueprint vs Manual)
-
-| Strategy | When to Choose | Advantages |
-| :--- | :--- | :--- |
-| **Option A: Blueprint (`render.yaml`)** | Preferred for GitOps, version-controlled infrastructure, and repeatable multi-environment setups | Infrastructure as Code, zero manual UI configuration errors |
-| **Option B: Manual Dashboard Setup** | Preferred if you want granular UI control without committing root `render.yaml` | Quick setup, step-by-step visibility |
-
----
-
-### 4.2 Option A: Automated Blueprint Deployment (`render.yaml`)
-
-The repository includes a production blueprint at [`backend/render.yaml`](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/render.yaml).
-
-```yaml
-services:
-  - type: web
-    name: volunteerops-backend
-    runtime: node
-    plan: starter
-    region: oregon
-    buildCommand: npm install && npm run prisma:generate && npm run build && npx prisma migrate deploy
-    startCommand: npm start
-    healthCheckPath: /api/health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        sync: false
-      - key: JWT_SECRET
-        generateValue: true
-      - key: JWT_EXPIRES_IN
-        value: 7d
-      - key: COOKIE_SECURE
-        value: "true"
-      - key: CORS_ORIGIN
-        value: "https://volunteerops.org,https://volunteerops.netlify.app"
-      - key: LOG_LEVEL
-        value: "info"
-```
-
-#### Blueprint Deployment Steps:
-
-1. Copy `backend/render.yaml` to the root directory of your repository if deploying from repository root, or reference the repo directly.
-2. Sign in to **[dashboard.render.com](https://dashboard.render.com)**.
-3. Click **New +** $\rightarrow$ **Blueprint**.
-4. Select your connected Git repository.
-5. Render detects `render.yaml` and presents the service configuration.
-6. When prompted for unsynced variables:
-   - **`DATABASE_URL`**: Paste your Prisma Console PostgreSQL connection URI.
-   - **`CORS_ORIGIN`**: Enter your production frontend domain(s) (comma-separated).
-7. Click **Apply**. Render will automatically provision the service, install dependencies, run migrations, compile TypeScript, and boot the server.
-
----
-
-### 4.3 Option B: Manual Web Service Setup via Dashboard
-
-Follow these step-by-step instructions in the Render Web Console:
-
-#### Step 1: Create New Web Service
-1. In the Render Dashboard, click **New +** $\rightarrow$ **Web Service**.
-2. Connect your GitHub / GitLab repository containing VolunteerOps.
-
-#### Step 2: Configure Service Parameters
-
-| Configuration Field | Exact Value | Explanation |
-| :--- | :--- | :--- |
-| **Name** | `volunteerops-backend` | Unique identifier for your service on `*.onrender.com` |
-| **Region** | `Oregon (US West)` *(or closest to DB)* | Match the Prisma Postgres cloud region |
-| **Branch** | `main` | Production deployment branch |
-| **Root Directory** | `backend` | **CRITICAL:** Tells Render to build from within `backend/` |
-| **Runtime** | `Node` | Native Node.js execution environment |
-| **Build Command** | `npm install && npm run prisma:generate && npm run build && npx prisma migrate deploy` | Installs deps, generates Prisma client, compiles TS, runs migrations |
-| **Start Command** | `npm start` | Executes `node dist/index.js` |
-| **Instance Type / Plan** | `Starter ($7/mo)` or `Free` | *Starter recommended to avoid 15-min idle sleep* |
-
----
-
-### 4.4 Complete Environment Variables Matrix
-
-Under the **Environment** section of your Render Web Service, configure the following variables:
-
-```env
-# ==============================================================================
-# VOLUNTEEROPS BACKEND PRODUCTION ENVIRONMENT CONFIGURATION
-# ==============================================================================
-
-# Database Connection (from Prisma Console)
-DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=..."
-DIRECT_URL="postgres://USER:PASSWORD@db.prisma.io:5432/postgres?sslmode=require"
-
-# Dual-Token JWT Authentication Security (Generate 64-byte hex: openssl rand -hex 64)
-JWT_SECRET="76766f064424f01dc76f8dac64245980bce8315547724f91806b8f9eaf942aad3012cf33774a423ec4b6ddb9674bfdc3bb2f22bdbcac4e7352976a62adfe2a01"
-JWT_REFRESH_SECRET="34ad6477ecf691a08292496075881c492cc096f7e749ff3692368d561986c2a4c2b1f6b59341fbf5532be3e1a440babc78d8af6e211c9b229d052f64c1489380"
+```dotenv
+DATABASE_URL="prisma+postgres://..."
+DIRECT_URL="postgres://...@db.prisma.io:5432/postgres?sslmode=require"
+JWT_SECRET="<new random 64-byte hex value>"
+JWT_REFRESH_SECRET="<different random 64-byte hex value>"
 JWT_ACCESS_EXPIRES_IN="15m"
 JWT_REFRESH_EXPIRES_IN="7d"
-JWT_EXPIRES_IN="15m"
-
-# Cookie Security Settings
 COOKIE_SECURE="true"
 COOKIE_DOMAIN=""
-
-# Cross-Origin Resource Sharing (Comma-separated allowed origins)
-CORS_ORIGIN="https://volunteerops.org,https://volunteerops.netlify.app,https://volunteerops-admin.netlify.app"
-
-# Application Runtime Configuration
+CORS_ORIGIN="https://volunteer.example,https://admin.example"
 NODE_ENV="production"
 LOG_LEVEL="info"
 ```
 
-#### Detailed Variable Reference
-
-| Variable | Type / Default | Required | Description & Security Best Practices |
-| :--- | :--- | :--- | :--- |
-| `DATABASE_URL` | `string` | **YES** | Prisma Accelerate or pooled connection URI with `?sslmode=require`. |
-| `DIRECT_URL` | `string` | **YES** | Direct TCP PostgreSQL URI for migrations (`npx prisma migrate deploy`). |
-| `JWT_SECRET` | `string` (min 16 chars) | **YES** | Signing secret for short-lived access tokens (15m). Generate via `openssl rand -hex 64`. |
-| `JWT_REFRESH_SECRET` | `string` (min 16 chars) | **YES** | Cryptographic key for signing long-lived refresh tokens (7d). |
-| `JWT_ACCESS_EXPIRES_IN` | `string` (`15m`) | NO | Access token lifespan. Short lifespan limits exposure from compromised tokens. |
-| `JWT_REFRESH_EXPIRES_IN` | `string` (`7d`) | NO | Refresh token lifespan. Used to silently re-authenticate without user disruption. |
-| `COOKIE_SECURE` | `boolean` (`true`) | **YES** | When `true`, auth cookies (`vops_access_token`, `vops_refresh_token`) transmit exclusively over HTTPS with `SameSite=None` or `SameSite=Lax`. |
-| `COOKIE_DOMAIN` | `string` (`""`) | NO | Optional root domain (e.g. `.volunteerops.org`) for cross-subdomain auth. |
-| `CORS_ORIGIN` | `string` | **YES** | Comma-separated list of whitelisted frontend origins. In production, never use `*`. |
-| `NODE_ENV` | `production` | **YES** | Optimizes Express routing, disables verbose query logs, and activates production error formatting. |
-| `PORT` | Auto-injected by Render | NO | **Do not manually hardcode.** Render injects `$PORT` (e.g. 10000), and [`backend/src/core/config.ts`](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/src/core/config.ts) binds to `process.env.PORT`. |
-
----
-
-### 4.5 Setting Up Dual-Token Security & Cryptographic Secrets
-
-The backend implements the **Dual-Token Flow (Short-Lived Access Token + Revocable Refresh Token with Refresh Token Rotation)**:
-- **Access Tokens (`15m`):** Signed with `JWT_SECRET`. Transmitted in API headers or `vops_access_token` cookie. If intercepted, valid for at most 15 minutes.
-- **Refresh Tokens (`7d`):** Signed with `JWT_REFRESH_SECRET`. Stored as SHA-256 digests in PostgreSQL (`refresh_tokens` table) and transmitted via scoped `vops_refresh_token` httpOnly cookie (path: `/api/auth`) or JSON body.
-- **Refresh Token Rotation (RTR):** Every time a refresh token is used, it is revoked and replaced with a brand new token pair in the same token family.
-- **Replay Attack Detection:** If an attacker attempts to reuse an old revoked refresh token, the backend detects the compromise and immediately revokes the **entire token family**, forcing full re-authentication.
-
-#### How to Generate Cryptographic Secrets (64-byte Hex)
+Generate each JWT secret independently:
 
 ```bash
-# Option 1: OpenSSL (Linux / macOS / Git Bash)
-openssl rand -hex 64
-
-# Option 2: Node.js (Any OS)
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-
-# Option 3: PowerShell (Windows)
-[System.BitConverter]::ToString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(64)).Replace("-","").ToLower()
 ```
 
----
+### 4.3 Apply the existing schema
 
-### 4.6 Health Check & Zero-Downtime Deployment Configuration
-
-Render uses active HTTP polling to ensure the new container is operational before terminating the old container.
-
-1. In Render Dashboard, go to **Settings** $\rightarrow$ **Health Check Path**.
-2. Enter: `/api/health`.
-3. The server responds with `200 OK`:
-   ```json
-   {
-     "ok": true,
-     "status": "OPERATIONAL",
-     "service": "VolunteerOps-Enterprise-Backend",
-     "version": "2.0.0",
-     "timestamp": "2026-08-19T14:00:00.000Z",
-     "uptime_seconds": 128.45
-   }
-   ```
-
----
-
-### 4.7 Scaling & Resource Allocation Recommendations
-
-| Traffic Level | Monthly Active Users | Recommended Render Plan | Prisma Postgres Tier | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| **Development / Staging** | < 100 | **Free Tier** | Free Serverless | Spins down after 15 min inactivity (~30s cold start). |
-| **Small Production (Active Drills)** | 100 – 2,500 | **Starter ($7/mo)** | Starter | Always-on, 512 MB RAM, 0.5 CPU, 100 concurrent connections. |
-| **Enterprise / Crisis Operations** | 2,500 – 50,000+ | **Standard ($25/mo) / Pro ($85/mo)** | Pro / Dedicated | 2GB–8GB RAM, auto-scaling enabled (2–5 instances), high connection pooling. |
-
----
-
-## 5. Phase 3: Client & Frontend Integration (Silent Background Reauthentication)
-
-### 5.1 Web Frontend / Netlify Reverse Proxy Configuration
-
-If your web frontend is deployed on Netlify, configure a reverse proxy in `netlify.toml` at the frontend root to avoid CORS and third-party cookie restrictions:
-
-```toml
-# netlify.toml (Frontend Root)
-[[redirects]]
-  from = "/api/*"
-  to = "https://volunteerops-backend.onrender.com/api/:splat"
-  status = 200
-  force = true
-  headers = {X-From = "Netlify-Proxy"}
-```
-
----
-
-### 5.2 React / Vite Automatic Silent Refresh Interceptor (Fetch / Axios)
-
-When an access token expires (15 minutes), the backend returns `401 Unauthorized` with error code `TOKEN_EXPIRED`. The client interceptor catches this error, calls `POST /api/auth/refresh` silently in the background, and retries the original request seamlessly without kicking the user out.
-
-```typescript
-// frontend/src/lib/apiClient.ts
-const API_BASE = import.meta.env.VITE_API_URL || 'https://volunteerops-backend.onrender.com/api';
-
-let isRefreshing = false;
-let failedQueue: Array<{ resolve: (val?: any) => void; reject: (err: any) => void }> = [];
-
-const processQueue = (error: any = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) prom.reject(error);
-    else prom.resolve();
-  });
-  failedQueue = [];
-};
-
-export async function apiRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE}${endpoint}`;
-  const config: RequestInit = {
-    ...options,
-    credentials: 'include', // Automatically sends vops_access_token and vops_refresh_token
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  };
-
-  let response = await fetch(url, config);
-
-  // If access token expired, trigger silent background reauthentication
-  if (response.status === 401 && endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
-    const data = await response.clone().json().catch(() => ({}));
-    
-    if (data.code === 'TOKEN_EXPIRED' || data.error === 'TOKEN_EXPIRED' || !isRefreshing) {
-      if (isRefreshing) {
-        // Queue parallel requests while refresh is in flight
-        return new Promise<void>((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then(() => apiRequest<T>(endpoint, options));
-      }
-
-      isRefreshing = true;
-
-      try {
-        const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        });
-
-        if (!refreshRes.ok) {
-          throw new Error('Session expired');
-        }
-
-        processQueue(null);
-        // Retry original request with freshly rotated cookies
-        response = await fetch(url, config);
-      } catch (refreshErr) {
-        processQueue(refreshErr);
-        window.location.href = '/login?expired=true';
-        throw refreshErr;
-      } finally {
-        isRefreshing = false;
-      }
-    }
-  }
-
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.message || `HTTP ${response.status}`);
-  }
-
-  return response.json();
-}
-```
-
----
-
-### 5.3 Kotlin Multiplatform (Mobile/Desktop) Dual-Token Refresh Integration
-
-For Android, iOS, and JVM desktop clients using Ktor HTTP client:
-
-```kotlin
-// Ktor HTTP Client with Automatic Token Refresh
-val client = HttpClient(CIO) {
-    install(ContentNegotiation) { json() }
-    install(Auth) {
-        bearer {
-            loadTokens {
-                BearerTokens(
-                    accessToken = secureStorage.getAccessToken() ?: "",
-                    refreshToken = secureStorage.getRefreshToken() ?: ""
-                )
-            }
-            refreshTokens {
-                val refreshResponse = client.post("https://volunteerops-backend.onrender.com/api/auth/refresh") {
-                    setBody(mapOf("refreshToken" to oldTokens?.refreshToken))
-                    contentType(ContentType.Application.Json)
-                }.body<TokenResponse>()
-
-                secureStorage.saveTokens(refreshResponse.accessToken, refreshResponse.refreshToken)
-
-                BearerTokens(
-                    accessToken = refreshResponse.accessToken,
-                    refreshToken = refreshResponse.refreshToken
-                )
-            }
-        }
-    }
-}
-```
-
----
-
-## 6. Phase 4: Post-Deployment Smoke Testing & Verification
-
-Execute the following verification script against your deployed Render service URL (`https://<your-service>.onrender.com`).
-
-### 6.1 Automated Verification Script (Bash / Curl)
-
-Save as `test_deploy.sh` and execute:
+The current application uses Prisma 7 migrations. Run schema changes separately from a Compute deploy:
 
 ```bash
-#!/usr/bin/env bash
-set -e
-
-BASE_URL="https://volunteerops-backend.onrender.com"
-
-echo "=========================================================="
-echo "  VolunteerOps Production API Verification Suite"
-echo "  Target: $BASE_URL"
-echo "=========================================================="
-
-# 1. Healthcheck Test
-echo -n "1. Checking System Health (/api/health)... "
-HEALTH_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" "$BASE_URL/api/health")
-STATUS_CODE=$(echo "$HEALTH_RESP" | grep "HTTP_STATUS" | cut -d':' -f2)
-
-if [ "$STATUS_CODE" -eq 200 ]; then
-  echo "✅ PASSED (200 OK)"
-else
-  echo "❌ FAILED (Status: $STATUS_CODE)"
-  echo "$HEALTH_RESP"
-  exit 1
-fi
-
-# 2. Super Admin Authentication Test
-echo -n "2. Authenticating as Super Admin (/api/auth/login)... "
-LOGIN_RESP=$(curl -s -c cookies.txt -X POST "$BASE_URL/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@volunteerops.org","password":"AdminPass@2026!"}')
-
-TOKEN=$(echo "$LOGIN_RESP" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
-
-if [ -n "$TOKEN" ]; then
-  echo "✅ PASSED (JWT Token Issued)"
-else
-  echo "❌ FAILED"
-  echo "$LOGIN_RESP"
-  exit 1
-fi
-
-# 3. Authenticated Profile Test (/api/auth/me)
-echo -n "3. Verifying Authenticated Session (/api/auth/me)... "
-ME_RESP=$(curl -s -b cookies.txt -H "Authorization: Bearer $TOKEN" "$BASE_URL/api/auth/me")
-
-if echo "$ME_RESP" | grep -q "admin@volunteerops.org"; then
-  echo "✅ PASSED"
-else
-  echo "❌ FAILED"
-  echo "$ME_RESP"
-  exit 1
-fi
-
-# 4. Fetch Volunteers Roster
-echo -n "4. Querying Volunteers Module (/api/volunteers)... "
-VOL_RESP=$(curl -s -H "Authorization: Bearer $TOKEN" "$BASE_URL/api/volunteers?page=1&limit=5")
-
-if echo "$VOL_RESP" | grep -q '"success":true'; then
-  echo "✅ PASSED"
-else
-  echo "❌ FAILED"
-  echo "$VOL_RESP"
-  exit 1
-fi
-
-# 5. Fetch Active Events
-echo -n "5. Querying Events & Missions Module (/api/events)... "
-EVENT_RESP=$(curl -s -H "Authorization: Bearer $TOKEN" "$BASE_URL/api/events?page=1&limit=5")
-
-if echo "$EVENT_RESP" | grep -q '"success":true'; then
-  echo "✅ PASSED"
-else
-  echo "❌ FAILED"
-  echo "$EVENT_RESP"
-  exit 1
-fi
-
-# 6. Public Contact Ingestion Test
-echo -n "6. Testing Public Contact Form Ingestion (/api/contact)... "
-CONTACT_RESP=$(curl -s -X POST "$BASE_URL/api/contact" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "full_name": "Verification Bot",
-    "email": "smoke-test@volunteerops.org",
-    "message": "Automated verification ping post-deployment."
-  }')
-
-if echo "$CONTACT_RESP" | grep -q '"success":true'; then
-  echo "✅ PASSED"
-else
-  echo "❌ FAILED"
-  echo "$CONTACT_RESP"
-  exit 1
-fi
-
-rm -f cookies.txt
-echo "=========================================================="
-echo "🎉 ALL PRODUCTION DEPLOYMENT TESTS PASSED SUCCESSFULLY!"
-echo "=========================================================="
+npm run prisma:generate
+npm run prisma:deploy
+npm run prisma:validate
 ```
 
----
-
-### 6.2 Authentication & Cookie Flow Testing
-
-To verify cross-origin cookie behavior (`vops_session`):
+Check migration state:
 
 ```bash
-curl -i -X POST "https://volunteerops-backend.onrender.com/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -H "Origin: https://volunteerops.org" \
-  -d '{"email":"admin@volunteerops.org","password":"AdminPass@2026!"}'
+npx prisma migrate status
 ```
 
-Verify that the response includes:
-1. `Set-Cookie: vops_session=eyJhbGci...; Path=/; HttpOnly; Secure; SameSite=None`
-2. `Access-Control-Allow-Origin: https://volunteerops.org`
-3. `Access-Control-Allow-Credentials: true`
+Open Studio from Prisma Console to verify the tables. Do not seed production unless the database is new, empty, explicitly intended for demo data, and deletion of its contents is acceptable.
 
----
+## 5. Accelerate and query caching
 
-### 6.3 CORS & Preflight Testing
+Prisma Postgres includes Accelerate connection pooling and global query caching; there is no second cache service to provision. The backend enables the extension in `src/core/prisma.ts` and already applies `cacheStrategy` to low-volatility skills and location reads.
 
-Verify `OPTIONS` preflight handling:
+Do cache:
+
+- skill catalog and categories;
+- relatively static locations;
+- expensive aggregate dashboards that tolerate documented staleness.
+
+Do not cache:
+
+- authentication, authorization, or refresh-token queries;
+- live assignments and responder status;
+- distress telemetry;
+- writes or reads that must immediately reflect a write.
+
+Verify the configured connection and cache:
 
 ```bash
-curl -i -X OPTIONS "https://volunteerops-backend.onrender.com/api/volunteers" \
-  -H "Origin: https://volunteerops.org" \
-  -H "Access-Control-Request-Method: GET" \
-  -H "Access-Control-Request-Headers: Authorization, Content-Type"
+npm run accelerate:test
 ```
 
-Expected HTTP Status: `204 No Content` or `200 OK` with allowed origin headers.
+A successful run performs the same read twice. Expect the second request to be substantially faster after the cache fill. During this implementation the first read took about 5.1 seconds (cold database/cache) and the repeated read took 201 ms.
 
----
+Reference: [Prisma Postgres query caching](https://www.prisma.io/docs/postgres/database/caching).
 
-## 7. Phase 5: Day-2 Operations, Migrations & Maintenance
+## 6. Create Prisma Object Store buckets
 
-### 7.1 Executing Future Schema Migrations
+Use at least two buckets:
 
-When models in [`backend/prisma/schema.prisma`](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/prisma/schema.prisma) change:
+- `volunteerops-production-uploads`, attached to the default/production branch;
+- `volunteerops-preview-uploads`, attached to the preview branch or preview role.
 
-1. **Develop and test locally:**
-   ```bash
-   cd backend
-   npx prisma migrate dev --name add_responder_telemetry_fields
-   ```
-2. **Commit the new migration folder:**
-   ```bash
-   git add prisma/schema.prisma prisma/migrations/
-   git commit -m "feat(db): add responder telemetry fields"
-   git push origin main
-   ```
-3. **Automated Deployment:**
-   Render triggers a new build. Because the build command includes `npx prisma migrate deploy`, the migration runs automatically before the new application process spins up.
+In Prisma Console:
 
----
+1. Open the VolunteerOps project and Object Store.
+2. Create the production bucket.
+3. Mint a `read_write` access key for the backend service.
+4. Save `endpoint`, `bucketName`, `accessKeyId`, and `secretAccessKey` immediately. The secret is shown once.
+5. Repeat for preview; never let preview deployments write into the production bucket.
 
-### 7.2 Rolling Back Failed Migrations
+Set these only on the Compute backend service:
 
-If a migration fails due to a locked table or constraint violation:
+```dotenv
+S3_ENDPOINT="<bucket endpoint>"
+S3_BUCKET="volunteerops-production-uploads"
+S3_ACCESS_KEY_ID="<bucket key id>"
+S3_SECRET_ACCESS_KEY="<one-time bucket secret>"
+S3_REGION="auto"
+```
 
-1. Open Render Dashboard $\rightarrow$ Web Service $\rightarrow$ **Shell**.
-2. Check migration status:
-   ```bash
-   npx prisma migrate status
-   ```
-3. Mark rolled back if manually reverted:
-   ```bash
-   npx prisma migrate resolve --rolled-back "20260818000000_enterprise_v2"
-   ```
-4. Or mark as applied if resolved manually in SQL:
-   ```bash
-   npx prisma migrate resolve --applied "20260818000000_enterprise_v2"
-   ```
+Equivalent platform commands:
 
----
+```bash
+npx prisma@latest project env add S3_ENDPOINT=<endpoint> --role production
+npx prisma@latest project env add S3_BUCKET=<bucketName> --role production
+npx prisma@latest project env add S3_ACCESS_KEY_ID=<accessKeyId> --role production
+npx prisma@latest project env add S3_SECRET_ACCESS_KEY=<secretAccessKey> --role production
+```
 
-### 7.3 Live Log Streaming & Performance Diagnostics
+Repeat with `--role preview` and preview credentials.
 
-1. **Log Streaming:** View real-time output in the Render **Logs** tab. Structured JSON and formatted logs from [`backend/src/core/logger.ts`](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/src/core/logger.ts) are streamed instantly.
-2. **Explain Analyze Optimization:**
-   The backend includes built-in PostgreSQL 18 explain plan profiling ([`backend/src/core/prisma.ts`](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/src/core/prisma.ts)):
-   ```typescript
-   import { explainAnalyzeQuery } from './core/prisma.js';
-   const plan = await explainAnalyzeQuery('SELECT * FROM deployments WHERE status = \'ASSIGNED\'');
-   ```
+Deleting a bucket deletes all objects and keys even when non-empty. Treat deletion as destructive and verify the exact bucket id first.
 
----
+Reference: [Prisma Compute Object Storage](https://www.prisma.io/docs/compute/object-storage).
 
-### 7.4 Disaster Recovery & Database Backups
+### 6.1 Backend storage API implemented here
 
-- **Prisma Postgres Backups:** Automated continuous backups with Point-in-Time Recovery (PITR) are managed through the Prisma Console dashboard under **Settings** $\rightarrow$ **Backups**.
-- **Manual Logical Export (pg_dump):**
-  ```bash
-  pg_dump "postgres://USER:PASSWORD@db.prisma.io:5432/postgres?sslmode=require" \
-    --format=custom --file=volunteerops_backup_$(date +%Y%m%d).dump
-  ```
-- **Logical Restore (pg_restore):**
-  ```bash
-  pg_restore --clean --no-owner --dbname="postgres://..." volunteerops_backup_20260819.dump
-  ```
+The backend is the credential boundary:
 
----
+- `POST /api/storage/upload-url` requires a valid access token and returns a five-minute presigned PUT URL plus an `object_key`.
+- `GET /api/storage/download-url?key=...` requires authentication and returns a five-minute presigned GET URL.
+- Volunteers can sign only their own object prefix. Team leads/coordinators/admins can read operational objects.
+- Allowed categories are `avatars`, `field-reports`, and `attachments`.
+- Allowed content types are JPEG, PNG, WebP, PDF, CSV, text, and generic binary; the requested object size is capped at 10 MiB.
 
-## 8. Phase 6: Incident Troubleshooting & Resolution Matrix
+Example upload flow:
 
-| Symptom / Error Message | Root Cause | Exact Resolution |
-| :--- | :--- | :--- |
-| **`P1001: Can't reach database server at db.prisma.io:5432`** | Network timeout, incorrect connection string, or missing `?sslmode=require`. | 1. Verify `DATABASE_URL` in Render environment settings.<br>2. Ensure `?sslmode=require` is appended to the URI.<br>3. Check Prisma Console status to ensure the instance is active. |
-| **`P3009: migrate found failed migrations in the target database`** | A prior migration threw an error midway and left a lock in `_prisma_migrations`. | Run `npx prisma migrate resolve --rolled-back <migration_name>` in the Render Shell, fix the schema conflict, and redeploy. |
-| **`Invalid environment variables configuration (ZodError)`** | Missing or malformed required environment variables (e.g. `JWT_SECRET` < 16 chars). | Check Render build/runtime logs. Ensure `JWT_SECRET` has $\ge 16$ characters and `DATABASE_URL` is populated. |
-| **`Cannot find module '@prisma/client'`** | `prisma generate` was omitted during the build phase. | Update Render **Build Command** to include `npm run prisma:generate` before `npm run build`. |
-| **`Login works but /api/auth/me returns 401 Unauthorized`** | Cookie security mismatch (`COOKIE_SECURE=true` accessed over plain HTTP, or missing CORS credentials). | 1. Ensure `COOKIE_SECURE=true` in production (HTTPS).<br>2. Verify frontend sends `credentials: 'include'`.<br>3. Verify `CORS_ORIGIN` includes the exact frontend origin protocol and port. |
-| **`First API request takes 30-50 seconds to respond`** | Render Free Tier service or Prisma Postgres free tier spinning up from idle sleep. | Upgrade Render Web Service to the **Starter Plan ($7/mo)** to keep the runtime warm 24/7. |
-| **`502 Bad Gateway / Exited with code 1 on Render`** | The application failed to bind to `$PORT` or threw an uncaught startup exception. | 1. Ensure `PORT` is not hardcoded in `.env` files committed to Git.<br>2. Confirm [`src/core/config.ts`](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/src/core/config.ts) resolves `process.env.PORT`. |
-| **`argon2 native compilation error during npm install`** | Missing build tools (`node-gyp` / Python) in custom base images. | Use standard Render `Node` native runtime (Node 20+), which contains prebuilt binary compatibility for argon2. |
+```bash
+curl -X POST "https://<api-host>/api/storage/upload-url" \
+  -H "Authorization: Bearer <access-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"file_name":"assessment.jpg","content_type":"image/jpeg","byte_size":123456,"category":"field-reports"}'
 
----
+curl -X PUT "<upload_url from response>" \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @assessment.jpg
+```
 
-## 9. Runbook Sign-Off & Verification Checklist
+Persist `object_key`, not the expiring presigned URL. The field-report validator accepts both legacy HTTPS URLs and VolunteerOps object keys. Request a fresh download URL whenever media is viewed.
 
-Before opening the platform to field responders and emergency operations staff, check off the following milestones:
+Do not put `S3_*`, `PRISMA_SERVICE_TOKEN`, `DATABASE_URL`, or `DIRECT_URL` in Android resources, iOS plists, JavaScript bundles, desktop properties, or either KMP repository.
 
-- [ ] Prisma Postgres instance provisioned in matching cloud region.
-- [ ] Direct connection URI with SSL (`?sslmode=require`) configured.
-- [ ] Database schema migrations deployed (`20260818000000_enterprise_v2`).
-- [ ] Seed data populated and admin credentials confirmed.
-- [ ] Render Web Service created with `Root Directory: backend`.
-- [ ] Environment variables configured (`DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `NODE_ENV`).
-- [ ] Healthcheck endpoint `/api/health` returning 200 OK.
-- [ ] Automated smoke test script (`test_deploy.sh`) executed with 100% pass rate.
-- [ ] Netlify/Web proxy or KMP client endpoint updated to production URL.
-- [ ] Super Admin password rotated from default seed value.
+## 7. Connect the volunteer and admin KMP apps
 
----
-*VolunteerOps Architecture & Operations Team — Mission-Critical Field Management Platform*
+Both clients need an HTTP-backed repository layer before they can use database records or storage.
+
+### 7.1 Shared networking work
+
+In each app's `shared/build.gradle.kts`:
+
+1. Add Ktor client core, content negotiation, Kotlin serialization, logging (development only), and auth to `commonMain`.
+2. Add platform engines: OkHttp or Android engine for Android, Darwin for iOS, CIO for JVM, and JS/Wasm client support for browsers.
+3. Add a non-secret API base URL configuration per build target.
+4. Replace or wrap `VolunteerRepository` / `AdminRepository` with remote data sources. Keep local snapshots only as an explicit offline cache.
+5. Store access and refresh tokens in platform secure storage, not the existing plain local snapshot.
+
+### 7.2 Upload sequence
+
+1. Authenticate against `POST /api/auth/login` and retain the access token securely.
+2. Select or capture a file and validate its MIME type and local size.
+3. Call `POST /api/storage/upload-url` with filename, content type, byte size, and category.
+4. PUT raw bytes to `upload_url` using the exact returned `Content-Type` header. Do not add the API bearer token to this S3 request.
+5. Save the returned `object_key` through the relevant API record:
+   - volunteer/avatar workflow: avatar record field;
+   - field report: `media_url` or `file_upload_url`;
+   - general document: the future attachment metadata endpoint.
+6. To display/download, call `GET /api/storage/download-url?key=<encoded-key>` and use the returned URL before it expires.
+
+For browser/Wasm targets, configure the bucket's permitted origins/methods if Prisma Console exposes bucket CORS controls. If direct PUT is blocked by browser policy, add a backend-proxied upload endpoint rather than exposing credentials.
+
+### 7.3 Role behavior
+
+- Volunteer app: upload to its own `/<userId>/` prefix and request its own objects.
+- Admin app: coordinators/team leads may request field-report objects across volunteer prefixes.
+- The mobile app must not decide authorization; the backend remains authoritative.
+
+## 8. Host `volunteerops-backend` on Prisma Compute
+
+The old Render guide remains only as migration history and the active `render.yaml` blueprint has been removed. Do not create a Render service or put Render URLs into clients.
+
+Prisma Compute is GA, but the current existing-Express-app CLI path uses Prisma Composer, which the Prisma changelog describes as Early Access. Test a preview stage before promoting this emergency-operations API.
+
+### 8.1 Runtime readiness
+
+The service must:
+
+- build to a self-contained Node/Bun entry file;
+- listen on the port supplied by Compute/Composer;
+- bind to `0.0.0.0`;
+- receive secrets as service inputs/environment bindings;
+- expose `GET /api/health` returning 200;
+- run migrations separately before production traffic switches.
+
+Express is not in the first-class auto-detected framework list. Follow the official existing Node app path instead of pretending it is NestJS or Hono.
+
+### 8.2 Port to Composer
+
+After upgrading local Node to 22.18+:
+
+```bash
+npx skills add prisma/composer
+npm install @prisma/composer @prisma/composer-prisma-cloud
+npx prisma@latest skills sync
+```
+
+Then follow [Port an existing app](https://www.prisma.io/docs/composer/porting-an-app):
+
+1. Add `service.ts` using `compute()` and the Node build adapter, targeting the self-contained server bundle.
+2. Add `module.ts` to provision the service and its Postgres dependency.
+3. Add `prisma-composer.config.ts` with Prisma Cloud state and the Node build extension.
+4. Replace the server's `process.env.PORT` access with `service.port()` and bind `0.0.0.0`.
+5. Model JWT, CORS, database, and S3 values as `envSecret`/`envParam` service inputs; do not commit values.
+6. Build and run locally:
+
+```bash
+npm run build
+npx prisma@latest dev module.ts
+curl -i http://<printed-local-url>/api/health
+```
+
+Do not deploy until TypeScript, health, auth, database, and storage tests pass locally.
+
+### 8.3 Create/link project and GitHub
+
+```bash
+npx prisma@latest auth login
+npx prisma@latest auth whoami
+npx prisma@latest project link volunteerops
+npx prisma@latest project show
+npx prisma@latest git connect
+```
+
+The default Git branch deploys to production; other branches are isolated previews. Configure preview database and bucket credentials before pushing a preview branch.
+
+For CI, use workspace-scoped `PRISMA_SERVICE_TOKEN` and explicit workspace/project targets. Never print the token. Prefer `--json --no-interactive` and branch on stable error codes.
+
+### 8.4 Deploy and verify
+
+Run migrations first from a protected CI job using `DIRECT_URL`, then deploy the built Composer module:
+
+```bash
+npm ci
+npm run prisma:generate
+npm run prisma:deploy
+npm run build
+npx prisma@latest deploy module.ts
+```
+
+Inspect the service and logs:
+
+```bash
+npx prisma@latest service list
+npx prisma@latest service show volunteerops-backend
+npx prisma@latest service logs volunteerops-backend --follow
+```
+
+Verify the exact public URL returned by the deployment:
+
+```bash
+curl -i "https://<compute-url>/api/health"
+curl -i "https://<compute-url>/api"
+```
+
+Update volunteer/admin API base URLs and `CORS_ORIGIN` only after this URL is stable. Add a custom domain in Prisma Console if required, then use that durable domain in client builds.
+
+Official references:
+
+- [Prisma Compute getting started](https://www.prisma.io/docs/compute/getting-started)
+- [Port an existing app to Composer](https://www.prisma.io/docs/composer/porting-an-app)
+- [Deploy a Prisma Compute app](https://www.prisma.io/docs/prisma-compute/deploy)
+- [Compute environment variables](https://www.prisma.io/docs/compute/environment-variables)
+
+## 9. Prisma 8 migration gate
+
+Prisma 8 is a TypeScript-native ORM rewrite, not a normal major-version package bump. It replaces the generated Prisma Client API with a contract plus chain-based ORM API. This codebase has many nested includes, aggregates, groupings, transactions, and raw-query helpers, so changing the packages without rewriting those calls would break production.
+
+Proceed only when `npm view prisma version` returns an approved stable release and the deployment runtime meets its engine requirement:
+
+```bash
+npm view prisma version engines --json
+npm view @prisma/orm-postgres version engines --json
+node --version
+```
+
+Use the official incremental process:
+
+1. Keep the working Prisma 7 client and migration history.
+2. Install Prisma 8 and `@prisma/orm-postgres` side by side.
+3. Infer `prisma8/contract.prisma` from the live database.
+4. Remove the inferred `_prisma_migrations` model and verify every `@@map` table name.
+5. Emit contract artifacts.
+6. Migrate one low-risk read route, then verify old and new clients against the same database.
+7. Move all routes and tests.
+8. Create a Prisma 8 baseline migration, sign the existing database, and set the `db` ref.
+9. Retire Prisma 7 migrations only after ownership has transferred.
+10. Remove Prisma 7 only when no imports remain.
+
+Do not mix a database-server upgrade, ORM rewrite, and production-host migration in one cutover. Each needs its own deploy and rollback point.
+
+## 10. Production smoke tests
+
+Minimum checks after every deployment:
+
+```bash
+curl -fsS "https://<api-host>/api/health"
+curl -fsS "https://<api-host>/api"
+npm run accelerate:test
+```
+
+Then verify:
+
+- login and refresh-token rotation;
+- authenticated `/api/auth/me`;
+- volunteer and event list reads;
+- field-report creation;
+- storage upload URL issuance, PUT, object-key persistence, and download URL issuance;
+- rejected upload request without auth;
+- rejected attempt by a volunteer to sign another user's object key;
+- CORS from each exact web origin;
+- Android, iOS, desktop, JS, and Wasm API base URLs.
+
+## 11. Operations and rollback
+
+- Compute: inspect the service version and runtime logs in Console before rollback; roll back to the last healthy service version.
+- Database: schema deployments are separate. Prefer forward fixes; never assume rolling back app code reverses a migration.
+- Accelerate: remove `cacheStrategy` from a query if staleness is unsafe. Do not disable caching globally to fix one workload.
+- Object Store: revoke and replace a compromised bucket key, update Compute secrets, and redeploy. Never delete the bucket as a credential-rotation method.
+- Backups: review Prisma Postgres backup/PITR retention for the selected plan and perform a documented restore drill.
+
+## 12. Sign-off checklist
+
+- [ ] The team accepts managed Prisma Postgres on PostgreSQL 17, or has chosen a separate PostgreSQL 18 provider.
+- [ ] Prisma 7.10 generate, validate, build, and Accelerate smoke tests pass.
+- [ ] Production and preview databases are isolated.
+- [ ] Production and preview Object Store buckets/keys are isolated.
+- [ ] No database, platform, JWT, or S3 secret exists in either KMP app or Git.
+- [ ] The Express service has been ported and verified with Composer on a preview stage.
+- [ ] Migrations run in a protected job before production service promotion.
+- [ ] `/api/health` returns 200 from the public Compute URL.
+- [ ] Volunteer and admin apps use the stable Compute/custom-domain API base URL.
+- [ ] Upload/download authorization tests pass.
+- [ ] Demo seed credentials have not been deployed, or every seeded password has been rotated.
+- [ ] Rollback and restore procedures have been rehearsed.

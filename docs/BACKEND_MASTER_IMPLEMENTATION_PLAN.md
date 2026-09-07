@@ -1,4 +1,6 @@
 # VolunteerOps: Master Backend & Database Architecture Blueprint
+
+> Historical architecture plan. For verified database versions and the current Prisma Compute deployment procedure, use [`../DEPLOYMENT_RUNBOOK.md`](../DEPLOYMENT_RUNBOOK.md). Managed Prisma Postgres currently runs PostgreSQL 17; Prisma ORM support for external PostgreSQL 18 does not upgrade the managed server.
 ## Enterprise TypeScript, NestJS-Pattern Modular Backend, Fullstack PostgreSQL 18 & Prisma Engine
 
 **Document Version:** 2.0.0  

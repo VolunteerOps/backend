@@ -1,7 +1,12 @@
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { PrismaClient } from '../src/generated/prisma/client.js';
 import argon2 from 'argon2';
 
-const prisma = new PrismaClient();
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is required to seed the database');
+}
+
+const prisma = new PrismaClient({ accelerateUrl: process.env.DATABASE_URL });
 
 async function main() {
   console.log('🌱 Starting VolunteerOps Enterprise Database Seed...');

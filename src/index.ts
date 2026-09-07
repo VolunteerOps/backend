@@ -3,7 +3,7 @@ import { config } from './core/config.js';
 import { logger } from './core/logger.js';
 import { prisma } from './core/prisma.js';
 
-const server = app.listen(config.PORT, () => {
+const server = app.listen(config.PORT, '0.0.0.0', () => {
   logger.info(`🚀 VolunteerOps Enterprise Backend listening on port ${config.PORT} [${config.NODE_ENV}]`);
   logger.info(`📡 Healthcheck endpoint available at http://localhost:${config.PORT}/api/health`);
 });

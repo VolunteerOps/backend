@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ RUN npx prisma generate
 COPY src ./src/
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
@@ -22,8 +22,7 @@ ENV PORT=3001
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --only=production
-RUN npx prisma generate
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 

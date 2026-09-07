@@ -4,7 +4,7 @@
 [![Node.js Version](https://img.shields.io/badge/Node.js-20.x%20%7C%2022.x-339933?logo=node.js)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org)
 [![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express)](https://expressjs.com)
-[![Prisma ORM](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma)](https://www.prisma.io)
+[![Prisma ORM](https://img.shields.io/badge/Prisma-7.10-2D3748?logo=prisma)](https://www.prisma.io)
 [![Prisma Accelerate](https://img.shields.io/badge/Prisma-Accelerate%20Edge%20Cache-5A67D8)](https://www.prisma.io/accelerate)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2017%20%2F%2018-4169E1?logo=postgresql)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/License-Private%20%2F%20Proprietary-red)](#)
@@ -15,7 +15,7 @@
 
 **VolunteerOps** is a mission-critical backend engine designed to coordinate emergency response personnel, disaster relief deployments, live GPS telemetry, incident field reports, tactical communications, and crisis operational analytics with sub-second latency and high availability.
 
-Built with a modular, **NestJS-inspired clean architecture** on top of **Node.js, Express, and TypeScript**, the platform leverages **Prisma ORM** with **Prisma Accelerate Global Edge Caching** and a **PostgreSQL 18 Compatibility Layer** to deliver robust relational consistency, geospatial proximity dispatch, and zero-deadlock mission workflows without multi-cloud complexity.
+Built with a modular, **NestJS-inspired clean architecture** on top of **Node.js, Express, and TypeScript**, the platform leverages **Prisma ORM**, the caching and pooling included with **Prisma Postgres**, and authenticated access to **Prisma Object Store** for operational files.
 
 ---
 
@@ -53,7 +53,7 @@ Built with a modular, **NestJS-inspired clean architecture** on top of **Node.js
 │  ┌──────────────────────────────────────────▼──────────────────────────────────────────┐  │
 │  │ Prisma Client Extension Layer ($extends)                                            │  │
 │  │ • Prisma Accelerate Edge Caching (withAccelerate())                                 │  │
-│  │ • PostgreSQL 18 Virtual Computed Field Emulation (geoCoordinates, durationHours)   │  │
+│  │ • Application Computed Fields (geoCoordinates, durationHours)                      │  │
 │  │ • Query Optimization Profiler (EXPLAIN ANALYZE, BUFFERS)                            │  │
 │  │ • Atomic Audit Log Engine (updateWithAudit)                                         │  │
 │  └──────────────────────────────────────────┬──────────────────────────────────────────┘  │
@@ -93,11 +93,12 @@ Built with a modular, **NestJS-inspired clean architecture** on top of **Node.js
 
 ## 🛠️ Technology Stack
 
-- **Runtime:** Node.js `>=20.0.0` (ES Modules)
+- **Runtime:** Node.js `>=20.19.0` (ES Modules)
 - **Language:** TypeScript 5.7+
 - **Web Framework:** Express 4.21+
-- **ORM & Data Layer:** Prisma ORM 6.19+ & `@prisma/extension-accelerate`
-- **Database:** PostgreSQL 17.2 / 18-Compatible (Prisma Postgres / Managed PostgreSQL)
+- **ORM & Data Layer:** Prisma ORM 7.10 & `@prisma/extension-accelerate`
+- **Database:** Prisma Postgres (managed PostgreSQL 17); Prisma ORM also supports externally hosted PostgreSQL 18
+- **Object Storage:** Prisma Object Store through short-lived, backend-issued S3 URLs
 - **Security & Crypto:** Argon2id (`argon2`), JSON Web Tokens (`jsonwebtoken`), Helmet, Cookie-Parser
 - **Validation:** Zod 3.24+
 - **Rate Limiting:** `express-rate-limit`
@@ -260,6 +261,10 @@ Once seeded, the following accounts are pre-configured for development and opera
 - `POST /api/field-reports` - Submit a new on-scene field report.
 - `GET /api/field-reports/:id` - Detailed field report with media attachments.
 
+### Object Storage (`/api/storage`)
+- `POST /api/storage/upload-url` - Issue a short-lived authenticated upload URL.
+- `GET /api/storage/download-url?key=...` - Issue an authorized short-lived download URL.
+
 ### Tactical Communications (`/api/communications`)
 - `GET /api/communications/channels` - List communication channels with unread counts.
 - `GET /api/communications/channels/:channelId/messages` - Retrieve channel message history.
@@ -277,7 +282,7 @@ Once seeded, the following accounts are pre-configured for development and opera
 
 ## ⚡ Prisma Accelerate Edge Caching
 
-The backend is pre-configured with **Prisma Accelerate** for sub-100ms global query latency:
+The backend is pre-configured with **Prisma Accelerate** for pooled connections and globally cached reads:
 
 ```typescript
 // Example: Accelerated query with Stale-While-Revalidate caching
@@ -292,7 +297,7 @@ const skills = await prisma.skill.findMany({
 
 To run a live Accelerate edge cache benchmark locally:
 ```bash
-npx tsx scripts/test_accelerate.ts
+npm run accelerate:test
 ```
 
 ---
@@ -314,11 +319,7 @@ npx tsx scripts/test_accelerate.ts
 
 ## 🚢 Production Deployment
 
-Detailed, step-by-step production runbooks are available in the repository:
-
-- 📘 **[Complete Production Deployment Runbook](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/docs/DEPLOYMENT_RUNBOOK.md)**
-- 📘 **[Render Cloud & Blueprint Guide](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/docs/RENDER_DEPLOY.md)**
-- 📘 **[PostgreSQL Consolidation Blueprint](file:///c:/Users/admin/IdeaProjects/VolunteerOPS/backend/docs/postgres-replacement-guide-v2.md)**
+Use the **[Prisma Compute production deployment runbook](DEPLOYMENT_RUNBOOK.md)**. `docs/RENDER_DEPLOY.md` is retained only as a historical migration reference; the active Render blueprint has been removed.
 
 ---
 
