@@ -1,10 +1,10 @@
 # VolunteerOps Enterprise Backend
 > **Enterprise Real-Time Disaster Response and Operational Field Management Platform Backend**
 
-[![Node.js Version](https://img.shields.io/badge/Node.js-20.x%20%7C%2022.x-339933?logo=node.js)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org)
+[![Node.js Version](https://img.shields.io/badge/Node.js-22.18%2B-339933?logo=node.js)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org)
 [![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express)](https://expressjs.com)
-[![Prisma ORM](https://img.shields.io/badge/Prisma-7.10-2D3748?logo=prisma)](https://www.prisma.io)
+[![Prisma ORM](https://img.shields.io/badge/Prisma-8%20%2B%207.10%20bridge-2D3748?logo=prisma)](https://www.prisma.io)
 [![Prisma Accelerate](https://img.shields.io/badge/Prisma-Accelerate%20Edge%20Cache-5A67D8)](https://www.prisma.io/accelerate)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2017%20%2F%2018-4169E1?logo=postgresql)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/License-Private%20%2F%20Proprietary-red)](#)
@@ -93,10 +93,10 @@ Built with a modular, **NestJS-inspired clean architecture** on top of **Node.js
 
 ## 🛠️ Technology Stack
 
-- **Runtime:** Node.js `>=20.19.0` (ES Modules)
-- **Language:** TypeScript 5.7+
+- **Runtime:** Node.js `>=22.18.0` (ES Modules)
+- **Language:** TypeScript 5.9+
 - **Web Framework:** Express 4.21+
-- **ORM & Data Layer:** Prisma ORM 7.10 & `@prisma/extension-accelerate`
+- **ORM & Data Layer:** Prisma ORM 8 toolchain/contract with a Prisma 7.10 runtime compatibility bridge and `@prisma/extension-accelerate`
 - **Database:** Prisma Postgres (managed PostgreSQL 17); Prisma ORM also supports externally hosted PostgreSQL 18
 - **Object Storage:** Prisma Object Store through short-lived, backend-issued S3 URLs
 - **Security & Crypto:** Argon2id (`argon2`), JSON Web Tokens (`jsonwebtoken`), Helmet, Cookie-Parser
@@ -111,7 +111,7 @@ Built with a modular, **NestJS-inspired clean architecture** on top of **Node.js
 ### 1. Prerequisites
 
 Ensure you have the following installed on your machine:
-- **Node.js**: `v20.x` or higher (`node -v`)
+- **Node.js**: `v22.18.0` or higher (`node -v`)
 - **npm**: `v10.x` or higher (`npm -v`)
 - **PostgreSQL Database** or **Prisma Console (Prisma Postgres)** instance
 
@@ -166,8 +166,9 @@ LOG_LEVEL="debug"
 Deploy the initial database schema migrations:
 
 ```bash
-# Generate Prisma Client
+# Generate the existing Prisma 7 client and emit the Prisma 8 contract
 npm run prisma:generate
+npm run prisma8:emit
 
 # Deploy migrations to the database
 npm run prisma:deploy
@@ -312,6 +313,8 @@ npm run accelerate:test
 | `npm run prisma:generate` | Generates the Prisma Client with Accelerate extensions. |
 | `npm run prisma:deploy` | Applies all pending migrations to the database. |
 | `npm run prisma:studio` | Opens local Prisma Studio GUI on port 5555. |
+| `npm run prisma8:emit` | Validates and emits the Prisma 8 data contract artifacts. |
+| `npm run prisma8:infer` | Re-infers the Prisma 8 contract from the live database; review its diff before keeping it. |
 | `npm run db:seed` | Seeds the database with production test data. |
 | `npm run db:reset` | Resets the database and re-runs all migrations (destructive). |
 

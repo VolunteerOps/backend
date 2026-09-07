@@ -23,8 +23,8 @@ Do not couple the ORM major version to the database server major version.
 | Component | Verified state | Deployment decision |
 | --- | --- | --- |
 | This repository before this change | Prisma ORM 6.12 | Migrated to Prisma ORM 7.10 first, as required by the supported upgrade path |
-| Production runtime in this repository | Prisma ORM 7.10 + `@prisma/extension-accelerate` 3.0.1 | Supported bridge release; build and live Accelerate query verified |
-| `prisma@latest` on 7 Sep 2026 | `8.0.0-rc.13` in npm; Node `>=22.18.0` | Do not silently put a release candidate into this incident-management backend |
+| Prisma 8 toolchain in this repository | `prisma` 8.0.0-rc.13 + `@prisma/orm-postgres` 8.0.0-rc.8 | Installed, configured, and contract emission verified; this is what satisfies Prisma Console's Compute repository check |
+| Existing application runtime | `@prisma/client` 7.10 + `@prisma/prisma7` 7.10 + Accelerate 3.0.1 | Intentionally retained during Prisma's supported side-by-side migration so existing API behavior does not change |
 | Prisma Postgres managed database | PostgreSQL 17 | This is the server version available when hosting the database in Prisma Console |
 | External/self-hosted PostgreSQL | Prisma ORM supports PostgreSQL 18 | Use only if PostgreSQL 18 is a hard requirement and host the database outside Prisma Postgres |
 
@@ -39,13 +39,19 @@ Official references:
 
 ### 2.1 What changed in the backend now
 
-- Prisma ORM is pinned to `7.10.0`; do not use a floating major in production.
-- The modern `prisma-client` generator writes to `src/generated/prisma`.
-- Connection configuration moved from `schema.prisma` to `prisma.config.ts`.
-- `DATABASE_URL` is the `prisma+postgres://` runtime/Accelerate URL.
-- `DIRECT_URL` is the direct TCP URL used by migrations and other schema operations.
-- `new PrismaClient({ accelerateUrl: DATABASE_URL })` is used as required by the JavaScript engine.
-- Docker now uses Node 22; Prisma 7 requires Node 20.19+, 22.12+, or 24+.
+The repository is at phase 2 of Prisma's official incremental Prisma 7-to-8 migration:
+
+- `prisma` now resolves to Prisma 8 and owns `prisma.config.ts`.
+- `@prisma/orm-postgres` is installed and the live schema was inferred into `prisma8/contract.prisma`.
+- `npm run prisma8:emit` validates that contract and emits its generated runtime/type artifacts.
+- The old CLI moved to `@prisma/prisma7`; `prisma7.config.ts` and every migration/generation command call the `prisma7` binary explicitly.
+- Existing Express routes still use the generated Prisma 7 client and Accelerate. That is deliberate: Prisma documents this side-by-side state as shippable while routes are moved incrementally.
+- The existing `npm run prisma:*` command names remain as compatibility aliases, so deployment jobs and developer workflows do not break.
+- `npm run build` emits both the Prisma 7 client and Prisma 8 contract before TypeScript compilation.
+- Node is now pinned to `>=22.18.0`, including both Docker stages, because Prisma 8 requires it.
+- `DATABASE_URL` remains the `prisma+postgres://` runtime/Accelerate URL. `DIRECT_URL` must be the direct `postgres://...@db.prisma.io/...` URL used by both Prisma CLIs for schema work.
+
+Do not replace `@prisma/client` with an 8.x version: Prisma 8's application API is `@prisma/orm-postgres`, not the generated Prisma 7 Client API. Removing the compatibility client before routes are rewritten would break the backend.
 
 ### 2.2 Optional PostgreSQL 18 development target
 
@@ -57,7 +63,8 @@ If production must be PostgreSQL 18, host PostgreSQL 18 with another provider, e
 
 - A Prisma Data Platform account and workspace.
 - A GitHub repository containing this backend. Prisma Compute deploy-on-push uses GitHub.
-- Node.js 22.18 or newer for the current Prisma 8 platform CLI/Composer workflow. The workstation used during this audit had Node 22.15 and must be upgraded before running those commands.
+- Node.js 22.18 or newer for Prisma 8. The workstation used during this audit had Node 22.15 and must be upgraded before relying on local parity with Compute.
+- Bun for local `@prisma/cli app build` parity; Compute uses Bun to bundle Express into a self-contained artifact.
 - npm 10+.
 - Production frontend origins and a production API domain decision.
 - A password manager or secret manager for one-time database and bucket credentials.
@@ -68,6 +75,7 @@ From `backend/`, establish a clean local baseline:
 npm ci
 npm run prisma:generate
 npm run prisma:validate
+npm run prisma8:emit
 npm run build
 ```
 
@@ -90,10 +98,10 @@ Console path:
 CLI alternative (verify current help before automation):
 
 ```bash
-npx prisma@latest auth login
-npx prisma@latest auth whoami
-npx prisma@latest project create volunteerops
-npx prisma@latest postgres create volunteerops-production
+npx @prisma/cli@latest auth login
+npx @prisma/cli@latest auth whoami --json
+npx @prisma/cli@latest project create volunteerops --json
+npx @prisma/cli@latest database create volunteerops-production --branch main --json
 ```
 
 Connection strings and access-key secrets are one-time values. Do not paste them into commits, tickets, logs, screenshots, or mobile configuration.
@@ -124,7 +132,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 
 ### 4.3 Apply the existing schema
 
-The current application uses Prisma 7 migrations. Run schema changes separately from a Compute deploy:
+The current application intentionally keeps Prisma 7 migration ownership during the side-by-side phase. Run schema changes separately from a Compute deploy:
 
 ```bash
 npm run prisma:generate
@@ -135,8 +143,10 @@ npm run prisma:validate
 Check migration state:
 
 ```bash
-npx prisma migrate status
+npx prisma7 migrate status
 ```
+
+`DIRECT_URL` must use the direct host (`db.prisma.io`), not `pooled.db.prisma.io`. Runtime traffic continues to use the Accelerate URL in `DATABASE_URL`.
 
 Open Studio from Prisma Console to verify the tables. Do not seed production unless the database is new, empty, explicitly intended for demo data, and deletion of its contents is acceptable.
 
@@ -195,10 +205,10 @@ S3_REGION="auto"
 Equivalent platform commands:
 
 ```bash
-npx prisma@latest project env add S3_ENDPOINT=<endpoint> --role production
-npx prisma@latest project env add S3_BUCKET=<bucketName> --role production
-npx prisma@latest project env add S3_ACCESS_KEY_ID=<accessKeyId> --role production
-npx prisma@latest project env add S3_SECRET_ACCESS_KEY=<secretAccessKey> --role production
+npx @prisma/cli@latest project env add S3_ENDPOINT=<endpoint> --role production
+npx @prisma/cli@latest project env add S3_BUCKET=<bucketName> --role production
+npx @prisma/cli@latest project env add S3_ACCESS_KEY_ID=<accessKeyId> --role production
+npx @prisma/cli@latest project env add S3_SECRET_ACCESS_KEY=<secretAccessKey> --role production
 ```
 
 Repeat with `--role preview` and preview credentials.
@@ -272,56 +282,50 @@ For browser/Wasm targets, configure the bucket's permitted origins/methods if Pr
 
 The old Render guide remains only as migration history and the active `render.yaml` blueprint has been removed. Do not create a Render service or put Render URLs into clients.
 
-Prisma Compute is GA, but the current existing-Express-app CLI path uses Prisma Composer, which the Prisma changelog describes as Early Access. Test a preview stage before promoting this emergency-operations API.
+Prisma Compute is GA. The repository now includes `prisma.compute.json`, which declares the Express entrypoint (`src/index.ts`) and port 3001. Compute's current SDK maps Express to its Bun bundling strategy, producing a self-contained server artifact after the normal build script generates the Prisma 7 client and emits the Prisma 8 contract. Test a candidate/preview deployment before promoting this emergency-operations API.
 
 ### 8.1 Runtime readiness
 
 The service must:
 
-- build to a self-contained Node/Bun entry file;
-- listen on the port supplied by Compute/Composer;
+- build to a runnable Node entry file;
+- listen on the port supplied by Compute;
 - bind to `0.0.0.0`;
-- receive secrets as service inputs/environment bindings;
+- receive secrets as project environment variables;
 - expose `GET /api/health` returning 200;
 - run migrations separately before production traffic switches.
 
-Express is not in the first-class auto-detected framework list. Follow the official existing Node app path instead of pretending it is NestJS or Hono.
+The committed config names the framework as `express`; do not mislabel it as NestJS or Hono or replace its entrypoint with the unbundled `dist/` directory.
 
-### 8.2 Port to Composer
+### 8.2 Verify the Compute configuration
 
-After upgrading local Node to 22.18+:
+Use the Prisma Platform CLI for Compute operations. This is `@prisma/cli`, not the Prisma ORM 8 CLI in the `prisma` package:
 
 ```bash
-npx skills add prisma/composer
-npm install @prisma/composer @prisma/composer-prisma-cloud
-npx prisma@latest skills sync
+npx @prisma/cli@latest --help
+npx @prisma/cli@latest app deploy --help
+npx @prisma/cli@latest app build
 ```
 
-Then follow [Port an existing app](https://www.prisma.io/docs/composer/porting-an-app):
-
-1. Add `service.ts` using `compute()` and the Node build adapter, targeting the self-contained server bundle.
-2. Add `module.ts` to provision the service and its Postgres dependency.
-3. Add `prisma-composer.config.ts` with Prisma Cloud state and the Node build extension.
-4. Replace the server's `process.env.PORT` access with `service.port()` and bind `0.0.0.0`.
-5. Model JWT, CORS, database, and S3 values as `envSecret`/`envParam` service inputs; do not commit values.
-6. Build and run locally:
+The application already reads `process.env.PORT` and binds `0.0.0.0`. Locally, run the framework server normally after building:
 
 ```bash
 npm run build
-npx prisma@latest dev module.ts
-curl -i http://<printed-local-url>/api/health
+npm start
+curl -i http://localhost:3001/api/health
 ```
 
-Do not deploy until TypeScript, health, auth, database, and storage tests pass locally.
+Do not deploy until Prisma 7 generation/validation, Prisma 8 contract emission, TypeScript, health, auth, database, and storage tests pass.
 
 ### 8.3 Create/link project and GitHub
 
 ```bash
-npx prisma@latest auth login
-npx prisma@latest auth whoami
-npx prisma@latest project link volunteerops
-npx prisma@latest project show
-npx prisma@latest git connect
+npx @prisma/cli@latest auth login
+npx @prisma/cli@latest auth whoami --json
+npx @prisma/cli@latest auth workspace list --json
+npx @prisma/cli@latest project link volunteerops
+npx @prisma/cli@latest project show --json
+npx @prisma/cli@latest git connect <github-repository-url> --project <project-id>
 ```
 
 The default Git branch deploys to production; other branches are isolated previews. Configure preview database and bucket credentials before pushing a preview branch.
@@ -330,22 +334,22 @@ For CI, use workspace-scoped `PRISMA_SERVICE_TOKEN` and explicit workspace/proje
 
 ### 8.4 Deploy and verify
 
-Run migrations first from a protected CI job using `DIRECT_URL`, then deploy the built Composer module:
+Run migrations first from a protected CI job using `DIRECT_URL`, then create a candidate deployment without changing production:
 
 ```bash
 npm ci
 npm run prisma:generate
 npm run prisma:deploy
 npm run build
-npx prisma@latest deploy module.ts
+npx @prisma/cli@latest app deploy --no-promote --json --no-interactive
 ```
 
-Inspect the service and logs:
+Capture the deployment and build IDs from the JSON result. Inspect build and runtime logs separately:
 
 ```bash
-npx prisma@latest service list
-npx prisma@latest service show volunteerops-backend
-npx prisma@latest service logs volunteerops-backend --follow
+npx @prisma/cli@latest build logs <build-id> --follow
+npx @prisma/cli@latest app show-deploy <deployment-id> --json
+npx @prisma/cli@latest app logs --deployment <deployment-id> --json
 ```
 
 Verify the exact public URL returned by the deployment:
@@ -355,39 +359,55 @@ curl -i "https://<compute-url>/api/health"
 curl -i "https://<compute-url>/api"
 ```
 
+After the candidate URL passes smoke tests, promote that exact deployment:
+
+```bash
+npx @prisma/cli@latest app promote <deployment-id> --yes
+```
+
+For GitHub-connected Console deployments, the default branch is the production path and other branches create previews. Prisma Console may open a compatibility PR; merge that PR, then push this repository update and inspect the **Prisma Compute Deploy** check/build logs. Compute deployment itself does not run database migrations or seed data.
+
 Update volunteer/admin API base URLs and `CORS_ORIGIN` only after this URL is stable. Add a custom domain in Prisma Console if required, then use that durable domain in client builds.
 
 Official references:
 
-- [Prisma Compute getting started](https://www.prisma.io/docs/compute/getting-started)
-- [Port an existing app to Composer](https://www.prisma.io/docs/composer/porting-an-app)
-- [Deploy a Prisma Compute app](https://www.prisma.io/docs/prisma-compute/deploy)
-- [Compute environment variables](https://www.prisma.io/docs/compute/environment-variables)
+- [Prisma Compute deployment](https://www.prisma.io/docs/prisma-compute/deploy)
+- [Prisma 7 to Prisma 8 PostgreSQL migration](https://www.prisma.io/docs/guides/upgrade-prisma-orm/postgresql)
+- [Prisma Postgres connections](https://www.prisma.io/docs/postgres/database/connecting-to-your-database)
 
-## 9. Prisma 8 migration gate
+## 9. Prisma 8 incremental migration status
 
-Prisma 8 is a TypeScript-native ORM rewrite, not a normal major-version package bump. It replaces the generated Prisma Client API with a contract plus chain-based ORM API. This codebase has many nested includes, aggregates, groupings, transactions, and raw-query helpers, so changing the packages without rewriting those calls would break production.
+Prisma 8 is a TypeScript-native ORM rewrite, not a drop-in replacement for the generated Prisma Client API. This codebase has nested includes, aggregates, groupings, transactions, raw-query helpers, Accelerate cache options, and computed extensions. The official side-by-side migration preserves those behaviors while routes move deliberately.
 
-Proceed only when `npm view prisma version` returns an approved stable release and the deployment runtime meets its engine requirement:
+Current verified package/runtime boundary:
 
 ```bash
 npm view prisma version engines --json
 npm view @prisma/orm-postgres version engines --json
 node --version
+npx prisma --version
+npx prisma7 --version
 ```
 
-Use the official incremental process:
+Completed in this repository:
 
-1. Keep the working Prisma 7 client and migration history.
-2. Install Prisma 8 and `@prisma/orm-postgres` side by side.
-3. Infer `prisma8/contract.prisma` from the live database.
-4. Remove the inferred `_prisma_migrations` model and verify every `@@map` table name.
-5. Emit contract artifacts.
-6. Migrate one low-risk read route, then verify old and new clients against the same database.
-7. Move all routes and tests.
-8. Create a Prisma 8 baseline migration, sign the existing database, and set the `db` ref.
-9. Retire Prisma 7 migrations only after ownership has transferred.
-10. Remove Prisma 7 only when no imports remain.
+1. Prisma 7 moved to `@prisma/prisma7`, the `prisma7` binary, and `prisma7.config.ts`.
+2. Prisma 8 and `@prisma/orm-postgres` are installed under their canonical package names.
+3. `prisma.config.ts` contains the Prisma 8 PostgreSQL configuration.
+4. `prisma8/contract.prisma` was inferred from the live database, `_prisma_migrations` was removed, storage names were retained, and contract emission passes.
+5. Node/TypeScript/Docker requirements were raised for Prisma 8.
+6. Existing routes still use Prisma 7 + Accelerate, so this deployment changes no API/database behavior.
+
+Remaining incremental application migration (do this route-by-route after the Compute deployment is healthy):
+
+1. Instantiate the Prisma 8 PostgreSQL runtime beside `prisma` in `src/core/prisma.ts`.
+2. Migrate one low-risk read route and compare its result with the Prisma 7 implementation.
+3. Move all reads, writes, aggregates, transactions, error translation, Decimal serialization, and tests.
+4. Create a Prisma 8 baseline migration, sign the existing database, and set the `db` ref exactly as the official guide describes.
+5. Retire Prisma 7 migration ownership only after the baseline/ref checks pass.
+6. Remove `@prisma/client`, `@prisma/prisma7`, `@prisma/extension-accelerate`, the old schema/config, and compatibility scripts only when no imports remain.
+
+Do not run `prisma contract infer` casually after deployment: inference replaces the contract from live storage. Review the diff, remove any inferred `_prisma_migrations` model, restore required mappings/defaults, and run `npm run prisma8:emit` before committing.
 
 Do not mix a database-server upgrade, ORM rewrite, and production-host migration in one cutover. Each needs its own deploy and rollback point.
 
@@ -424,11 +444,12 @@ Then verify:
 ## 12. Sign-off checklist
 
 - [ ] The team accepts managed Prisma Postgres on PostgreSQL 17, or has chosen a separate PostgreSQL 18 provider.
-- [ ] Prisma 7.10 generate, validate, build, and Accelerate smoke tests pass.
+- [ ] Prisma 8 is the repository's canonical `prisma` package and `npm run prisma8:emit` passes.
+- [ ] Prisma 7.10 compatibility-client generation/validation, build, and Accelerate smoke tests pass.
 - [ ] Production and preview databases are isolated.
 - [ ] Production and preview Object Store buckets/keys are isolated.
 - [ ] No database, platform, JWT, or S3 secret exists in either KMP app or Git.
-- [ ] The Express service has been ported and verified with Composer on a preview stage.
+- [ ] The bundled Express artifact has been built and verified at a candidate/preview Compute URL.
 - [ ] Migrations run in a protected job before production service promotion.
 - [ ] `/api/health` returns 200 from the public Compute URL.
 - [ ] Volunteer and admin apps use the stable Compute/custom-domain API base URL.

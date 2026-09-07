@@ -1,21 +1,30 @@
 import 'dotenv/config';
-import { defineConfig } from 'prisma/config';
+import { definePrismaConfig } from 'prisma/config';
+import { defineConfig as definePostgresConfig } from '@prisma/orm-postgres/config';
 
-const migrationUrl = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+// Contract emission is build-time and does not connect to PostgreSQL. A valid
+// placeholder lets dependency/build checks run before Compute injects secrets;
+// commands that access the database still fail safely unless DIRECT_URL is set.
+const databaseUrl = process.env.DIRECT_URL ?? 'postgresql://invalid:invalid@127.0.0.1:5432/invalid';
 
-if (!migrationUrl) {
-  throw new Error('DIRECT_URL or DATABASE_URL must be set for Prisma CLI commands');
+function withLibpqSslSemantics(connectionString: string): string {
+  const url = new URL(connectionString);
+
+  // Prisma Postgres issues sslmode=require URLs. Prisma 8 uses node-postgres,
+  // whose current parser otherwise treats `require` as `verify-full`.
+  if (url.searchParams.get('sslmode') === 'require' && !url.searchParams.has('uselibpqcompat')) {
+    url.searchParams.set('uselibpqcompat', 'true');
+  }
+
+  return url.toString();
 }
 
-export default defineConfig({
-  schema: 'prisma/schema.prisma',
-  migrations: {
-    path: 'prisma/migrations',
-    seed: 'tsx prisma/seed.ts',
-  },
-  datasource: {
-    // Runtime queries use DATABASE_URL through Accelerate. Schema operations use
-    // the direct TCP URL so they do not depend on the Accelerate data path.
-    url: migrationUrl,
-  },
+export default definePrismaConfig({
+  orm: definePostgresConfig({
+    contract: 'prisma8/contract.prisma',
+    output: 'src/generated/prisma8',
+    db: {
+      connection: withLibpqSslSemantics(databaseUrl),
+    },
+  }),
 });

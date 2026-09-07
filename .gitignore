@@ -6,4 +6,6 @@ dist/
 coverage/
 .firecrawl/
 src/generated/prisma/
+src/generated/prisma8/
 .prisma/
+.npm-cache/
