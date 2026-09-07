@@ -139,7 +139,7 @@ namespace public {
     latitude             Numeric(10, 7)?
     longitude            Numeric(10, 7)?
     avatarUrl            String?                  @map("avatar_url")
-    totalHours           Numeric(10, 2)           @default(0) @map("total_hours")
+    totalHours           Numeric(10, 2)           @default(dbgenerated("'0'::numeric(10,2)")) @map("total_hours")
     badgeCount           Int                      @default(0) @map("badge_count")
     createdAt            Timestamp(3)             @default(now()) @map("created_at")
     updatedAt            Timestamp(3)             @map("updated_at")

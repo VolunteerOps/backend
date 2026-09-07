@@ -170,7 +170,7 @@ Deploy the initial database schema migrations:
 npm run prisma:generate
 npm run prisma8:emit
 
-# Deploy migrations to the database
+# Apply checked-in Prisma 8 migrations to the database
 npm run prisma:deploy
 ```
 
@@ -315,8 +315,11 @@ npm run accelerate:test
 | `npm run prisma:studio` | Opens local Prisma Studio GUI on port 5555. |
 | `npm run prisma8:emit` | Validates and emits the Prisma 8 data contract artifacts. |
 | `npm run prisma8:infer` | Re-infers the Prisma 8 contract from the live database; review its diff before keeping it. |
+| `npm run prisma8:plan -- --name <change>` | Emits the contract and plans a checked-in Prisma 8 migration. |
+| `npm run prisma8:status` | Shows the live database's position in the Prisma 8 migration graph. |
+| `npm run prisma8:check` | Validates the checked-in Prisma 8 migration graph offline. |
+| `npm run prisma8:verify` | Verifies that the database marker and schema match the emitted contract. |
 | `npm run db:seed` | Seeds the database with production test data. |
-| `npm run db:reset` | Resets the database and re-runs all migrations (destructive). |
 
 ---
 

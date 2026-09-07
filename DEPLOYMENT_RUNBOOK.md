@@ -39,14 +39,15 @@ Official references:
 
 ### 2.1 What changed in the backend now
 
-The repository is at phase 2 of Prisma's official incremental Prisma 7-to-8 migration:
+The repository has completed the migration-ownership handoff in phase 4 of Prisma's official incremental Prisma 7-to-8 migration:
 
 - `prisma` now resolves to Prisma 8 and owns `prisma.config.ts`.
 - `@prisma/orm-postgres` is installed and the live schema was inferred into `prisma8/contract.prisma`.
 - `npm run prisma8:emit` validates that contract and emits its generated runtime/type artifacts.
-- The old CLI moved to `@prisma/prisma7`; `prisma7.config.ts` and every migration/generation command call the `prisma7` binary explicitly.
+- The old CLI moved to `@prisma/prisma7`; `prisma7.config.ts` remains only for compatibility-client generation, validation, and Studio.
 - Existing Express routes still use the generated Prisma 7 client and Accelerate. That is deliberate: Prisma documents this side-by-side state as shippable while routes are moved incrementally.
-- The existing `npm run prisma:*` command names remain as compatibility aliases, so deployment jobs and developer workflows do not break.
+- Prisma 8 now owns schema migrations through the checked-in `migrations/app/` graph. The existing database is signed at the graph tip and the checked-in `db` ref points there.
+- The existing `npm run prisma:*` deployment aliases now call Prisma 8, so deployment jobs do not fall back to the retired Prisma 7 migration history.
 - `npm run build` emits both the Prisma 7 client and Prisma 8 contract before TypeScript compilation.
 - Node is now pinned to `>=22.18.0`, including both Docker stages, because Prisma 8 requires it.
 - `DATABASE_URL` remains the `prisma+postgres://` runtime/Accelerate URL. `DIRECT_URL` must be the direct `postgres://...@db.prisma.io/...` URL used by both Prisma CLIs for schema work.
@@ -63,7 +64,7 @@ If production must be PostgreSQL 18, host PostgreSQL 18 with another provider, e
 
 - A Prisma Data Platform account and workspace.
 - A GitHub repository containing this backend. Prisma Compute deploy-on-push uses GitHub.
-- Node.js 22.18 or newer for Prisma 8. The workstation used during this audit had Node 22.15 and must be upgraded before relying on local parity with Compute.
+- Node.js 22.18 or newer for Prisma 8. The workstation verification used Node 24.20.0.
 - Bun for local `@prisma/cli app build` parity; Compute uses Bun to bundle Express into a self-contained artifact.
 - npm 10+.
 - Production frontend origins and a production API domain decision.
@@ -130,21 +131,27 @@ Generate each JWT secret independently:
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
-### 4.3 Apply the existing schema
+### 4.3 Apply and evolve the schema
 
-The current application intentionally keeps Prisma 7 migration ownership during the side-by-side phase. Run schema changes separately from a Compute deploy:
+Prisma 8 owns migrations. Prisma 7 remains only as the compatibility runtime for routes that have not yet moved to the Prisma 8 query API. Do not run `prisma7 migrate dev`, `prisma7 migrate deploy`, or edit `prisma/schema.prisma` for new schema work.
+
+For a schema change, edit `prisma8/contract.prisma`, emit it, plan a named migration, review the generated package under `migrations/app/`, then apply it separately from a Compute deploy:
 
 ```bash
 npm run prisma:generate
+npm run prisma8:plan -- --name <change-name>
+npm run prisma8:check
 npm run prisma:deploy
-npm run prisma:validate
+npm run prisma8:verify
 ```
 
 Check migration state:
 
 ```bash
-npx prisma7 migrate status
+npm run prisma8:status
 ```
+
+The production database was baselined rather than replayed: `db sign` recorded that its existing schema already satisfies the contract, and the `db` ref prevents future plans from starting at an empty database. Do not routinely re-run `db sign`; use it only for an explicitly reviewed drift-recovery or database-adoption operation.
 
 `DIRECT_URL` must use the direct host (`db.prisma.io`), not `pooled.db.prisma.io`. Runtime traffic continues to use the Accelerate URL in `DATABASE_URL`.
 
@@ -396,16 +403,16 @@ Completed in this repository:
 3. `prisma.config.ts` contains the Prisma 8 PostgreSQL configuration.
 4. `prisma8/contract.prisma` was inferred from the live database, `_prisma_migrations` was removed, storage names were retained, and contract emission passes.
 5. Node/TypeScript/Docker requirements were raised for Prisma 8.
-6. Existing routes still use Prisma 7 + Accelerate, so this deployment changes no API/database behavior.
+6. Existing routes still use Prisma 7 + Accelerate, so this deployment changes no API behavior.
+7. The live schema was aligned without deleting application rows, a Prisma 8 baseline was created under `migrations/app/`, the database was signed at the graph tip, and the `db` ref was set.
+8. Prisma 7 migration commands were retired; `npm run prisma:deploy` now applies checked-in Prisma 8 migrations and advances the `db` ref.
 
 Remaining incremental application migration (do this route-by-route after the Compute deployment is healthy):
 
 1. Instantiate the Prisma 8 PostgreSQL runtime beside `prisma` in `src/core/prisma.ts`.
 2. Migrate one low-risk read route and compare its result with the Prisma 7 implementation.
 3. Move all reads, writes, aggregates, transactions, error translation, Decimal serialization, and tests.
-4. Create a Prisma 8 baseline migration, sign the existing database, and set the `db` ref exactly as the official guide describes.
-5. Retire Prisma 7 migration ownership only after the baseline/ref checks pass.
-6. Remove `@prisma/client`, `@prisma/prisma7`, `@prisma/extension-accelerate`, the old schema/config, and compatibility scripts only when no imports remain.
+4. Remove `@prisma/client`, `@prisma/prisma7`, `@prisma/extension-accelerate`, the old schema/config, and compatibility scripts only when no imports remain.
 
 Do not run `prisma contract infer` casually after deployment: inference replaces the contract from live storage. Review the diff, remove any inferred `_prisma_migrations` model, restore required mappings/defaults, and run `npm run prisma8:emit` before committing.
 
