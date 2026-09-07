@@ -115,10 +115,10 @@ Console path:
 CLI alternative (verify current help before automation):
 
 ```bash
-npx @prisma/cli@latest auth login
-npx @prisma/cli@latest auth whoami --json
-npx @prisma/cli@latest project create volunteerops --json
-npx @prisma/cli@latest database create volunteerops-production --branch main --json
+npx prisma auth login
+npx prisma auth whoami --json
+npx prisma project create volunteerops --json
+npx prisma postgres create volunteerops-production --json
 ```
 
 Connection strings and access-key secrets are one-time values. Do not paste them into commits, tickets, logs, screenshots, or mobile configuration.
@@ -320,14 +320,14 @@ The service must:
 
 The committed config names the framework as `express`; do not mislabel it as NestJS or Hono or replace its entrypoint with the unbundled `dist/` directory.
 
-### 8.2 Verify the Compute configuration
+### 8.2 Verify the Compute configuration and CLI
 
-Use the Prisma Platform CLI for Compute operations. This is `@prisma/cli`, not the Prisma ORM 8 CLI in the `prisma` package:
+Prisma 8 provides a unified CLI (`prisma`, also distributed as `@prisma/cli@latest`) containing both ORM and Platform/Compute commands. Do not use legacy pre-release `app ...` subcommands:
 
 ```bash
-npx @prisma/cli@latest --help
-npx @prisma/cli@latest app deploy --help
-npx @prisma/cli@latest app build
+npx prisma --help
+npx prisma project --help
+npx prisma service --help
 ```
 
 The application already reads `process.env.PORT` and binds `0.0.0.0`. Locally, run the framework server normally after building:
@@ -340,39 +340,54 @@ curl -i http://localhost:3001/api/health
 
 Do not deploy until Prisma 7 generation/validation, Prisma 8 contract emission, TypeScript, health, auth, database, and storage tests pass.
 
-### 8.3 Create/link project and GitHub
+### 8.3 Link project and connect GitHub (Deploy-on-Push)
+
+Prisma Compute natively deploys via GitHub Deploy-on-Push driven by `prisma.compute.json`:
 
 ```bash
-npx @prisma/cli@latest auth login
-npx @prisma/cli@latest auth whoami --json
-npx @prisma/cli@latest auth workspace list --json
-npx @prisma/cli@latest project link volunteerops
-npx @prisma/cli@latest project show --json
-npx @prisma/cli@latest git connect <github-repository-url> --project <project-id>
+# 1. Authenticate and select your target workspace:
+npx prisma auth login
+npx prisma auth whoami --json
+npx prisma auth workspace list --json
+# (If your project is in a team/organization workspace, switch to it):
+# npx prisma auth workspace use <workspace-id-or-name>
+
+# 2. Link this directory to your Prisma project:
+npx prisma project list
+npx prisma project link <project-id-or-name>
+npx prisma project show --json
+
+# 3. Connect the GitHub repository for automatic deployment:
+npx prisma git connect https://github.com/VolunteerOps/backend.git
 ```
 
-The default Git branch deploys to production; other branches are isolated previews. Configure preview database and bucket credentials before pushing a preview branch.
+The default Git branch (`main`) deploys to production; other branches create isolated previews. Configure preview database and bucket credentials before pushing a preview branch.
 
 For CI, use workspace-scoped `PRISMA_SERVICE_TOKEN` and explicit workspace/project targets. Never print the token. Prefer `--json --no-interactive` and branch on stable error codes.
 
 ### 8.4 Deploy and verify
 
-Run migrations first from a protected CI job using `DIRECT_URL`, then create a candidate deployment without changing production:
+Run database migrations first from a protected CI job or terminal using `DIRECT_URL`:
 
 ```bash
 npm ci
 npm run prisma:generate
 npm run prisma:deploy
 npm run build
-npx @prisma/cli@latest app deploy --no-promote --json --no-interactive
 ```
 
-Capture the deployment and build IDs from the JSON result. Inspect build and runtime logs separately:
-
+Then trigger deployment:
+1. **GitHub Deploy-on-Push (Standard):** Push to `main` (or preview branch). Prisma Compute detects `prisma.compute.json`, bundles the service, and deploys it automatically.
+2. **Inspect Services & Deployments:**
 ```bash
-npx @prisma/cli@latest build logs <build-id> --follow
-npx @prisma/cli@latest app show-deploy <deployment-id> --json
-npx @prisma/cli@latest app logs --deployment <deployment-id> --json
+# Inspect services and versions in the project:
+npx prisma service list
+npx prisma service show
+npx prisma service logs
+
+# Inspect and manage versions:
+npx prisma service version list
+npx prisma service version promote <version>
 ```
 
 Verify the exact public URL returned by the deployment:
@@ -380,12 +395,6 @@ Verify the exact public URL returned by the deployment:
 ```bash
 curl -i "https://<compute-url>/api/health"
 curl -i "https://<compute-url>/api"
-```
-
-After the candidate URL passes smoke tests, promote that exact deployment:
-
-```bash
-npx @prisma/cli@latest app promote <deployment-id> --yes
 ```
 
 For GitHub-connected Console deployments, the default branch is the production path and other branches create previews. Prisma Console may open a compatibility PR; merge that PR, then push this repository update and inspect the **Prisma Compute Deploy** check/build logs. Compute deployment itself does not run database migrations or seed data.
