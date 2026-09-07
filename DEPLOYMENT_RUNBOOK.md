@@ -49,7 +49,7 @@ The repository has completed the migration-ownership handoff in phase 4 of Prism
 - Prisma 8 now owns schema migrations through the checked-in `migrations/app/` graph. The existing database is signed at the graph tip and the checked-in `db` ref points there.
 - The existing `npm run prisma:*` deployment aliases now call Prisma 8, so deployment jobs do not fall back to the retired Prisma 7 migration history.
 - `npm run build` emits both the Prisma 7 client and Prisma 8 contract before TypeScript compilation.
-- Node is now pinned to `>=22.18.0`, including both Docker stages, because Prisma 8 requires it.
+- The application supports Node `>=22.18.0`; both Docker stages use Node 24.20 so their bundled npm 11 can resolve this repository's Prisma 7/8 transition graph reliably.
 - `DATABASE_URL` remains the `prisma+postgres://` runtime/Accelerate URL. `DIRECT_URL` must be the direct `postgres://...@db.prisma.io/...` URL used by both Prisma CLIs for schema work.
 
 Do not replace `@prisma/client` with an 8.x version: Prisma 8's application API is `@prisma/orm-postgres`, not the generated Prisma 7 Client API. Removing the compatibility client before routes are rewritten would break the backend.
@@ -66,7 +66,7 @@ If production must be PostgreSQL 18, host PostgreSQL 18 with another provider, e
 - A GitHub repository containing this backend. Prisma Compute deploy-on-push uses GitHub.
 - Node.js 22.18 or newer for Prisma 8. The workstation verification used Node 24.20.0.
 - Bun for local `@prisma/cli app build` parity; Compute uses Bun to bundle Express into a self-contained artifact.
-- npm 10+.
+- npm 11.6 or newer. npm 10's Arborist resolver can crash on the Prisma 7/8 peer-dependency graph with `Cannot read properties of null (reading 'edgesOut')` even when `--omit=dev` is used.
 - Production frontend origins and a production API domain decision.
 - A password manager or secret manager for one-time database and bucket credentials.
 
