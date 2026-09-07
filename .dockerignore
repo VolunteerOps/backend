@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+node_modules
+dist
+src/generated
+.prisma
+.npm-cache
+.firecrawl
+coverage
+*.log

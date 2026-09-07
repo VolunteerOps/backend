@@ -82,6 +82,22 @@ npm run build
 
 Never run `npm run db:seed` against an existing production database. The current seed script intentionally deletes records before inserting demonstration data.
 
+### 3.1 Docker install/build troubleshooting
+
+Both Docker stages must copy `package.json`, `package-lock.json`, and `.npmrc` before running `npm ci`. The committed lockfile uses `legacy-peer-deps=true`. Without `.npmrc`, npm attempts a different peer-dependency graph and reports `EUSAGE` with missing packages such as `vitest`, `react-dom`, and `vite`. `--omit=dev` does not skip dependency resolution, so the production stage needs this setting too. Updating Node alone does not fix this configuration mismatch.
+
+Keep `npm ci` and the committed lockfile; no application rewrite or additional frontend dependencies are required for this error. See the [npm ci documentation on matching lockfile settings](https://docs.npmjs.com/cli/v11/commands/npm-ci/).
+
+To verify the actual Linux image on a Docker-enabled workstation:
+
+```bash
+docker build --pull --no-cache -t volunteerops-backend:build-check .
+```
+
+The Docker build workflow also builds the image and checks generated Prisma client/Accelerate/S3 imports, entrypoint syntax, native Argon2 hashing, and the absence of development tools and `.env`. It runs without network access. Startup and HTTP health tests need valid runtime configuration because the Prisma client contacts Accelerate during initialization; perform the production smoke tests in section 10 after deployment. `.dockerignore` excludes local secrets, installed dependencies, and generated clients so builds regenerate their own artifacts.
+
+After committing and pushing the fix, redeploy the new commit and check that **both** install stages copy `.npmrc`. If the log still shows `COPY package*.json ./`, the deployment is building an older Dockerfile. Changing the copy instruction invalidates the affected install layers automatically.
+
 ## 4. Create and connect Prisma Postgres
 
 ### 4.1 Create the project and database
