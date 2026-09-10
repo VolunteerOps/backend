@@ -1,8 +1,0 @@
-{
-  "app": {
-    "name": "volunteerops-backend",
-    "framework": "express",
-    "entry": "src/index.ts",
-    "httpPort": 3001
-  }
-}

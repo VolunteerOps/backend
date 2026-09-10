@@ -303,109 +303,58 @@ For browser/Wasm targets, configure the bucket's permitted origins/methods if Pr
 
 ## 8. Host `volunteerops-backend` on Prisma Compute
 
-The old Render guide remains only as migration history and the active `render.yaml` blueprint has been removed. Do not create a Render service or put Render URLs into clients.
+### 8.1 Deployment path
 
-Prisma Compute is GA. The repository now includes `prisma.compute.json`, which declares the Express entrypoint (`src/index.ts`) and port 3001. Compute's current SDK maps Express to its Bun bundling strategy, producing a self-contained server artifact after the normal build script generates the Prisma 7 client and emits the Prisma 8 contract. Test a candidate/preview deployment before promoting this emergency-operations API.
+Use the same Platform CLI path as Tathmini: `@prisma/cli@3.0.0-beta.30 app deploy`. The version is deliberately pinned because newer CLI releases replaced the `app` command with Composer deployment.
 
-### 8.1 Runtime readiness
+`prisma.compute.mjs` declares a `custom` artifact (Express is not a supported framework key), port 3001, and the eu-central-1 region. `npm run compute:prepare` builds TypeScript, explicitly traces dependencies with the pinned `@vercel/nft`, and writes a standalone `.prisma/compute-artifact`. Unlike the NestJS adapter used by Tathmini, the custom adapter stages files as-is and does not trace dependencies itself. Preparation includes Argon2's Linux native prebuilds when building on Windows. The API still binds `0.0.0.0` and reads `PORT`; no framework or database rewrite is required.
 
-The service must:
+Do not deploy `module.mjs` through Composer for this existing project. Composer has no hosted state for the pre-existing production database and bucket and refuses bootstrap. The app-deploy path manages the web service independently; it does not require deleting or adopting those resources. Retain the Composer declarations only as historical setup files, not the active deployment path.
 
-- build to a runnable Node entry file;
-- listen on the port supplied by Compute;
-- bind to `0.0.0.0`;
-- receive secrets as project environment variables;
-- expose `GET /api/health` returning 200;
-- run migrations separately before production traffic switches.
+### 8.2 Authentication and runtime secrets
 
-The committed config names the framework as `express`; do not mislabel it as NestJS or Hono or replace its entrypoint with the unbundled `dist/` directory.
+Install Bun if `bunx` is unavailable:
 
-### 8.2 Verify the Compute configuration and CLI
-
-Prisma 8 provides a unified CLI (`prisma`, also distributed as `@prisma/cli@latest`) containing both ORM and Platform/Compute commands. Do not use legacy pre-release `app ...` subcommands:
-
-```bash
-npx prisma --help
-npx prisma project --help
-npx prisma service --help
+```powershell
+npm install --global bun
+bun --version
+bunx @prisma/cli@3.0.0-beta.30 auth whoami --json
 ```
 
-The application already reads `process.env.PORT` and binds `0.0.0.0`. Locally, run the framework server normally after building:
+The active workspace must contain `proj_cmsyg6b0h0m1e12faar3bwvyb` (volunteer-ops). Use the correct browser login or load the workspace service token into the calling process. In PowerShell, load only the local deployment token without printing it:
 
-```bash
-npm run build
-npm start
-curl -i http://localhost:3001/api/health
+```powershell
+$env:PRISMA_SERVICE_TOKEN = node --env-file=.env -p 'process.env.PRISMA_SERVICE_TOKEN || String()'
+bunx @prisma/cli@3.0.0-beta.30 auth whoami --json
 ```
 
-Do not deploy until Prisma 7 generation/validation, Prisma 8 contract emission, TypeScript, health, auth, database, and storage tests pass.
+Production project variables must include the existing Accelerate `DATABASE_URL`, JWT secrets/expiries, exact `CORS_ORIGIN` values, and existing S3 settings. Set `NODE_ENV=production` and `COOKIE_SECURE=true`; omit an empty `COOKIE_DOMAIN` for host-only cookies. Never pass the whole local `.env` via `--env`: it also contains deployment credentials and migration-only `DIRECT_URL`. `PRISMA_WORKSPACE_ID` is not required by this app-deploy path.
 
-### 8.3 Link project and connect GitHub (Deploy-on-Push)
+### 8.3 Build and deploy to the existing production project
 
-Prisma Compute natively deploys via GitHub Deploy-on-Push driven by `prisma.compute.json`:
-
-```bash
-# 1. Authenticate and select your target workspace:
-npx prisma auth login
-npx prisma auth whoami --json
-npx prisma auth workspace list --json
-# (If your project is in a team/organization workspace, switch to it):
-# npx prisma auth workspace use <workspace-id-or-name>
-
-# 2. Link this directory to your Prisma project:
-npx prisma project list
-npx prisma project link <project-id-or-name>
-npx prisma project show --json
-
-# 3. Connect the GitHub repository for automatic deployment:
-npx prisma git connect https://github.com/VolunteerOps/backend.git
+```powershell
+npm run compute:build
+bun --env-file=.env scripts/test-compute.mjs
+npm run compute:deploy -- --project proj_cmsyg6b0h0m1e12faar3bwvyb --branch main --prod --yes --no-db --no-interactive --json
 ```
 
-The default Git branch (`main`) deploys to production; other branches create isolated previews. Configure preview database and bucket credentials before pushing a preview branch.
+`--no-db` prevents provisioning a replacement database. The production application uses the project's existing database and bucket credentials. Deploying does not run migrations, reset data, or seed records. Apply reviewed database migrations separately only when due.
 
-For CI, use workspace-scoped `PRISMA_SERVICE_TOKEN` and explicit workspace/project targets. Never print the token. Prefer `--json --no-interactive` and branch on stable error codes.
+The production app URL is https://rh90d59tnjxx4y2te8lm5j44.fra.prisma.build. After deployment, verify it using the checks below. The isolated artifact test above checks dependency completeness, embedded-secret exclusion, Linux native assets, password hashing, health, and the unauthenticated access guard without changing application records.
 
-### 8.4 Deploy and verify
-
-Run database migrations first from a protected CI job or terminal using `DIRECT_URL`:
-
-```bash
-npm ci
-npm run prisma:generate
-npm run prisma:deploy
-npm run build
+```powershell
+curl.exe -i https://<compute-url>/api/health
+curl.exe -i https://<compute-url>/api
+curl.exe -i https://<compute-url>/api/auth/me
 ```
 
-Then trigger deployment:
-1. **GitHub Deploy-on-Push (Standard):** Push to `main` (or preview branch). Prisma Compute detects `prisma.compute.json`, bundles the service, and deploys it automatically.
-2. **Inspect Services & Deployments:**
-```bash
-# Inspect services and versions in the project:
-npx prisma service list
-npx prisma service show
-npx prisma service logs
+Expect 200 from health and API discovery, and 401 from unauthenticated `auth/me`. Also verify authenticated database reads and uploads with an authorized test account before declaring every business flow tested. Update client API base URLs and CORS once the production URL is stable.
 
-# Inspect and manage versions:
-npx prisma service version list
-npx prisma service version promote <version>
-```
+### 8.4 GitHub deployment
 
-Verify the exact public URL returned by the deployment:
+`.github/workflows/prisma-deploy.yml` uses the same pinned CLI for pushes to `main` and manual workflow dispatch. Add the workspace service token as the GitHub Actions secret `PRISMA_SERVICE_TOKEN`; credentials are not committed. The workflow explicitly targets the existing volunteer-ops project, production main, and disables database creation.
 
-```bash
-curl -i "https://<compute-url>/api/health"
-curl -i "https://<compute-url>/api"
-```
-
-For GitHub-connected Console deployments, the default branch is the production path and other branches create previews. Prisma Console may open a compatibility PR; merge that PR, then push this repository update and inspect the **Prisma Compute Deploy** check/build logs. Compute deployment itself does not run database migrations or seed data.
-
-Update volunteer/admin API base URLs and `CORS_ORIGIN` only after this URL is stable. Add a custom domain in Prisma Console if required, then use that durable domain in client builds.
-
-Official references:
-
-- [Prisma Compute deployment](https://www.prisma.io/docs/prisma-compute/deploy)
-- [Prisma 7 to Prisma 8 PostgreSQL migration](https://www.prisma.io/docs/guides/upgrade-prisma-orm/postgresql)
-- [Prisma Postgres connections](https://www.prisma.io/docs/postgres/database/connecting-to-your-database)
+The former Composer deploy/destroy workflow is no longer used. Branch deletion must not destroy shared resources. Preview deployment is not configured by this production-only workflow. The independent Docker build check remains available.
 
 ## 9. Prisma 8 incremental migration status
 

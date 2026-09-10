@@ -2,21 +2,23 @@ name: prisma-deploy
 
 on:
   push:
-  delete:
+    branches: [main]
+  workflow_dispatch:
 
 concurrency:
-  group: prisma-deploy-${{ github.ref }}
+  group: prisma-deploy-production
   cancel-in-progress: false
 
 permissions:
   contents: read
-  id-token: write
-  pull-requests: write
 
 jobs:
   deploy:
-    if: github.event_name == 'push' && github.ref_type == 'branch'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRISMA_SERVICE_TOKEN: ${{ secrets.PRISMA_SERVICE_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,26 +27,11 @@ jobs:
           cache: npm
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.13
-      - uses: prisma/cloud-deploy-action@v1
-        with:
-          module: module.mjs
-          build-command: npm run build
-
-  teardown:
-    if: github.event_name == 'delete' && github.event.ref_type == 'branch'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.13
-      - uses: prisma/cloud-deploy-action@v1
-        with:
-          module: module.mjs
-          mode: destroy
-          stage: ${{ github.event.ref }}
+          bun-version: 1.4.2
+      - name: Require deployment credentials
+        run: test -n "$PRISMA_SERVICE_TOKEN"
+      - run: npm ci
+      - name: Deploy web service without provisioning a database
+        run: npm run compute:deploy -- --project proj_cmsyg6b0h0m1e12faar3bwvyb --branch main --prod --yes --no-db --no-interactive --json
+      - name: Verify public health
+        run: curl --fail --retry 5 --retry-delay 5 https://rh90d59tnjxx4y2te8lm5j44.fra.prisma.build/api/health

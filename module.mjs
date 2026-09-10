@@ -1,10 +1,10 @@
 // @ts-check
 import { module } from "@prisma/composer";
-import { postgres, dataContract } from "@prisma/composer-prisma-cloud/orm";
-import volunteeropsBackendContractJson from "./src/generated/prisma8/contract.json" with { type: "json" };
 import volunteeropsBackendService from "./service.mjs";
 
-export default module("volunteerops-backend", ({ provision }) => {
-  const database = provision(postgres({ name: "database", contract: dataContract(volunteeropsBackendContractJson), config: "./prisma.config.ts" }));
-  provision(volunteeropsBackendService, { id: "volunteeropsbackend", deps: { db: database } });
+// Composer resolves the existing project by this name within the workspace.
+// The compatibility client uses the existing DATABASE_URL/Accelerate database;
+// deploying this web service must not provision a replacement database.
+export default module("volunteer-ops", ({ provision }) => {
+  provision(volunteeropsBackendService, { id: "volunteeropsbackend" });
 });
