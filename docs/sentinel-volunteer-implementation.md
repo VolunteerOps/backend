@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # Volunteer Sentinel implementation checkpoint
 
 Updated 30 September 2026. See [current status](sentinel-continuation-status.md) and [setup/activation](sentinel-setup-and-activation.md).

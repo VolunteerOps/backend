@@ -1,0 +1,229 @@
+# Configuration reference for docs/render-production-deployment-runbook.md.
+# Stage database/roles/storage first; do not blindly sync over existing services.
+# Secret files are uploaded separately in Render; paths below do not provision them.
+# Applies only to the existing With Intent / Volunteer Ops / Production target.
+# Validate names and review the database import before syncing: the backend already exists.
+# Runtime DATABASE_URL uses a non-owner role; owner credentials never enter service env vars.
+projects:
+  - name: Volunteer Ops
+    environments:
+      - name: Production
+        databases:
+          - name: volunteerops-postgres
+            postgresMajorVersion: '18'
+            databaseName: volunteerops
+            user: sentinel_migrator
+            region: frankfurt
+            plan: 0.5c-1g
+            diskSizeGB: 10
+            ipAllowList: [] # Add only approved workstation and verified service egress CIDRs before migration.
+        services:
+          - type: web
+            name: volunteerops-storage
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 1c-2g
+            autoDeployTrigger: off
+            dockerfilePath: ./deploy/object-store/Dockerfile
+            healthCheckPath: /_resq/ready
+            disk:
+              name: volunteerops-objects
+              mountPath: /data
+              sizeGB: 10
+            envVars:
+              - key: S3_BUCKET
+                value: volunteerops-production
+              - key: S3_REGION
+                value: us-east-1
+              - key: S3_ENDPOINT
+                sync: false # Actual HTTPS service origin returned by Render.
+              - key: S3_CORS_ORIGINS
+                sync: false
+              - key: S3_ROOT_ACCESS_KEY_ID
+                sync: false
+              - key: S3_ROOT_SECRET_ACCESS_KEY
+                sync: false
+              - key: S3_ACCESS_KEY_ID
+                sync: false
+              - key: S3_SECRET_ACCESS_KEY
+                sync: false
+          - type: web
+            name: volunteerops-backend
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            autoDeployTrigger: off
+            dockerfilePath: ./Dockerfile
+            healthCheckPath: /api/ready
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: COOKIE_SECURE
+                value: 'true'
+              - key: FIREBASE_ALLOW_AUTH_EMULATOR
+                value: 'false'
+              - key: DATABASE_URL
+                sync: false
+              - key: DATABASE_POOL_MAX
+                value: '3'
+              - key: S3_ENDPOINT
+                fromService:
+                  name: volunteerops-storage
+                  type: web
+                  envVarKey: S3_ENDPOINT
+              - key: S3_BUCKET
+                fromService:
+                  name: volunteerops-storage
+                  type: web
+                  envVarKey: S3_BUCKET
+              - key: S3_ACCESS_KEY_ID
+                fromService:
+                  name: volunteerops-storage
+                  type: web
+                  envVarKey: S3_ACCESS_KEY_ID
+              - key: S3_SECRET_ACCESS_KEY
+                fromService:
+                  name: volunteerops-storage
+                  type: web
+                  envVarKey: S3_SECRET_ACCESS_KEY
+              - key: S3_REGION
+                value: us-east-1
+              - key: S3_FORCE_PATH_STYLE
+                value: 'true'
+              - key: FIREBASE_PROJECT_ID
+                sync: false
+              - key: FIREBASE_WEB_API_KEY
+                sync: false
+              - key: FIREBASE_WEB_AUTH_DOMAIN
+                sync: false
+              - key: FIREBASE_WEB_APP_ID
+                sync: false
+              - key: GOOGLE_APPLICATION_CREDENTIALS
+                value: /etc/secrets/firebase-service-account.json
+              - key: MAPBOX_ACCESS_TOKEN
+                sync: false
+              - key: CORS_ORIGIN
+                sync: false
+              - key: WEATHERNEXT_ACCESS_ENABLED
+                value: 'false'
+          - type: worker
+            name: volunteerops-sentinel-identity
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            autoDeployTrigger: off
+            maxShutdownDelaySeconds: 180
+            dockerfilePath: ./Dockerfile
+            dockerCommand: node dist/workers/identity.worker.js
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: DATABASE_URL
+                sync: false # Dedicated non-owner login; do not use the migration owner.
+              - key: DATABASE_POOL_MAX
+                value: '3'
+              - key: FIREBASE_PROJECT_ID
+                fromService:
+                  type: web
+                  name: volunteerops-backend
+                  envVarKey: FIREBASE_PROJECT_ID
+              - key: FIREBASE_ALLOW_AUTH_EMULATOR
+                value: 'false'
+              - key: GOOGLE_APPLICATION_CREDENTIALS
+                value: /etc/secrets/firebase-service-account.json
+          - type: worker
+            name: volunteerops-sentinel-devices
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            autoDeployTrigger: off
+            maxShutdownDelaySeconds: 180
+            dockerfilePath: ./Dockerfile
+            dockerCommand: node dist/workers/device.worker.js
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: DATABASE_URL
+                sync: false # Dedicated non-owner login; do not use the migration owner.
+              - key: DATABASE_POOL_MAX
+                value: '3'
+          - type: worker
+            name: volunteerops-sentinel-sources
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            autoDeployTrigger: off
+            maxShutdownDelaySeconds: 180
+            dockerfilePath: ./Dockerfile
+            dockerCommand: node dist/workers/sources.worker.js
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: DATABASE_URL
+                sync: false # Dedicated non-owner login; do not use the migration owner.
+              - key: DATABASE_POOL_MAX
+                value: '3'
+              - key: SENTINEL_USGS_ENABLED
+                value: 'true'
+          - type: cron
+            name: volunteerops-sentinel-retention
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            schedule: '*/5 * * * *'
+            autoDeployTrigger: off
+            dockerfilePath: ./Dockerfile
+            dockerCommand: node dist/workers/retention.worker.js
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: DATABASE_URL
+                sync: false # Dedicated sentinel_retention_access login.
+              - key: DATABASE_POOL_MAX
+                value: '1'
+          - type: web
+            name: volunteerops-admin
+            runtime: static
+            repo: https://github.com/VolunteerOps/admin
+            autoDeployTrigger: off
+            buildCommand: bash scripts/render-build.sh
+            staticPublishPath: webApp/build/dist/js/productionExecutable
+            envVars:
+              - key: OPERATIONS_API_URL
+                value: https://volunteerops-backend.onrender.com
+              - key: SENTINEL_PORTAL_URL
+                value: https://volunteerops-backend.onrender.com/sentinel
+              - key: SKIP_INSTALL_DEPS
+                value: 'true'
+              - key: NODE_VERSION
+                value: '22'
+            routes:
+              - type: rewrite
+                source: /*
+                destination: /index.html
+          - type: web
+            name: volunteerops-volunteer
+            runtime: static
+            repo: https://github.com/VolunteerOps/volunteer
+            autoDeployTrigger: off
+            buildCommand: bash scripts/render-build.sh
+            staticPublishPath: webApp/build/dist/js/productionExecutable
+            envVars:
+              - key: OPERATIONS_API_URL
+                value: https://volunteerops-backend.onrender.com
+              - key: SENTINEL_PORTAL_URL
+                value: https://volunteerops-backend.onrender.com/sentinel
+              - key: SKIP_INSTALL_DEPS
+                value: 'true'
+              - key: NODE_VERSION
+                value: '22'
+            routes:
+              - type: rewrite
+                source: /*
+                destination: /index.html

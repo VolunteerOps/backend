@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # Android sensing and relay — planned implementation handoff
 
 **Step 1 documentation only. No sensors, acoustic model, estimator, relay or live client implemented here. No production activation authorized.** Trace: specification S05/S06/S10; primary plan “Android Sensing and Relay” and “Android and relay tests”. [Status/evidence convention](sentinel-implementation-plan.md).

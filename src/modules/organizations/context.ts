@@ -24,7 +24,7 @@ export async function withActor<T>(actor: Actor, action: (tx: TenantTransaction)
         SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname = 'public' AND c.relname IN ('organizations', 'organization_memberships',
           'organization_invitations', 'organization_audit', 'platform_grants', 'member_devices', 'ingress_receipts',
-          'organization_units', 'forecast_runs', 'volunteers', 'skills', 'volunteer_skills', 'locations',
+          'stored_objects', 'organization_units', 'forecast_runs', 'volunteers', 'skills', 'volunteer_skills', 'locations',
           'events', 'deployments', 'field_reports', 'communications', 'notifications', 'telemetry_pings', 'feedback')
           AND pg_has_role(current_user, c.relowner, 'MEMBER')) AS unsafe`;
     if (role.length !== 1 || role[0].unsafe) {

@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # Kenya seasonal readiness — Step 1 skeleton
 
 Step 1 documentation; trace S03/S07/S09/S10 in the [specification](sentinel-implementation-plan.md). **No live source verification, preparedness campaign, partner activation or deployment authorization performed here.** Keep region-independent architecture; Kenya is prioritized configuration, not the only supported region.

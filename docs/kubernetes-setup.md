@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # Optional Kubernetes setup skeleton
 
 **Optional alternative only: not required, not selected, not provisioned.** Default is [managed container hosting](container-hosting-setup.md) with external [PG18/PostGIS](postgresql18-setup.md). Step 1 documentation; trace S02/S09/S10 in the [specification](sentinel-implementation-plan.md). No cluster creation, billing or deployment authorization.

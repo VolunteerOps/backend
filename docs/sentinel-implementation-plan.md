@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # VolunteerOps Sentinel implementation specification
 
 > Current implementation: [13 September continuation](sentinel-continuation-status.md). The earlier baseline below is historical where it describes local JWT authentication, missing Firebase HTTP mappings, or absent identity workers. Organization isolation, live client integration and the disaster engine remain unfinished.
@@ -39,7 +41,7 @@ Use separate code-completion, configuration, scientific-validation, device/provi
 3. Implement durable jobs/outbox/global receipts/stream events, leases/fencing/retries/polling, independent priority workers and worker deployment/probe/shutdown templates; test concurrency, replay, expiry and failure recovery.
 4. Complete dependency security review and remaining foundation tests; obtain approved isolated PG18/PostGIS and container tooling for readiness, migration/RLS, container, load and restore evidence. Provider configuration and passing unit/build checks do not replace these coding or release gates. Steps 2â€“7 are not started.
 
-The [root deployment runbook](../DEPLOYMENT_RUNBOOK.md) owns actual runtime commands/topology and the parent's current foundation evidence. Do not use the historical [Postgres consolidation research](postgres-replacement-guide-v2.md) as proof of server version, extension availability or production readiness.
+The [root deployment runbook](../DEPLOYMENT_RUNBOOK.md) owns actual runtime commands/topology and the parent's current foundation evidence. Do not use the historical [data migration record](railway-data-migration-and-recovery.md) as proof of server version, extension availability or production readiness.
 
 ## Requirement traceability
 

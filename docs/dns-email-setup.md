@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # DNS, verified links and invitation email setup skeleton
 
 Step 1 documentation; trace S04/S08/S09/S10 in the [specification](sentinel-implementation-plan.md). **No DNS registration/change, email provider selection/send, paid service or production cutover authorized.**

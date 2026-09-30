@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # Organization admission implementation — 13 September 2026
 
 This is the current organization/identity implementation record. It supersedes the earlier continuation's statement that organization models and RLS were wholly unimplemented. The complete Sentinel plan remains unfinished.

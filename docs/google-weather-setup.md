@@ -1,6 +1,8 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # Google Weather setup and licensing skeleton
 
-> 30 September 2026 update: see [Sentinel setup and activation](sentinel-setup-and-activation.md) for the implemented WeatherNext 3 BigQuery path, Mapbox portal, scoped endpoints, PostgreSQL 18/PostGIS verification and current Render deployment target. Earlier baseline claims below are historical; the remaining full-scope requirements still apply.
+> 30 September 2026 update: see [Sentinel setup and activation](sentinel-setup-and-activation.md) for the implemented WeatherNext 3 BigQuery path, Mapbox portal, scoped endpoints, PostgreSQL 18/PostGIS verification and current Railway deployment target. Earlier baseline claims below are historical; the remaining full-scope requirements still apply.
 
 Step 1 documentation; trace S03/S08/S10 in the [specification](sentinel-implementation-plan.md). **Retrieval, processing, display, derivation and retention remain disabled pending approval and implementation. No paid resource or live use authorized.**
 

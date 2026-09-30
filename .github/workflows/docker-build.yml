@@ -2,7 +2,7 @@ name: Docker build
 
 on:
   push:
-    branches: [main]
+    branches: [main, "deploy/sentinel-production-*"]
   pull_request:
   workflow_dispatch:
 
@@ -12,7 +12,7 @@ permissions:
 jobs:
   build-and-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       postgres:
         image: postgis/postgis:18-3.6
@@ -41,6 +41,7 @@ jobs:
         run: npm exec -- prisma db verify --db "$SENTINEL_TEST_DATABASE_URL"
       - run: npm test
       - run: npm run test:types
+      - run: npm run test:object-store
       - run: npx playwright install --with-deps chromium
       - run: npm run test:portal
       - run: npm audit --omit=dev --audit-level=moderate
@@ -75,3 +76,23 @@ jobs:
           assert.equal(await argon2.verify(hash, 'wrong-password'), false);
           console.log('Production artifact and native dependency checks passed');
           JS
+
+      - name: Build the private object-store image
+        run: docker build --pull -f deploy/object-store/Dockerfile -t volunteerops-storage:build-check .
+      - name: Check isolated object-store startup and authenticated readiness
+        run: |
+          trap 'docker rm -f resq-storage-check >/dev/null 2>&1 || true' EXIT
+          docker run -d --name resq-storage-check --network none \
+            -e S3_ENDPOINT=https://storage-ci.example.org -e S3_BUCKET=ci-private-objects \
+            -e S3_REGION=us-east-1 \
+            -e S3_ROOT_ACCESS_KEY_ID=CI_ROOT_KEY_00000001 \
+            -e S3_ROOT_SECRET_ACCESS_KEY=disposable-ci-owner-secret-000000000000 \
+            -e S3_ACCESS_KEY_ID=CI_RUNTIME_KEY_00001 \
+            -e S3_SECRET_ACCESS_KEY=disposable-ci-runtime-secret-0000000000 \
+            volunteerops-storage:build-check
+          for attempt in $(seq 1 24); do
+            if docker exec resq-storage-check node healthcheck.mjs; then exit 0; fi
+            sleep 5
+          done
+          docker logs resq-storage-check
+          exit 1

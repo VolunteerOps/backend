@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # Firebase Auth, social providers and FCM setup skeleton
 
 > Current implementation: [13 September continuation](sentinel-continuation-status.md). The earlier baseline below is historical where it describes local JWT authentication, missing Firebase HTTP mappings, or absent identity workers. Organization isolation, live client integration and the disaster engine remain unfinished.

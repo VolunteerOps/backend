@@ -33,6 +33,7 @@ import feedbackRouter from './modules/feedback/feedback.controller.js';
 import analyticsRouter from './modules/analytics/analytics.controller.js';
 import adminRouter from './modules/admin/admin.controller.js';
 import storageRouter from './modules/storage/storage.controller.js';
+import scopedStorageRouter from './modules/scoped-storage/scoped-storage.controller.js';
 
 export const app = express();
 
@@ -129,6 +130,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/platform', platformRouter);
 app.use('/api', organizationsRouter);
 app.use('/api/organizations/:orgId/sentinel', sentinelRouter);
+app.use('/api/organizations/:orgId/regions/:regionId/storage', scopedStorageRouter);
 // Global roles cannot authorize institution-private legacy tables without ownership.
 app.use(['/api/users', '/api/volunteers', '/api/skills', '/api/locations', '/api/events',
   '/api/deployments', '/api/field-reports', '/api/communications', '/api/telemetry',

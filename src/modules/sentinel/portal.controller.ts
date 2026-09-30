@@ -1,5 +1,6 @@
 import { Router, static as serveStatic } from 'express';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { config } from '../../core/config.js';
 
@@ -14,7 +15,10 @@ export function publicPortalConfiguration(env: NodeJS.ProcessEnv = process.env) 
     weather_access: env.WEATHERNEXT_ACCESS_ENABLED === 'true' ? 'CONFIGURED' : 'AWAITING_ACCESS' };
 }
 const router = Router();
-const root = resolve(process.cwd(), 'dist/portal');
+// Compiled builds and flattened Compute artifacts keep portal/ alongside modules/.
+// tsx executes the source tree, whose built assets still live under dist/portal/.
+const root = fileURLToPath(new URL(import.meta.url.endsWith('.ts')
+  ? '../../../dist/portal/' : '../../portal/', import.meta.url));
 router.use((_req, res, next) => {
   // Only explicitly configured app origins may frame this page.
   const frames = config.CORS_ORIGIN.filter(origin => /^https?:\/\/[a-zA-Z0-9.:-]+$/.test(origin));

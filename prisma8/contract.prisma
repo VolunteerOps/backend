@@ -3,6 +3,51 @@
 
 namespace public {
 
+model StoredObject {
+  id String @id
+  organizationId String @map("organization_id")
+  regionId String @map("region_id")
+  uploaderUserId Int @map("uploader_user_id")
+  bucket String
+  objectKey String @unique @map("object_key")
+  fileName String @map("file_name")
+  contentType String @map("content_type")
+  byteSize Int @map("byte_size")
+  checksumSha256 String @map("checksum_sha256")
+  state String @default("PENDING")
+  createdAt Timestamp(3) @default(now()) @map("created_at")
+  expiresAt Timestamp(3) @map("expires_at")
+  completedAt Timestamp(3)? @map("completed_at")
+  etag String?
+  versionId String? @map("version_id")
+  region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  membership OrganizationMembership @relation(fields: [organizationId, uploaderUserId], references: [organizationId, userId], onDelete: Restrict, onUpdate: Cascade)
+  @@index([organizationId, regionId, uploaderUserId, createdAt], map: "stored_object_owner_idx")
+  @@index([state, expiresAt], map: "stored_object_expiry_idx")
+  @@check(expression: "state IN ('PENDING', 'READY')", name: "stored_object_state")
+  @@check(expression: "byte_size > 0 AND byte_size <= 10485760", name: "stored_object_size")
+  @@check(expression: "(state = 'PENDING' AND completed_at IS NULL) OR (state = 'READY' AND completed_at IS NOT NULL AND etag IS NOT NULL)", name: "stored_object_completion")
+  @@rls
+  @@map("stored_objects")
+}
+
+policy_select stored_object_read {
+ target = StoredObject
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+
+policy_insert stored_object_create {
+ target = StoredObject
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'PENDING'"
+}
+
+policy_update stored_object_complete {
+ target = StoredObject
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'PENDING'"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'READY'"
+}
+
+
 model HazardRevision {
  id String @id
  source String

@@ -21,3 +21,6 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO sentinel_runtime_access
 -- Re-run explicit grants when a reviewed migration introduces a required table.
 
 GRANT SELECT, INSERT ON public.contact_submissions TO sentinel_runtime_access;
+
+GRANT SELECT, INSERT ON public.stored_objects TO sentinel_runtime_access;
+GRANT UPDATE (state, completed_at, etag, version_id) ON public.stored_objects TO sentinel_runtime_access;

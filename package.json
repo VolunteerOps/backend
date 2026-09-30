@@ -13,8 +13,8 @@
     "worker:identity": "node dist/workers/identity.worker.js",
     "worker:device": "node dist/workers/device.worker.js",
     "identity:operator": "tsx scripts/identity-operator.ts",
-    "compute:build": "bunx @prisma/cli@3.0.0-beta.30 app build volunteerops-backend",
-    "compute:deploy": "bunx @prisma/cli@3.0.0-beta.30 app deploy volunteerops-backend",
+    "compute:build": "npx --yes @prisma/cli@3.0.0-beta.30 app build volunteerops-backend",
+    "compute:deploy": "npx --yes @prisma/cli@3.0.0-beta.30 app deploy volunteerops-backend",
     "prisma7:generate": "prisma7 generate",
     "prisma7:studio": "prisma7 studio",
     "prisma7:validate": "prisma7 validate",
@@ -40,7 +40,8 @@
     "worker:sources": "node dist/workers/sources.worker.js",
     "build:portal": "tsc -p tsconfig.portal.json && node scripts/build-portal.mjs",
     "test:portal": "playwright test --config playwright.portal.config.ts",
-    "retention:once": "node dist/workers/retention.worker.js"
+    "retention:once": "node dist/workers/retention.worker.js",
+    "test:object-store": "node --test deploy/object-store/gateway.test.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

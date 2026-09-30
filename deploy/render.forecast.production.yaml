@@ -1,0 +1,37 @@
+# Optional configuration reference, not a second Blueprint to blindly sync.
+# Add this worker to Volunteer Ops / Production after Google approval and live testing.
+# Set the same WeatherNext project/dataset/location/budget/enable values on the API.
+projects:
+  - name: Volunteer Ops
+    environments:
+      - name: Production
+        services:
+          - type: worker
+            name: volunteerops-sentinel-forecast
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            autoDeployTrigger: off
+            maxShutdownDelaySeconds: 180
+            dockerfilePath: ./Dockerfile
+            dockerCommand: node dist/workers/forecast.worker.js
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: DATABASE_URL
+                sync: false
+              - key: DATABASE_POOL_MAX
+                value: '3'
+              - key: WEATHERNEXT_ACCESS_ENABLED
+                value: 'true'
+              - key: WEATHERNEXT_PROJECT_ID
+                sync: false
+              - key: WEATHERNEXT_DATASET_ID
+                sync: false
+              - key: WEATHERNEXT_LOCATION
+                value: US
+              - key: WEATHERNEXT_MAX_BYTES_BILLED
+                sync: false
+              - key: GOOGLE_APPLICATION_CREDENTIALS
+                value: /etc/secrets/weathernext-service-account.json

@@ -1,6 +1,8 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # PostgreSQL 18 / PostGIS setup skeleton
 
-> 30 September 2026 update: see [Sentinel setup and activation](sentinel-setup-and-activation.md) for the implemented WeatherNext 3 BigQuery path, Mapbox portal, scoped endpoints, PostgreSQL 18/PostGIS verification and current Render deployment target. Earlier baseline claims below are historical; the remaining full-scope requirements still apply.
+> 30 September 2026 update: see [Sentinel setup and activation](sentinel-setup-and-activation.md) for the implemented WeatherNext 3 BigQuery path, Mapbox portal, scoped endpoints, PostgreSQL 18/PostGIS verification and current Railway deployment target. Earlier baseline claims below are historical; the remaining full-scope requirements still apply.
 
 Step 1 documentation; trace S02/S09/S10 in the [specification](sentinel-implementation-plan.md). **External managed PG18/PostGIS is the target, not a verified provisioned database. No production migration or cutover authorized.**
 
@@ -13,7 +15,7 @@ Step 1 documentation; trace S02/S09/S10 in the [specification](sentinel-implemen
 
 ## Required inputs and actions
 
-Record `REQUIRED`: provider/account/project and region; exact PG18 patch/PostGIS availability; data-residency agreement; private host/port/database; runtime versus migration/listener role; direct/pooler endpoints and mode; CA/TLS validation requirements; connection budget/API-worker replica caps; backup/PITR retention and restore destination; RPO/RTO evidence; maintenance/rotation/on-call owner; approved legacy organization/backfill plan. Prisma/ORM version is not server version. Historical [consolidation research](postgres-replacement-guide-v2.md) is not provider evidence.
+Record `REQUIRED`: provider/account/project and region; exact PG18 patch/PostGIS availability; data-residency agreement; private host/port/database; runtime versus migration/listener role; direct/pooler endpoints and mode; CA/TLS validation requirements; connection budget/API-worker replica caps; backup/PITR retention and restore destination; RPO/RTO evidence; maintenance/rotation/on-call owner; approved legacy organization/backfill plan. Prisma/ORM version is not server version. Historical [database migration guidance](railway-data-migration-and-recovery.md) is not provider evidence.
 
 Owner configures private network rules and verified TLS, managed PG18/PostGIS, separate least-privilege non-owner runtime roles without `BYPASSRLS`, controlled migration role, backup/PITR and alerts. `pg_cron` is optional, not required; do not add redundant Redis/Kafka/vector or in-cluster database stacks. Server/extension support must be confirmed before provider choice, not inferred from a generic PostgreSQL service.
 

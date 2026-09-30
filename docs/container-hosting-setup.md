@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # Managed container hosting setup skeleton
 
 Step 1 documentation; trace S02/S09/S10 in the [specification](sentinel-implementation-plan.md). **Default target is a managed container service with external managed PG18/PostGIS. No provider selected/provisioned or production cutover authorized here.**

@@ -1,0 +1,491 @@
+[
+  {
+    "id": "table.stored_objects",
+    "label": "Create table \"stored_objects\"",
+    "summary": "Creates table \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"stored_objects\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"stored_objects\"",
+        "sql": "CREATE TABLE \"public\".\"stored_objects\" (\n  \"bucket\" text NOT NULL,\n  \"byte_size\" int4 NOT NULL,\n  \"checksum_sha256\" text NOT NULL,\n  \"completed_at\" timestamp(3),\n  \"content_type\" text NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"etag\" text,\n  \"expires_at\" timestamp(3) NOT NULL,\n  \"file_name\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"object_key\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"region_id\" text NOT NULL,\n  \"state\" text DEFAULT 'PENDING' NOT NULL,\n  \"uploader_user_id\" int4 NOT NULL,\n  \"version_id\" text,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"stored_object_completion_a37fde25\" CHECK ((state = 'PENDING' AND completed_at IS NULL) OR (state = 'READY' AND completed_at IS NOT NULL AND etag IS NOT NULL)),\n  CONSTRAINT \"stored_object_size_44a2044e\" CHECK (byte_size > 0 AND byte_size <= 10485760),\n  CONSTRAINT \"stored_object_state_a37b3d27\" CHECK (state IN ('PENDING', 'READY'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"stored_objects\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.stored_objects.stored_objects_object_key_key",
+    "label": "Add unique constraint on \"stored_objects\" (object_key)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "stored_objects_object_key_key",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"stored_objects_object_key_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_objects_object_key_key",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"stored_objects_object_key_key\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\" ADD CONSTRAINT \"stored_objects_object_key_key\" UNIQUE (\"object_key\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"stored_objects_object_key_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_objects_object_key_key",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.stored_objects.stored_object_expiry_idx",
+    "label": "Create index \"stored_object_expiry_idx\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "stored_object_expiry_idx",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"stored_object_expiry_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_object_expiry_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"stored_object_expiry_idx\"",
+        "sql": "CREATE INDEX \"stored_object_expiry_idx\" ON \"public\".\"stored_objects\" (\"state\", \"expires_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"stored_object_expiry_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_object_expiry_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.stored_objects.stored_object_owner_idx",
+    "label": "Create index \"stored_object_owner_idx\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "stored_object_owner_idx",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"stored_object_owner_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_object_owner_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"stored_object_owner_idx\"",
+        "sql": "CREATE INDEX \"stored_object_owner_idx\" ON \"public\".\"stored_objects\" (\"organization_id\", \"region_id\", \"uploader_user_id\", \"created_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"stored_object_owner_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_object_owner_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.stored_objects.stored_objects_organization_id_region_id_idx_19d4ff55",
+    "label": "Create index \"stored_objects_organization_id_region_id_idx_19d4ff55\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "stored_objects_organization_id_region_id_idx_19d4ff55",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"stored_objects_organization_id_region_id_idx_19d4ff55\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_objects_organization_id_region_id_idx_19d4ff55\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"stored_objects_organization_id_region_id_idx_19d4ff55\"",
+        "sql": "CREATE INDEX \"stored_objects_organization_id_region_id_idx_19d4ff55\" ON \"public\".\"stored_objects\" (\"organization_id\", \"region_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"stored_objects_organization_id_region_id_idx_19d4ff55\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_objects_organization_id_region_id_idx_19d4ff55\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.stored_objects.stored_objects_organization_id_uploader_user_id_idx_4edc31af",
+    "label": "Create index \"stored_objects_organization_id_uploader_user_id_idx_4edc31af\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "stored_objects_organization_id_uploader_user_id_idx_4edc31af",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"stored_objects_organization_id_uploader_user_id_idx_4edc31af\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_objects_organization_id_uploader_user_id_idx_4edc31af\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"stored_objects_organization_id_uploader_user_id_idx_4edc31af\"",
+        "sql": "CREATE INDEX \"stored_objects_organization_id_uploader_user_id_idx_4edc31af\" ON \"public\".\"stored_objects\" (\"organization_id\", \"uploader_user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"stored_objects_organization_id_uploader_user_id_idx_4edc31af\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"stored_objects_organization_id_uploader_user_id_idx_4edc31af\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.stored_objects.stored_objects_organization_id_region_id_fkey",
+    "label": "Add foreign key \"stored_objects_organization_id_region_id_fkey\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "stored_objects_organization_id_region_id_fkey",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"stored_objects_organization_id_region_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_objects_organization_id_region_id_fkey",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"stored_objects_organization_id_region_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\"\nADD CONSTRAINT \"stored_objects_organization_id_region_id_fkey\"\nFOREIGN KEY (\"organization_id\", \"region_id\")\nREFERENCES \"public\".\"organization_units\" (\"organization_id\", \"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"stored_objects_organization_id_region_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_objects_organization_id_region_id_fkey",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.stored_objects.stored_objects_organization_id_uploader_user_id_fkey",
+    "label": "Add foreign key \"stored_objects_organization_id_uploader_user_id_fkey\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "stored_objects_organization_id_uploader_user_id_fkey",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"stored_objects_organization_id_uploader_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_objects_organization_id_uploader_user_id_fkey",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"stored_objects_organization_id_uploader_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\"\nADD CONSTRAINT \"stored_objects_organization_id_uploader_user_id_fkey\"\nFOREIGN KEY (\"organization_id\", \"uploader_user_id\")\nREFERENCES \"public\".\"organization_memberships\" (\"organization_id\", \"user_id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"stored_objects_organization_id_uploader_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_objects_organization_id_uploader_user_id_fkey",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.stored_objects",
+    "label": "Enable row-level security on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"stored_objects\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"stored_objects\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"stored_objects\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.stored_objects.stored_object_complete_a84ca85a",
+    "label": "Create RLS policy \"stored_object_complete_a84ca85a\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "stored_object_complete_a84ca85a",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"stored_object_complete_a84ca85a\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_complete_a84ca85a"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"stored_object_complete_a84ca85a\"",
+        "sql": "CREATE POLICY \"stored_object_complete_a84ca85a\" ON \"public\".\"stored_objects\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'PENDING') WITH CHECK (organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'READY')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"stored_object_complete_a84ca85a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_complete_a84ca85a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.stored_objects.stored_object_create_d2a716b1",
+    "label": "Create RLS policy \"stored_object_create_d2a716b1\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "stored_object_create_d2a716b1",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"stored_object_create_d2a716b1\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_create_d2a716b1"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"stored_object_create_d2a716b1\"",
+        "sql": "CREATE POLICY \"stored_object_create_d2a716b1\" ON \"public\".\"stored_objects\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'PENDING')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"stored_object_create_d2a716b1\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_create_d2a716b1"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.stored_objects.stored_object_read_a69f9fa0",
+    "label": "Create RLS policy \"stored_object_read_a69f9fa0\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "stored_object_read_a69f9fa0",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"stored_object_read_a69f9fa0\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_read_a69f9fa0"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"stored_object_read_a69f9fa0\"",
+        "sql": "CREATE POLICY \"stored_object_read_a69f9fa0\" ON \"public\".\"stored_objects\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"stored_object_read_a69f9fa0\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_read_a69f9fa0"
+        ]
+      }
+    ]
+  }
+]

@@ -21,11 +21,12 @@ cpSync(resolve('dist'), artifact, {
 // The custom Compute adapter stages files as-is, unlike the NestJS adapter.
 // Trace and relocate runtime dependencies explicitly, using both Bun and Node
 // export conditions. This keeps build tools and local credentials out.
-const { fileList } = await nodeFileTrace([entry], {
-  base: root,
-  processCwd: root,
-  conditions: ['node', 'bun', 'import', 'require', 'default'],
-});
+// NFT selects import/require/default from each actual import. Explicitly adding
+// both import and require incorrectly makes a package's first branch win.
+// Trace each runtime separately so Bun-only exports do not hide Node exports.
+const traces = await Promise.all([['node'], ['node', 'bun']].map(conditions =>
+  nodeFileTrace([entry], { base: root, processCwd: root, conditions })));
+const fileList = new Set(traces.flatMap(trace => [...trace.fileList]));
 for (const file of fileList) {
   const normalized = file.replaceAll('\\', '/');
   if (!normalized.startsWith('node_modules/')) continue;

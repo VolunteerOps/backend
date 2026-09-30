@@ -112,6 +112,7 @@ model Organization {
 }
 
 model OrganizationMembership {
+  storedObjects StoredObject[]
   profiles Volunteer[]
   id String @id
   organizationId String @map("organization_id")
@@ -653,6 +654,7 @@ model IngressReceipt {
 }
 
 model OrganizationUnit {
+  storedObjects StoredObject[]
  forecastBounds Json? @map("forecast_bounds")
  forecastPolicy Json? @map("forecast_policy")
  forecastRuns ForecastRun[]
@@ -713,4 +715,28 @@ model HazardRevision {
  @@index([source, externalId, revisionAt], map: "hazard_revision_source_idx")
  @@index([observedAt], map: "hazard_revision_time_idx")
  @@map("hazard_revisions")
+}
+
+model StoredObject {
+  id String @id
+  organizationId String @map("organization_id")
+  regionId String @map("region_id")
+  uploaderUserId Int @map("uploader_user_id")
+  bucket String
+  objectKey String @unique @map("object_key")
+  fileName String @map("file_name")
+  contentType String @map("content_type")
+  byteSize Int @map("byte_size")
+  checksumSha256 String @map("checksum_sha256")
+  state String @default("PENDING")
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+  completedAt DateTime? @map("completed_at")
+  etag String?
+  versionId String? @map("version_id")
+  region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  membership OrganizationMembership @relation(fields: [organizationId, uploaderUserId], references: [organizationId, userId], onDelete: Restrict, onUpdate: Cascade)
+  @@index([organizationId, regionId, uploaderUserId, createdAt], map: "stored_object_owner_idx")
+  @@index([state, expiresAt], map: "stored_object_expiry_idx")
+  @@map("stored_objects")
 }

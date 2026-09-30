@@ -1,3 +1,5 @@
+> Current delivery authority (1 October 2026): [seven-stage roadmap](resq-production-implementation-roadmap.md) and [Railway runbook](railway-production-deployment-runbook.md). This specialist document retains detailed requirements and dated evidence; older status, authentication, hosting and completion claims are superseded by the [current checkpoint](sentinel-continuation-status.md). Public volunteer accounts, consented recruitment and Pro enforcement follow the new roadmap.
+
 # Model and software validation — Step 1 skeleton
 
 **Scientific, device and full-platform acceptance remain planned; no model is certified, no live sensor warning/countdown is authorized, and no tests were run for this documentation task.** Trace: specification S01/S03/S05/S08/S10 and primary plan “Validation and Release Gates”. [Evidence rules](sentinel-implementation-plan.md).

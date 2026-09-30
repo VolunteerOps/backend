@@ -17,6 +17,8 @@ test('real PostgreSQL organization lifecycle, RLS, enrollment races and isolatio
   await owner.query(`GRANT USAGE ON SCHEMA public TO "${runtimeRole}"`);
   await owner.query(`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "${runtimeRole}"`);
   await owner.query(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "${runtimeRole}"`);
+  await owner.query('REVOKE UPDATE ON public.stored_objects FROM "'+runtimeRole+'"');
+  await owner.query('GRANT UPDATE (state,completed_at,etag,version_id) ON public.stored_objects TO "'+runtimeRole+'"');
   target.username = runtimeRole; target.password = runtimePassword;
   process.env.DATABASE_URL = target.toString(); process.env.NODE_ENV = 'test';
   const { prisma } = await import('../src/core/prisma.js');
@@ -27,6 +29,7 @@ test('real PostgreSQL organization lifecycle, RLS, enrollment races and isolatio
   const { AuthService } = await import('../src/modules/auth/auth.service.js');
   const { SentinelService, saveForecastBatch } = await import('../src/modules/sentinel/sentinel.service.js');
   const { withRegion } = await import('../src/modules/sentinel/sentinel.context.js');
+  const { ScopedStorageService } = await import('../src/modules/scoped-storage/scoped-storage.service.js');
   const { DevicesService } = await import('../src/modules/organizations/devices.service.js');
   const { deviceHeartbeatHandler } = await import('../src/workers/device-handler.js');
   const { pruneExpiredBatch } = await import('../src/core/retention.js');
@@ -145,6 +148,53 @@ test('real PostgreSQL organization lifecycle, RLS, enrollment races and isolatio
     await assert.rejects(SentinelService.configureRegion(volunteer, a.id, randomUUID(), regionInput), { code: 'CAPABILITY_REQUIRED' });
     await assert.rejects(SentinelService.configureRegion(adminA, a.id, regionA, regionInput), { code: 'STALE_VERSION' });
     assert.equal((await SentinelService.latest(volunteer, a.id, regionA)).status, 'UNAVAILABLE');
+    let storageInspections = 0, invalidStorageFacts = false;
+    const storage = new ScopedStorageService(() => ({ bucket: 'private-test',
+      upload: async () => ({ url: 'https://objects.example.org/signed-put', headers: { 'If-None-Match': '*' } }),
+      inspect: async value => { storageInspections++; return { ...value, byteSize: invalidStorageFacts ? 1 : value.byteSize, etag: '"verified-etag"', versionId: 'v1' }; },
+      download: async () => ({ url: 'https://objects.example.org/signed-get', headers: { 'If-Match': '"verified-etag"' } }),
+    }));
+    const uploadInput = { file_name: 'incident.txt', content_type: 'text/plain' as const, byte_size: 17,
+      checksum_sha256: Buffer.alloc(32, 1).toString('base64') };
+    const upload = await storage.create(volunteer, a.id, regionA, uploadInput);
+    assert.equal((await prisma.storedObject.findMany()).length, 0, 'RLS denies rows without actor scope');
+    await assert.rejects(storage.download(volunteer, a.id, regionA, upload.object_id), { code: 'OBJECT_NOT_READY' });
+    await assert.rejects(storage.complete(adminA, a.id, regionA, upload.object_id), { statusCode: 404 });
+    await assert.rejects(storage.complete(volunteer, b.id, regionB, upload.object_id), { statusCode: 404 });
+    await assert.rejects(storage.create(volunteer, a.id, regionB, uploadInput), { statusCode: 404 });
+    invalidStorageFacts = true;
+    await assert.rejects(storage.complete(volunteer, a.id, regionA, upload.object_id), { code: 'OBJECT_MISMATCH' });
+    invalidStorageFacts = false;
+    assert.equal((await storage.complete(volunteer, a.id, regionA, upload.object_id)).state, 'READY');
+    const inspectionCount = storageInspections;
+    assert.equal((await storage.complete(volunteer, a.id, regionA, upload.object_id)).state, 'READY');
+    assert.equal(storageInspections, inspectionCount, 'completion retry must be idempotent');
+    assert.equal((await storage.download(volunteer, a.id, regionA, upload.object_id)).expires_in_seconds, 60);
+    await assert.rejects(storage.download(adminA, a.id, regionA, upload.object_id), { statusCode: 404 });
+    await assert.rejects(owner.query('UPDATE stored_objects SET region_id = $1 WHERE id = $2', [regionB, upload.object_id]), { code: '23503' });
+    await owner.query('UPDATE organization_memberships SET region_ids = ARRAY[$1] WHERE organization_id = $2 AND user_id = $3', [regionB, a.id, volunteer.userId]);
+    await assert.rejects(storage.download(volunteer, a.id, regionA, upload.object_id), { code: 'SCOPE_REQUIRED' });
+    await owner.query("UPDATE organization_memberships SET region_ids = ARRAY[]::text[] WHERE organization_id = $1 AND user_id = $2", [a.id, volunteer.userId]);
+    const staleUpload = await storage.create(volunteer, a.id, regionA, uploadInput);
+    const revokeDuringVerification = new ScopedStorageService(() => ({ bucket: 'private-test',
+      upload: async () => { throw new Error('unexpected upload'); },
+      download: async () => { throw new Error('unexpected download'); },
+      inspect: async value => {
+        await owner.query("UPDATE organization_memberships SET status = 'SUSPENDED' WHERE organization_id = $1 AND user_id = $2", [a.id, volunteer.userId]);
+        return { ...value, etag: '"verified-etag"', versionId: 'v1' };
+      },
+    }));
+    await assert.rejects(revokeDuringVerification.complete(volunteer, a.id, regionA, staleUpload.object_id), { code: 'MEMBERSHIP_REQUIRED' });
+    await owner.query("UPDATE organization_memberships SET status = 'ACTIVE' WHERE organization_id = $1 AND user_id = $2", [a.id, volunteer.userId]);
+
+    await owner.query("UPDATE stored_objects SET expires_at = now() AT TIME ZONE 'UTC' - interval '1 minute' WHERE id = $1", [staleUpload.object_id]);
+    await assert.rejects(storage.complete(volunteer, a.id, regionA, staleUpload.object_id), { code: 'UPLOAD_EXPIRED' });
+    await owner.query("UPDATE organization_memberships SET status = 'SUSPENDED' WHERE organization_id = $1 AND user_id = $2", [a.id, volunteer.userId]);
+    await assert.rejects(storage.download(volunteer, a.id, regionA, upload.object_id), { code: 'MEMBERSHIP_REQUIRED' });
+    await owner.query("UPDATE organization_memberships SET status = 'ACTIVE' WHERE organization_id = $1 AND user_id = $2", [a.id, volunteer.userId]);
+    for (let index = 0; index < 10; index++) await storage.create(volunteer, a.id, regionA, uploadInput);
+    await assert.rejects(storage.create(volunteer, a.id, regionA, uploadInput), { code: 'STORAGE_QUOTA_EXCEEDED' });
+
     const initialization = new Date(Math.floor(Date.now() / 3600000) * 3600000).toISOString();
     const distribution = { mean: 38, p10: 36, p25: 37, p50: 38, p75: 39, p90: 40 };
     const batch = { source: 'WEATHERNEXT_3' as const, model: 'weathernext_3_0_0' as const,
@@ -285,7 +335,7 @@ test('real PostgreSQL organization lifecycle, RLS, enrollment races and isolatio
     await workerPool.end();
     await prisma.$disconnect();
     await owner.query(`DELETE FROM durable_jobs WHERE organization_id = ANY($1::text[]) OR payload->>'organizationId' = ANY($1::text[])`, [orgIds]);
-    for (const table of ['forecast_runs', 'locations', 'organization_units', 'ingress_receipts', 'member_devices', 'organization_audit', 'organization_invitations', 'organization_memberships']) {
+    for (const table of ['stored_objects', 'forecast_runs', 'locations', 'organization_units', 'ingress_receipts', 'member_devices', 'organization_audit', 'organization_invitations', 'organization_memberships']) {
       await owner.query(`DELETE FROM ${table} WHERE organization_id = ANY($1::text[])`, [orgIds]);
     }
     await owner.query(`DELETE FROM organizations WHERE id = ANY($1::text[])`, [orgIds]);
