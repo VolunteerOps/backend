@@ -1,0 +1,167 @@
+[
+  {
+    "id": "column.public.durable_jobs.last_claimed_at",
+    "label": "Add column \"last_claimed_at\" to \"durable_jobs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "last_claimed_at",
+        "table": "durable_jobs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"last_claimed_at\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "durable_jobs",
+          "last_claimed_at"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"last_claimed_at\"",
+        "sql": "ALTER TABLE \"public\".\"durable_jobs\" ADD COLUMN \"last_claimed_at\" timestamp(3)"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"last_claimed_at\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "durable_jobs",
+          "last_claimed_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.durable_jobs.organization_id",
+    "label": "Add column \"organization_id\" to \"durable_jobs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "organization_id",
+        "table": "durable_jobs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"organization_id\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "durable_jobs",
+          "organization_id"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"organization_id\"",
+        "sql": "ALTER TABLE \"public\".\"durable_jobs\" ADD COLUMN \"organization_id\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"organization_id\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "durable_jobs",
+          "organization_id"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.durable_jobs.priority",
+    "label": "Add column \"priority\" to \"durable_jobs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "priority",
+        "table": "durable_jobs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"priority\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "durable_jobs",
+          "priority"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"priority\"",
+        "sql": "ALTER TABLE \"public\".\"durable_jobs\" ADD COLUMN \"priority\" int4 DEFAULT 1 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"priority\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "durable_jobs",
+          "priority"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.durable_jobs.durable_jobs_tenant_fairness_idx",
+    "label": "Create index \"durable_jobs_tenant_fairness_idx\" on \"durable_jobs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "durable_jobs_tenant_fairness_idx",
+        "table": "durable_jobs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"durable_jobs_tenant_fairness_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"durable_jobs_tenant_fairness_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"durable_jobs_tenant_fairness_idx\"",
+        "sql": "CREATE INDEX \"durable_jobs_tenant_fairness_idx\" ON \"public\".\"durable_jobs\" (\"queue\", \"organization_id\", \"last_claimed_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"durable_jobs_tenant_fairness_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"durable_jobs_tenant_fairness_idx\""
+        ]
+      }
+    ]
+  }
+]

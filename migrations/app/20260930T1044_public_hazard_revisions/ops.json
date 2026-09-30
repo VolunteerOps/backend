@@ -1,0 +1,244 @@
+[
+  {
+    "id": "table.hazard_revisions",
+    "label": "Create table \"hazard_revisions\"",
+    "summary": "Creates table \"hazard_revisions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "hazard_revisions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"hazard_revisions\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"hazard_revisions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"hazard_revisions\"",
+        "sql": "CREATE TABLE \"public\".\"hazard_revisions\" (\n  \"depth_km\" numeric(8,2) NOT NULL,\n  \"external_id\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"latitude\" numeric(10,7) NOT NULL,\n  \"longitude\" numeric(10,7) NOT NULL,\n  \"magnitude\" numeric(5,2),\n  \"observed_at\" timestamp(3) NOT NULL,\n  \"received_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"revision_at\" timestamp(3) NOT NULL,\n  \"source\" text NOT NULL,\n  \"source_url\" text NOT NULL,\n  \"status\" text NOT NULL,\n  \"title\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"hazard_revisions\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"hazard_revisions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.hazard_revisions.hazard_revision_source_idx",
+    "label": "Create index \"hazard_revision_source_idx\" on \"hazard_revisions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "hazard_revision_source_idx",
+        "table": "hazard_revisions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"hazard_revision_source_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"hazard_revision_source_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"hazard_revision_source_idx\"",
+        "sql": "CREATE INDEX \"hazard_revision_source_idx\" ON \"public\".\"hazard_revisions\" (\"source\", \"external_id\", \"revision_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"hazard_revision_source_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"hazard_revision_source_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.hazard_revisions.hazard_revision_time_idx",
+    "label": "Create index \"hazard_revision_time_idx\" on \"hazard_revisions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "hazard_revision_time_idx",
+        "table": "hazard_revisions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"hazard_revision_time_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"hazard_revision_time_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"hazard_revision_time_idx\"",
+        "sql": "CREATE INDEX \"hazard_revision_time_idx\" ON \"public\".\"hazard_revisions\" (\"observed_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"hazard_revision_time_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"hazard_revision_time_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.hazard_revisions",
+    "label": "Enable row-level security on \"hazard_revisions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "hazard_revisions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"hazard_revisions\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "hazard_revisions"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"hazard_revisions\"",
+        "sql": "ALTER TABLE \"public\".\"hazard_revisions\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"hazard_revisions\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "hazard_revisions"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.hazard_revisions.hazard_provider_append_04809744",
+    "label": "Create RLS policy \"hazard_provider_append_04809744\" on \"hazard_revisions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "hazard_provider_append_04809744",
+        "table": "hazard_revisions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"hazard_provider_append_04809744\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "hazard_revisions",
+          "hazard_provider_append_04809744"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"hazard_provider_append_04809744\"",
+        "sql": "CREATE POLICY \"hazard_provider_append_04809744\" ON \"public\".\"hazard_revisions\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (current_setting('vops.provider_ingest', true) = 'USGS' AND source = 'USGS')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"hazard_provider_append_04809744\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "hazard_revisions",
+          "hazard_provider_append_04809744"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.hazard_revisions.hazard_public_read_dbc82c49",
+    "label": "Create RLS policy \"hazard_public_read_dbc82c49\" on \"hazard_revisions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "hazard_public_read_dbc82c49",
+        "table": "hazard_revisions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"hazard_public_read_dbc82c49\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "hazard_revisions",
+          "hazard_public_read_dbc82c49"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"hazard_public_read_dbc82c49\"",
+        "sql": "CREATE POLICY \"hazard_public_read_dbc82c49\" ON \"public\".\"hazard_revisions\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (true)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"hazard_public_read_dbc82c49\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "hazard_revisions",
+          "hazard_public_read_dbc82c49"
+        ]
+      }
+    ]
+  }
+]

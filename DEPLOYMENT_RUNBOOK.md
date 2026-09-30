@@ -1,5 +1,70 @@
 # VolunteerOps deployment runbook
 
+Current target: **Render, With Intent / Volunteer Ops**. Follow [the 30 September setup guide](docs/sentinel-setup-and-activation.md) and [current status](docs/sentinel-continuation-status.md). PostgreSQL 18.6/PostGIS 3.6.2 migration and restore rehearsals passed locally. No Render deployment or existing PostgreSQL 15 upgrade occurred. The notes below preserve the earlier foundation checkpoint and are superseded where they describe missing devices, workers, database verification or clients.
+
+### Sentinel foundation notice — 13 September 2026
+
+**This branch is not ready for production deployment.** The following current-state
+instructions supersede the historical Prisma Postgres/Accelerate topology below:
+
+- `src/core/prisma.ts` now uses `@prisma/adapter-pg` with direct bounded connections.
+  `DATABASE_URL` must be a `postgresql://` or `postgres://` runtime URL; production
+  requires `sslmode=verify-full`. `prisma+postgres://`, TLS downgrade options and URL
+  TLS overrides are rejected. Optional runtime CA material uses `DATABASE_TLS_CA`.
+- The target is external managed **PostgreSQL 18 with PostGIS**. The provider, region,
+  TLS/extension support, least-privilege roles, pooling budgets and restored-database
+  migration rehearsal remain owner/infrastructure inputs, not completed provisioning.
+- `DIRECT_URL` is for Prisma 8 migration jobs only, with the provider's verified TLS
+  connection. Never expose a migration/owner URL to the API. Prisma 8 still owns
+  `migrations/app/`; Prisma 7 only generates the existing compatibility client.
+  No schema migration, database backfill or production write was performed here.
+- The API no longer uses Accelerate caching. `npm run accelerate:test` now exits
+  with a retirement message rather than querying users or claiming a cache hit.
+- HTTP authentication now uses Firebase bearer tokens or protected session cookies.
+  UID mappings and durable revocation migrations are written, not applied. The
+  identity worker runs separately. Legacy local password/token routes are retired.
+  Legacy operational routes are gated with `TENANT_MIGRATION_REQUIRED` pending RLS
+  and ownership migration. See [current status](docs/sentinel-continuation-status.md).
+- Organization models/RLS, operational endpoint/stream isolation, device/consent
+  persistence, sensor receipts/streams, remaining workers and full integration
+  tests remain Step 1 work. Do not treat this partial build as safe multi-tenant service.
+- `.github/workflows/prisma-deploy.yml` now requires manual dispatch, the
+  `approved_cutover` input and repository variable `SENTINEL_DEPLOYMENT_APPROVED=true`.
+  Leave that variable unset until all applicable gates pass and production cutover
+  is explicitly authorized. Check external Compute deploy-on-push settings separately;
+  they were not changed here. Do not push this incomplete branch into an auto-deployed environment.
+
+Current credential-free checks (PowerShell, from the backend):
+
+```powershell
+npm test
+npm run test:types
+npm run build
+```
+
+After an **isolated** PG18/PostGIS database and non-owner runtime identity are provided:
+
+```powershell
+npm run db:readiness
+```
+
+This read-only diagnostic checks server major version, PostGIS, TLS and elevated/
+table-owner role membership. `/api/ready` exposes the same prerequisite scope with
+`200` or `503`, without connection details. Neither validates schema parity, RLS,
+recovery, scientific models or operational release readiness. `/api/health` is only
+liveness; the Docker image health check uses it to avoid database-outage restart loops.
+The non-root `deploy/compose.api.yaml` is an **API and identity-worker isolated-host template**, not
+the finished Sentinel deployment. Supply `VOLUNTEEROPS_API_IMAGE` (tested digest),
+`VOLUNTEEROPS_API_ENV_FILE` (private runtime-only environment file), and optionally
+`VOLUNTEEROPS_API_PORT` (default 3001, loopback). Terminate HTTPS in an owner-configured proxy.
+
+No Docker, `psql` or `pg_isready` was available during this implementation, so actual
+image execution, Compose validation and PG18/PostGIS/RLS/restore testing are unverified.
+See `docs/container-hosting-setup.md`, `docs/postgresql18-setup.md` and
+`docs/firebase-setup.md` for owner inputs and remaining implementation blockers.
+
+### Historical deployment reference — not Sentinel activation instructions
+
 Last verified: 7 September 2026
 
 This is the source of truth for deploying the VolunteerOps API, its Prisma Postgres database, Accelerate query caching, and Prisma Object Store integration. The production API target is **Prisma Compute**, not Render.

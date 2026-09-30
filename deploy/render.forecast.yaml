@@ -1,0 +1,31 @@
+# Add only after WeatherNext access, billing and runtime identity are verified.
+# Existing shared env group is defined by ../render.yaml.
+services:
+  - type: worker
+    name: volunteerops-sentinel-forecast-pilot
+    runtime: docker
+    repo: https://github.com/VolunteerOps/backend
+    region: frankfurt
+    plan: 0.5c-512mb
+    autoDeployTrigger: off
+    dockerfilePath: ./Dockerfile
+    dockerCommand: node dist/workers/forecast.worker.js
+    envVars:
+      - fromGroup: volunteerops-sentinel-runtime
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: volunteerops-sentinel-api-pilot
+          envVarKey: DATABASE_URL
+      - key: WEATHERNEXT_ACCESS_ENABLED
+        value: 'true'
+      - key: WEATHERNEXT_PROJECT_ID
+        sync: false
+      - key: WEATHERNEXT_DATASET_ID
+        sync: false
+      - key: WEATHERNEXT_LOCATION
+        value: US
+      - key: WEATHERNEXT_MAX_BYTES_BILLED
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/weathernext-service-account.json

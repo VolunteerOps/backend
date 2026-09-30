@@ -1,12 +1,11 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import { databaseEnvSchema, databasePoolConfig } from './database-config.js';
 
 dotenv.config();
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  DIRECT_URL: z.string().optional(),
-  JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
+  JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters').optional(),
   JWT_REFRESH_SECRET: z.string().min(16).optional(),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
@@ -28,7 +27,7 @@ const envSchema = z.object({
   S3_ACCESS_KEY_ID: z.string().min(1).optional(),
   S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   S3_REGION: z.string().min(1).default('auto'),
-});
+}).merge(databaseEnvSchema);
 
 const parsed = envSchema.safeParse(process.env);
 
@@ -38,3 +37,4 @@ if (!parsed.success) {
 }
 
 export const config = parsed.data;
+databasePoolConfig(config);

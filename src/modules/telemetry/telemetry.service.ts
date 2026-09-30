@@ -102,7 +102,7 @@ export class TelemetryService {
       lat: Number(v.latitude),
       lng: Number(v.longitude),
       total_hours: Number(v.totalHours),
-      skills: v.skills.map((s) => s.skill.skillName),
+      skills: v.skills.flatMap((s) => s.skill ? [s.skill.skillName] : []),
     }));
   }
 

@@ -1,0 +1,163 @@
+# Target workspace: With Intent (select it in Render).
+# Confirm existing resource names before applying this proposed pilot environment.
+# Free API/database are for a pilot only. Workers have no free compute tier.
+# No production activation, migration credentials, or forecast dataset grant is implied.
+projects:
+  - name: Volunteer Ops
+    environments:
+      - name: sentinel-pilot
+        databases:
+          - name: volunteerops-sentinel-pg18-pilot
+            postgresMajorVersion: '18'
+            databaseName: sentinel
+            user: sentinel_migrator
+            region: frankfurt
+            plan: free
+            ipAllowList: []
+        envVarGroups:
+          - name: volunteerops-sentinel-runtime
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: DATABASE_POOL_MAX
+                value: '3'
+              - key: GOOGLE_APPLICATION_CREDENTIALS
+                value: /etc/secrets/firebase-service-account.json
+              - key: WEATHERNEXT_ACCESS_ENABLED
+                value: 'false'
+        services:
+          - type: web
+            name: volunteerops-sentinel-api-pilot
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: free
+            autoDeployTrigger: off
+            dockerfilePath: ./Dockerfile
+            healthCheckPath: /api/ready
+            envVars:
+              - fromGroup: volunteerops-sentinel-runtime
+              - key: DATABASE_URL
+                sync: false # Non-owner URL with sslmode=verify-full
+              - key: FIREBASE_PROJECT_ID
+                sync: false
+              - key: CORS_ORIGIN
+                sync: false
+              - key: MAPBOX_ACCESS_TOKEN
+                sync: false
+              - key: FIREBASE_WEB_API_KEY
+                sync: false
+              - key: FIREBASE_WEB_AUTH_DOMAIN
+                sync: false
+              - key: FIREBASE_WEB_APP_ID
+                sync: false
+          - type: worker
+            name: volunteerops-sentinel-identity-pilot
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            autoDeployTrigger: off
+            dockerfilePath: ./Dockerfile
+            dockerCommand: node dist/workers/identity.worker.js
+            envVars:
+              - fromGroup: volunteerops-sentinel-runtime
+              - key: DATABASE_URL
+                fromService:
+                  type: web
+                  name: volunteerops-sentinel-api-pilot
+                  envVarKey: DATABASE_URL
+              - key: FIREBASE_PROJECT_ID
+                fromService:
+                  type: web
+                  name: volunteerops-sentinel-api-pilot
+                  envVarKey: FIREBASE_PROJECT_ID
+          - type: worker
+            name: volunteerops-sentinel-devices-pilot
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            autoDeployTrigger: off
+            dockerfilePath: ./Dockerfile
+            dockerCommand: node dist/workers/device.worker.js
+            envVars:
+              - fromGroup: volunteerops-sentinel-runtime
+              - key: DATABASE_URL
+                fromService:
+                  type: web
+                  name: volunteerops-sentinel-api-pilot
+                  envVarKey: DATABASE_URL
+              - key: FIREBASE_PROJECT_ID
+                fromService:
+                  type: web
+                  name: volunteerops-sentinel-api-pilot
+                  envVarKey: FIREBASE_PROJECT_ID
+          - type: worker
+            name: volunteerops-sentinel-sources-pilot
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            autoDeployTrigger: off
+            dockerfilePath: ./Dockerfile
+            dockerCommand: node dist/workers/sources.worker.js
+            envVars:
+              - fromGroup: volunteerops-sentinel-runtime
+              - key: DATABASE_URL
+                fromService:
+                  type: web
+                  name: volunteerops-sentinel-api-pilot
+                  envVarKey: DATABASE_URL
+              - key: FIREBASE_PROJECT_ID
+                fromService:
+                  type: web
+                  name: volunteerops-sentinel-api-pilot
+                  envVarKey: FIREBASE_PROJECT_ID
+              - key: SENTINEL_USGS_ENABLED
+                value: 'true'
+          - type: cron
+            name: volunteerops-sentinel-retention-pilot
+            runtime: docker
+            repo: https://github.com/VolunteerOps/backend
+            region: frankfurt
+            plan: 0.5c-512mb
+            schedule: '*/5 * * * *'
+            autoDeployTrigger: off
+            dockerfilePath: ./Dockerfile
+            dockerCommand: node dist/workers/retention.worker.js
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: DATABASE_URL
+                sync: false # Dedicated sentinel_retention_access login with sslmode=verify-full
+              - key: DATABASE_POOL_MAX
+                value: '1'
+          - type: web
+            name: volunteerops-admin-pilot
+            runtime: static
+            repo: https://github.com/VolunteerOps/admin
+            autoDeployTrigger: off
+            buildCommand: bash scripts/render-build.sh
+            staticPublishPath: webApp/build/dist/js/productionExecutable
+            envVars:
+              - key: SENTINEL_PORTAL_URL
+                sync: false
+            routes:
+              - type: rewrite
+                source: /*
+                destination: /index.html
+          - type: web
+            name: volunteerops-volunteer-pilot
+            runtime: static
+            repo: https://github.com/VolunteerOps/volunteer
+            autoDeployTrigger: off
+            buildCommand: bash scripts/render-build.sh
+            staticPublishPath: webApp/build/dist/js/productionExecutable
+            envVars:
+              - key: SENTINEL_PORTAL_URL
+                sync: false
+            routes:
+              - type: rewrite
+                source: /*
+                destination: /index.html

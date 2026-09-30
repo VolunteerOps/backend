@@ -1,9 +1,13 @@
 name: prisma-deploy
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      approved_cutover:
+        description: Confirm reviewed PG18/Firebase/tenant gates and authorized production cutover
+        type: boolean
+        required: true
+        default: false
 
 concurrency:
   group: prisma-deploy-production
@@ -14,7 +18,7 @@ permissions:
 
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && inputs.approved_cutover && vars.SENTINEL_DEPLOYMENT_APPROVED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

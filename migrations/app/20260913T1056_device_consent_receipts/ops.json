@@ -1,0 +1,742 @@
+[
+  {
+    "id": "table.ingress_receipts",
+    "label": "Create table \"ingress_receipts\"",
+    "summary": "Creates table \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"ingress_receipts\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ingress_receipts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"ingress_receipts\"",
+        "sql": "CREATE TABLE \"public\".\"ingress_receipts\" (\n  \"accepted_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"consent_version\" int4 NOT NULL,\n  \"device_id\" text NOT NULL,\n  \"expires_at\" timestamp(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"message_id\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"payload_hash\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"ingress_receipts\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ingress_receipts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.member_devices",
+    "label": "Create table \"member_devices\"",
+    "summary": "Creates table \"member_devices\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "member_devices"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"member_devices\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"member_devices\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"member_devices\"",
+        "sql": "CREATE TABLE \"public\".\"member_devices\" (\n  \"battery_percent\" int4,\n  \"consent_version\" int4 DEFAULT 1 NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"installation_id\" text NOT NULL,\n  \"last_heartbeat_at\" timestamp(3),\n  \"location_consent\" bool DEFAULT false NOT NULL,\n  \"membership_id\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"platform\" text NOT NULL,\n  \"relay_consent\" bool DEFAULT false NOT NULL,\n  \"revoked_at\" timestamp(3),\n  \"sensing_consent\" bool DEFAULT false NOT NULL,\n  \"updated_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"member_devices\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"member_devices\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.ingress_receipts.ingress_receipts_organization_id_device_id_message_id_key",
+    "label": "Add unique constraint on \"ingress_receipts\" (organization_id, device_id, message_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "ingress_receipts_organization_id_device_id_message_id_key",
+        "table": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"ingress_receipts_organization_id_device_id_message_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ingress_receipts_organization_id_device_id_message_id_key",
+          "public",
+          "\"public\".\"ingress_receipts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"ingress_receipts_organization_id_device_id_message_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"ingress_receipts\" ADD CONSTRAINT \"ingress_receipts_organization_id_device_id_message_id_key\" UNIQUE (\"organization_id\", \"device_id\", \"message_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"ingress_receipts_organization_id_device_id_message_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ingress_receipts_organization_id_device_id_message_id_key",
+          "public",
+          "\"public\".\"ingress_receipts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.member_devices.member_devices_organization_id_id_key",
+    "label": "Add unique constraint on \"member_devices\" (organization_id, id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "member_devices_organization_id_id_key",
+        "table": "member_devices"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"member_devices_organization_id_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "member_devices_organization_id_id_key",
+          "public",
+          "\"public\".\"member_devices\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"member_devices_organization_id_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"member_devices\" ADD CONSTRAINT \"member_devices_organization_id_id_key\" UNIQUE (\"organization_id\", \"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"member_devices_organization_id_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "member_devices_organization_id_id_key",
+          "public",
+          "\"public\".\"member_devices\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.member_devices.member_devices_organization_id_membership_id_installation_id_key",
+    "label": "Add unique constraint on \"member_devices\" (organization_id, membership_id, installation_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "member_devices_organization_id_membership_id_installation_id_key",
+        "table": "member_devices"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"member_devices_organization_id_membership_id_installation_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "member_devices_organization_id_membership_id_installation_id_key",
+          "public",
+          "\"public\".\"member_devices\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"member_devices_organization_id_membership_id_installation_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"member_devices\" ADD CONSTRAINT \"member_devices_organization_id_membership_id_installation_id_key\" UNIQUE (\"organization_id\", \"membership_id\", \"installation_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"member_devices_organization_id_membership_id_installation_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "member_devices_organization_id_membership_id_installation_id_key",
+          "public",
+          "\"public\".\"member_devices\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.organization_memberships.organization_memberships_organization_id_id_key",
+    "label": "Add unique constraint on \"organization_memberships\" (organization_id, id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "organization_memberships_organization_id_id_key",
+        "table": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"organization_memberships_organization_id_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_memberships_organization_id_id_key",
+          "public",
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"organization_memberships_organization_id_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"organization_memberships\" ADD CONSTRAINT \"organization_memberships_organization_id_id_key\" UNIQUE (\"organization_id\", \"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"organization_memberships_organization_id_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_memberships_organization_id_id_key",
+          "public",
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ingress_receipts.ingress_receipts_expires_at_idx_35365ada",
+    "label": "Create index \"ingress_receipts_expires_at_idx_35365ada\" on \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ingress_receipts_expires_at_idx_35365ada",
+        "table": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ingress_receipts_expires_at_idx_35365ada\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ingress_receipts_expires_at_idx_35365ada\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ingress_receipts_expires_at_idx_35365ada\"",
+        "sql": "CREATE INDEX \"ingress_receipts_expires_at_idx_35365ada\" ON \"public\".\"ingress_receipts\" (\"expires_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ingress_receipts_expires_at_idx_35365ada\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ingress_receipts_expires_at_idx_35365ada\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ingress_receipts.ingress_receipts_organization_id_device_id_idx_c84c447d",
+    "label": "Create index \"ingress_receipts_organization_id_device_id_idx_c84c447d\" on \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ingress_receipts_organization_id_device_id_idx_c84c447d",
+        "table": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ingress_receipts_organization_id_device_id_idx_c84c447d\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ingress_receipts_organization_id_device_id_idx_c84c447d\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ingress_receipts_organization_id_device_id_idx_c84c447d\"",
+        "sql": "CREATE INDEX \"ingress_receipts_organization_id_device_id_idx_c84c447d\" ON \"public\".\"ingress_receipts\" (\"organization_id\", \"device_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ingress_receipts_organization_id_device_id_idx_c84c447d\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ingress_receipts_organization_id_device_id_idx_c84c447d\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.member_devices.member_devices_organization_id_membership_id_idx_9bf738d3",
+    "label": "Create index \"member_devices_organization_id_membership_id_idx_9bf738d3\" on \"member_devices\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "member_devices_organization_id_membership_id_idx_9bf738d3",
+        "table": "member_devices"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"member_devices_organization_id_membership_id_idx_9bf738d3\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"member_devices_organization_id_membership_id_idx_9bf738d3\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"member_devices_organization_id_membership_id_idx_9bf738d3\"",
+        "sql": "CREATE INDEX \"member_devices_organization_id_membership_id_idx_9bf738d3\" ON \"public\".\"member_devices\" (\"organization_id\", \"membership_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"member_devices_organization_id_membership_id_idx_9bf738d3\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"member_devices_organization_id_membership_id_idx_9bf738d3\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ingress_receipts.ingress_receipts_organization_id_device_id_fkey",
+    "label": "Add foreign key \"ingress_receipts_organization_id_device_id_fkey\" on \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ingress_receipts_organization_id_device_id_fkey",
+        "table": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ingress_receipts_organization_id_device_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ingress_receipts_organization_id_device_id_fkey",
+          "public",
+          "\"public\".\"ingress_receipts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ingress_receipts_organization_id_device_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ingress_receipts\"\nADD CONSTRAINT \"ingress_receipts_organization_id_device_id_fkey\"\nFOREIGN KEY (\"organization_id\", \"device_id\")\nREFERENCES \"public\".\"member_devices\" (\"organization_id\", \"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ingress_receipts_organization_id_device_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ingress_receipts_organization_id_device_id_fkey",
+          "public",
+          "\"public\".\"ingress_receipts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.member_devices.member_devices_organization_id_membership_id_fkey",
+    "label": "Add foreign key \"member_devices_organization_id_membership_id_fkey\" on \"member_devices\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "member_devices_organization_id_membership_id_fkey",
+        "table": "member_devices"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"member_devices_organization_id_membership_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "member_devices_organization_id_membership_id_fkey",
+          "public",
+          "\"public\".\"member_devices\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"member_devices_organization_id_membership_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"member_devices\"\nADD CONSTRAINT \"member_devices_organization_id_membership_id_fkey\"\nFOREIGN KEY (\"organization_id\", \"membership_id\")\nREFERENCES \"public\".\"organization_memberships\" (\"organization_id\", \"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"member_devices_organization_id_membership_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "member_devices_organization_id_membership_id_fkey",
+          "public",
+          "\"public\".\"member_devices\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.ingress_receipts",
+    "label": "Enable row-level security on \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"ingress_receipts\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"ingress_receipts\"",
+        "sql": "ALTER TABLE \"public\".\"ingress_receipts\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"ingress_receipts\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.member_devices",
+    "label": "Enable row-level security on \"member_devices\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "member_devices"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"member_devices\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "member_devices"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"member_devices\"",
+        "sql": "ALTER TABLE \"public\".\"member_devices\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"member_devices\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "member_devices"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.ingress_receipts.receipt_insert_17192fff",
+    "label": "Create RLS policy \"receipt_insert_17192fff\" on \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "receipt_insert_17192fff",
+        "table": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"receipt_insert_17192fff\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_insert_17192fff"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"receipt_insert_17192fff\"",
+        "sql": "CREATE POLICY \"receipt_insert_17192fff\" ON \"public\".\"ingress_receipts\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.member_devices d WHERE d.id = ingress_receipts.device_id AND d.organization_id = ingress_receipts.organization_id AND d.revoked_at IS NULL))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"receipt_insert_17192fff\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_insert_17192fff"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.ingress_receipts.receipt_select_5bafdb74",
+    "label": "Create RLS policy \"receipt_select_5bafdb74\" on \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "receipt_select_5bafdb74",
+        "table": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"receipt_select_5bafdb74\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_select_5bafdb74"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"receipt_select_5bafdb74\"",
+        "sql": "CREATE POLICY \"receipt_select_5bafdb74\" ON \"public\".\"ingress_receipts\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.member_devices d WHERE d.id = ingress_receipts.device_id AND d.organization_id = ingress_receipts.organization_id AND d.revoked_at IS NULL))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"receipt_select_5bafdb74\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_select_5bafdb74"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.member_devices.device_insert_bd75ec6d",
+    "label": "Create RLS policy \"device_insert_bd75ec6d\" on \"member_devices\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "device_insert_bd75ec6d",
+        "table": "member_devices"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"device_insert_bd75ec6d\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "member_devices",
+          "device_insert_bd75ec6d"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"device_insert_bd75ec6d\"",
+        "sql": "CREATE POLICY \"device_insert_bd75ec6d\" ON \"public\".\"member_devices\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.id = member_devices.membership_id AND m.organization_id = member_devices.organization_id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND m.status = 'ACTIVE'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"device_insert_bd75ec6d\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "member_devices",
+          "device_insert_bd75ec6d"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.member_devices.device_select_5024cde0",
+    "label": "Create RLS policy \"device_select_5024cde0\" on \"member_devices\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "device_select_5024cde0",
+        "table": "member_devices"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"device_select_5024cde0\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "member_devices",
+          "device_select_5024cde0"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"device_select_5024cde0\"",
+        "sql": "CREATE POLICY \"device_select_5024cde0\" ON \"public\".\"member_devices\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.id = member_devices.membership_id AND m.organization_id = member_devices.organization_id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND m.status = 'ACTIVE'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"device_select_5024cde0\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "member_devices",
+          "device_select_5024cde0"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.member_devices.device_update_881dddae",
+    "label": "Create RLS policy \"device_update_881dddae\" on \"member_devices\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "device_update_881dddae",
+        "table": "member_devices"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"device_update_881dddae\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "member_devices",
+          "device_update_881dddae"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"device_update_881dddae\"",
+        "sql": "CREATE POLICY \"device_update_881dddae\" ON \"public\".\"member_devices\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.id = member_devices.membership_id AND m.organization_id = member_devices.organization_id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND m.status = 'ACTIVE')) WITH CHECK (organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.id = member_devices.membership_id AND m.organization_id = member_devices.organization_id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND m.status = 'ACTIVE'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"device_update_881dddae\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "member_devices",
+          "device_update_881dddae"
+        ]
+      }
+    ]
+  }
+]

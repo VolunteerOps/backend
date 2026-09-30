@@ -57,7 +57,7 @@ enum ContactStatus {
 model User {
   id           Int        @id @default(autoincrement())
   email        String     @unique
-  passwordHash String     @map("password_hash")
+  passwordHash String?    @map("password_hash")
   fullName     String     @map("full_name")
   role         UserRole   @default(VOLUNTEER)
   phoneNumber  String?    @map("phone_number")
@@ -67,19 +67,159 @@ model User {
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  volunteer     Volunteer?
+  volunteer Volunteer[]
   auditLogs     AuditLog[]
   refreshTokens RefreshToken[]
+  firebaseIdentity FirebaseIdentity?
+  memberships OrganizationMembership[]
+  platformGrant PlatformGrant?
+  issuedInvitations OrganizationInvitation[]
+  organizationAudits OrganizationAudit[]
 
   @@map("users")
 }
 
+
+model Organization {
+  units OrganizationUnit[]
+  ownedVolunteer Volunteer[]
+  ownedSkill Skill[]
+  ownedVolunteerSkill VolunteerSkill[]
+  ownedLocation Location[]
+  ownedEvent Event[]
+  ownedDeployment Deployment[]
+  ownedFieldReport FieldReport[]
+  ownedCommunication Communication[]
+  ownedNotification Notification[]
+  ownedTelemetryPing TelemetryPing[]
+  ownedFeedback Feedback[]
+
+  id String @id
+  slug String @unique
+  displayName String @map("display_name")
+  status String @default("PROVISIONED")
+  version Int @default(1)
+  enrollmentReady Boolean @default(false) @map("enrollment_ready")
+  verificationEvidence String? @map("verification_evidence")
+  allowedProviders String[] @map("allowed_providers")
+  requireMfa Boolean @default(false) @map("require_mfa")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+  memberships OrganizationMembership[]
+  invitations OrganizationInvitation[]
+  audits OrganizationAudit[]
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  profiles Volunteer[]
+  id String @id
+  organizationId String @map("organization_id")
+  userId Int @map("user_id")
+  role String @default("VOLUNTEER")
+  status String @default("ACTIVE")
+  version Int @default(1)
+  regionIds String[] @default([]) @map("region_ids")
+  createdAt DateTime @default(now()) @map("created_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  devices MemberDevice[]
+  @@unique([organizationId, id])
+  @@unique([organizationId, userId])
+  @@index([userId], map: "organization_memberships_user_id_idx_6c952402")
+  @@map("organization_memberships")
+}
+
+model PlatformGrant {
+  userId Int @id @map("user_id")
+  role String @default("TECH_ADMIN")
+  active Boolean @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  @@map("platform_grants")
+}
+
+model OrganizationInvitation {
+  id String @id
+  organizationId String @map("organization_id")
+  recipientEmail String @map("recipient_email")
+  role String
+  regionIds String[] @default([]) @map("region_ids")
+  tokenHash String @unique @map("token_hash")
+  issuerUserId Int @map("issuer_user_id")
+  expiresAt DateTime @map("expires_at")
+  acceptedByUserId Int? @map("accepted_by_user_id")
+  acceptedAt DateTime? @map("accepted_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  issuer User @relation(fields: [issuerUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  @@index([organizationId], map: "organization_invitations_organization_id_idx_1a5cd3f5")
+  @@map("organization_invitations")
+}
+
+model OrganizationAudit {
+  id String @id
+  organizationId String @map("organization_id")
+  actorUserId Int @map("actor_user_id")
+  action String
+  reason String
+  metadata Json
+  createdAt DateTime @default(now()) @map("created_at")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  @@index([organizationId, createdAt], map: "organization_audit_organization_id_created_at_idx_86b4d119")
+  @@map("organization_audit")
+}
+
+model DurableJob {
+    organizationId String? @map("organization_id")
+    priority Int @default(1)
+    lastClaimedAt DateTime? @map("last_claimed_at")
+    @@index([queue, organizationId, lastClaimedAt], map: "durable_jobs_tenant_fairness_idx")
+  id String @id
+  queue String
+  kind String
+  businessKey String @unique @map("business_key")
+  payload Json
+  state String @default("PENDING")
+  attempts Int @default(0)
+  maxAttempts Int @default(8) @map("max_attempts")
+  fence Int @default(0)
+  leaseOwner String? @map("lease_owner")
+  leaseUntil DateTime? @map("lease_until")
+  availableAt DateTime @default(now()) @map("available_at")
+  deadline DateTime?
+  lastError String? @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@index([queue, state, availableAt], map: "durable_jobs_claim_idx")
+  @@map("durable_jobs")
+}
+
+model FirebaseIdentity {
+  id Int @id @default(autoincrement())
+  projectId String @map("project_id")
+  uid String
+  userId Int @unique @map("user_id")
+  revokedBefore DateTime? @map("revoked_before")
+  createdAt DateTime @default(now()) @map("created_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, uid])
+  @@map("firebase_identities")
+}
+
 model Volunteer {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id                  Int             @id @default(autoincrement())
-  userId              Int?            @unique @map("user_id")
+  userId              Int? @map("user_id")
   fullName            String          @map("full_name")
   phoneNumber         String          @map("phone_number")
-  email               String          @unique
+  email               String
   registrationChannel String          @default("inbuilt") @map("registration_channel")
   consentGiven        Boolean         @default(true) @map("consent_given")
   registrationDate    DateTime        @default(now()) @map("registration_date")
@@ -107,11 +247,22 @@ model Volunteer {
   @@index([status], map: "idx_volunteers_status")
   @@index([latitude, longitude], map: "idx_volunteers_geo")
   @@map("volunteers")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "volunteers_org_id_key")
+  @@index([organizationId, regionId], map: "volunteers_scope_idx")
+  @@unique([organizationId, userId], map: "volunteers_org_user_key")
+  @@unique([organizationId, email], map: "volunteers_org_email_key")
+  membership OrganizationMembership? @relation(fields: [organizationId, userId], references: [organizationId, userId], onDelete: Restrict, onUpdate: Cascade)
 }
 
 model Skill {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id          Int      @id @default(autoincrement())
-  skillName   String   @unique @map("skill_name")
+  skillName   String @map("skill_name")
   category    String
   demandLevel String   @default("medium") @map("demand_level")
   description String
@@ -121,9 +272,18 @@ model Skill {
 
   @@index([category], map: "idx_skills_category")
   @@map("skills")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "skills_org_id_key")
+  @@index([organizationId, regionId], map: "skills_scope_idx")
+  @@unique([organizationId, skillName], map: "skills_org_name_key")
 }
 
 model VolunteerSkill {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id               Int       @id @default(autoincrement())
   volunteerId      Int       @map("volunteer_id")
   skillId          Int       @map("skill_id")
@@ -133,14 +293,22 @@ model VolunteerSkill {
   certifiedBy      String?   @map("certified_by")
   createdAt        DateTime  @default(now()) @map("created_at")
 
-  volunteer        Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
-  skill            Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  volunteer        Volunteer? @relation(fields: [organizationId, volunteerId], references: [organizationId, id], onDelete: Cascade)
+  skill            Skill?     @relation(fields: [organizationId, skillId], references: [organizationId, id], onDelete: Cascade)
 
   @@unique([volunteerId, skillId])
   @@map("volunteer_skills")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "volunteer_skills_org_id_key")
+  @@index([organizationId, regionId], map: "volunteer_skills_scope_idx")
 }
 
 model Location {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id           Int      @id @default(autoincrement())
   name         String
   address      String
@@ -158,9 +326,17 @@ model Location {
 
   @@index([latitude, longitude], map: "idx_locations_coords")
   @@map("locations")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "locations_org_id_key")
+  @@index([organizationId, regionId], map: "locations_scope_idx")
 }
 
 model Event {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id                 Int             @id @default(autoincrement())
   eventName          String          @map("event_name")
   eventType          String          @map("event_type")
@@ -178,7 +354,7 @@ model Event {
   createdAt          DateTime        @default(now()) @map("created_at")
   updatedAt          DateTime        @updatedAt @map("updated_at")
 
-  location           Location        @relation(fields: [locationId], references: [id])
+  location           Location?        @relation(fields: [organizationId, locationId], references: [organizationId, id])
   deployments        Deployment[]
   notifications      Notification[]
   communications     Communication[]
@@ -186,9 +362,17 @@ model Event {
 
   @@index([status, priority], map: "idx_events_status_priority")
   @@map("events")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "events_org_id_key")
+  @@index([organizationId, regionId], map: "events_scope_idx")
 }
 
 model Deployment {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id               Int              @id @default(autoincrement())
   volunteerId      Int              @map("volunteer_id")
   eventId          Int              @map("event_id")
@@ -204,17 +388,25 @@ model Deployment {
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")
 
-  volunteer        Volunteer        @relation(fields: [volunteerId], references: [id])
-  event            Event            @relation(fields: [eventId], references: [id])
+  volunteer        Volunteer?        @relation(fields: [organizationId, volunteerId], references: [organizationId, id])
+  event            Event?            @relation(fields: [organizationId, eventId], references: [organizationId, id])
   fieldReports     FieldReport[]
   feedback         Feedback[]
 
   @@index([volunteerId, eventId], map: "idx_deployments_volunteer_event")
   @@index([status], map: "idx_deployments_status")
   @@map("deployments")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "deployments_org_id_key")
+  @@index([organizationId, regionId], map: "deployments_scope_idx")
 }
 
 model FieldReport {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id            Int      @id @default(autoincrement())
   deploymentId  Int      @map("deployment_id")
   reportTime    DateTime @default(now()) @map("report_time")
@@ -230,13 +422,21 @@ model FieldReport {
   verifiedBy    String?  @map("verified_by")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  deployment    Deployment @relation(fields: [deploymentId], references: [id])
+  deployment    Deployment? @relation(fields: [organizationId, deploymentId], references: [organizationId, id])
 
   @@index([reportType, status], map: "idx_field_reports_type_status")
   @@map("field_reports")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "field_reports_org_id_key")
+  @@index([organizationId, regionId], map: "field_reports_scope_idx")
 }
 
 model Communication {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id          Int      @id @default(autoincrement())
   eventId     Int?     @map("event_id")
   channelId   String   @default("general") @map("channel_id")
@@ -249,13 +449,21 @@ model Communication {
   mediaUrl    String?  @map("media_url")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  event       Event?   @relation(fields: [organizationId, eventId], references: [organizationId, id], onDelete: Restrict)
 
   @@index([channelId, createdAt], map: "idx_communications_channel")
   @@map("communications")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "communications_org_id_key")
+  @@index([organizationId, regionId], map: "communications_scope_idx")
 }
 
 model Notification {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id               Int      @id @default(autoincrement())
   volunteerId      Int?     @map("volunteer_id")
   eventId          Int?     @map("event_id")
@@ -269,14 +477,22 @@ model Notification {
   readAt           DateTime? @map("read_at")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  volunteer        Volunteer? @relation(fields: [volunteerId], references: [id], onDelete: SetNull)
-  event            Event?     @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  volunteer        Volunteer? @relation(fields: [organizationId, volunteerId], references: [organizationId, id], onDelete: Restrict)
+  event            Event?     @relation(fields: [organizationId, eventId], references: [organizationId, id], onDelete: Restrict)
 
   @@index([volunteerId, status], map: "idx_notifications_volunteer")
   @@map("notifications")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "notifications_org_id_key")
+  @@index([organizationId, regionId], map: "notifications_scope_idx")
 }
 
 model Feedback {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id           Int         @id @default(autoincrement())
   volunteerId  Int         @map("volunteer_id")
   deploymentId Int?        @map("deployment_id")
@@ -287,11 +503,16 @@ model Feedback {
   submittedVia String      @default("mobile_app") @map("submitted_via")
   createdAt    DateTime    @default(now()) @map("created_at")
 
-  volunteer    Volunteer   @relation(fields: [volunteerId], references: [id])
-  deployment   Deployment? @relation(fields: [deploymentId], references: [id])
-  event        Event?      @relation(fields: [eventId], references: [id])
+  volunteer    Volunteer?   @relation(fields: [organizationId, volunteerId], references: [organizationId, id])
+  deployment   Deployment? @relation(fields: [organizationId, deploymentId], references: [organizationId, id])
+  event        Event?      @relation(fields: [organizationId, eventId], references: [organizationId, id])
 
   @@map("feedback")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "feedback_org_id_key")
+  @@index([organizationId, regionId], map: "feedback_scope_idx")
 }
 
 model ContactSubmission {
@@ -313,6 +534,9 @@ model ContactSubmission {
 }
 
 model TelemetryPing {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
   id           Int      @id @default(autoincrement())
   volunteerId  Int      @map("volunteer_id")
   latitude     Decimal  @db.Decimal(10, 7)
@@ -324,10 +548,15 @@ model TelemetryPing {
   isDistress   Boolean  @default(false) @map("is_distress")
   recordedAt   DateTime @default(now()) @map("recorded_at")
 
-  volunteer    Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  volunteer    Volunteer? @relation(fields: [organizationId, volunteerId], references: [organizationId, id], onDelete: Cascade)
 
   @@index([volunteerId, recordedAt], map: "idx_telemetry_volunteer_time")
   @@map("telemetry_pings")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id], map: "telemetry_pings_org_id_key")
+  @@index([organizationId, regionId], map: "telemetry_pings_scope_idx")
 }
 
 model AuditLog {
@@ -384,4 +613,104 @@ model RefreshToken {
   @@index([tokenHash], map: "idx_refresh_tokens_hash")
   @@index([family], map: "idx_refresh_tokens_family")
   @@map("refresh_tokens")
+}
+
+model MemberDevice {
+  id String @id
+  organizationId String @map("organization_id")
+  membershipId String @map("membership_id")
+  installationId String @map("installation_id")
+  platform String
+  revokedAt DateTime? @map("revoked_at")
+  consentVersion Int @default(1) @map("consent_version")
+  locationConsent Boolean @default(false) @map("location_consent")
+  sensingConsent Boolean @default(false) @map("sensing_consent")
+  relayConsent Boolean @default(false) @map("relay_consent")
+  lastHeartbeatAt DateTime? @map("last_heartbeat_at")
+  batteryPercent Int? @map("battery_percent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+  receipts IngressReceipt[]
+  membership OrganizationMembership @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id])
+  @@unique([organizationId, membershipId, installationId])
+  @@map("member_devices")
+}
+
+model IngressReceipt {
+  id String @id
+  organizationId String @map("organization_id")
+  deviceId String @map("device_id")
+  messageId String @map("message_id")
+  payloadHash String @map("payload_hash")
+  consentVersion Int @map("consent_version")
+  acceptedAt DateTime @default(now()) @map("accepted_at")
+  expiresAt DateTime @map("expires_at")
+  device MemberDevice @relation(fields: [organizationId, deviceId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, deviceId, messageId])
+  @@index([expiresAt])
+  @@map("ingress_receipts")
+}
+
+model OrganizationUnit {
+ forecastBounds Json? @map("forecast_bounds")
+ forecastPolicy Json? @map("forecast_policy")
+ forecastRuns ForecastRun[]
+  scopedVolunteer Volunteer[]
+  scopedSkill Skill[]
+  scopedVolunteerSkill VolunteerSkill[]
+  scopedLocation Location[]
+  scopedEvent Event[]
+  scopedDeployment Deployment[]
+  scopedFieldReport FieldReport[]
+  scopedCommunication Communication[]
+  scopedNotification Notification[]
+  scopedTelemetryPing TelemetryPing[]
+  scopedFeedback Feedback[]
+
+ id String @id
+ organizationId String @map("organization_id")
+ name String
+ active Boolean @default(true)
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+ @@unique([organizationId, id])
+ @@map("organization_units")
+}
+
+model ForecastRun {
+  id String @id
+  organizationId String @map("organization_id")
+  regionId String @map("region_id")
+  source String
+  model String
+  initTime DateTime @map("init_time")
+  retrievedAt DateTime @map("retrieved_at")
+  expiresAt DateTime @map("expires_at")
+  payloadHash String @map("payload_hash")
+  cells Json
+  quality Json
+  region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, regionId, source, initTime, payloadHash], map: "forecast_run_revision_key")
+  @@index([organizationId, regionId, initTime], map: "forecast_run_region_time_idx")
+  @@index([expiresAt], map: "forecast_run_expiry_idx")
+  @@map("forecast_runs")
+}
+
+model HazardRevision {
+ id String @id
+ source String
+ externalId String @map("external_id")
+ revisionAt DateTime @map("revision_at")
+ observedAt DateTime @map("observed_at")
+ longitude Decimal @db.Decimal(10,7)
+ latitude Decimal @db.Decimal(10,7)
+ magnitude Decimal? @db.Decimal(5,2)
+ depthKm Decimal @db.Decimal(8,2) @map("depth_km")
+ status String
+ title String
+ sourceUrl String @map("source_url")
+ receivedAt DateTime @default(now()) @map("received_at")
+ @@index([source, externalId, revisionAt], map: "hazard_revision_source_idx")
+ @@index([observedAt], map: "hazard_revision_time_idx")
+ @@map("hazard_revisions")
 }

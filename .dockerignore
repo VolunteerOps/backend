@@ -9,3 +9,9 @@ src/generated
 .firecrawl
 coverage
 *.log
+
+.sentinel-test-pg
+.idea
+.junie
+.agents
+.codex

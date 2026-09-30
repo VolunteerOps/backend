@@ -1,6 +1,28 @@
 # VolunteerOps Enterprise Backend
 > **Enterprise Real-Time Disaster Response and Operational Field Management Platform Backend**
 
+### Sentinel implementation status ? 30 September 2026
+
+**Foundation work is in progress, not a production-ready Sentinel release.** See
+[`docs/sentinel-implementation-plan.md`](docs/sentinel-implementation-plan.md) and the
+per-technology setup guides. Runtime database access now requires direct PostgreSQL
+(`@prisma/adapter-pg`), not Accelerate. HTTP authentication now uses Firebase ID tokens
+or protected Firebase session cookies with current database account checks. Identity
+mapping migrations and a durable revocation worker are implemented, but not deployed.
+Organization admission now has platform grants, invitations and PostgreSQL RLS.
+Legacy operational routes still return `503 TENANT_MIGRATION_REQUIRED` pending their
+ownership migration. A WeatherNext 3/USGS forecast slice, scoped evidence assistant and ResQ Mapbox portal are implemented; both apps have web integration. The full seven-step engine remains unfinished.
+See [organization admission evidence](docs/sentinel-organization-admission.md).
+See [current continuation status](docs/sentinel-continuation-status.md) for exact behavior.
+
+Use `npm test`, `npm run test:types` and `npm run build` for the current foundation checks.
+`npm run db:readiness` and `/api/ready` check database prerequisites only, not overall
+release readiness. `.env.example` contains the new direct-connection settings; no
+production credentials or databases were changed. **Production activation remains gated.** See [the detailed setup and pilot deployment guide](docs/sentinel-setup-and-activation.md).
+The older architecture/setup sections below describe the pre-Sentinel system and
+are superseded for database setup by `docs/postgresql18-setup.md` and the runbook's
+Sentinel notice.
+
 [![Node.js Version](https://img.shields.io/badge/Node.js-22.18%2B-339933?logo=node.js)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org)
 [![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express)](https://expressjs.com)

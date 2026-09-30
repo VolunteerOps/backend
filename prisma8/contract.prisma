@@ -2,10 +2,555 @@
 // Contract inferred from the live database schema. Edit as needed, then run `prisma contract emit`.
 
 namespace public {
+
+model HazardRevision {
+ id String @id
+ source String
+ externalId String @map("external_id")
+ revisionAt Timestamp(3) @map("revision_at")
+ observedAt Timestamp(3) @map("observed_at")
+ longitude Numeric(10,7)
+ latitude Numeric(10,7)
+ magnitude Numeric(5,2)?
+ depthKm Numeric(8,2) @map("depth_km")
+ status String
+ title String
+ sourceUrl String @map("source_url")
+ receivedAt Timestamp(3) @default(now()) @map("received_at")
+ @@index([source, externalId, revisionAt], map: "hazard_revision_source_idx")
+ @@index([observedAt], map: "hazard_revision_time_idx")
+ @@rls
+ @@map("hazard_revisions")
+}
+
+policy_select hazard_public_read {
+ target = HazardRevision
+ using = "true"
+}
+policy_insert hazard_provider_append {
+ target = HazardRevision
+ withCheck = "current_setting('vops.provider_ingest', true) = 'USGS' AND source = 'USGS'"
+}
+
+
+model ForecastRun {
+  id String @id
+  organizationId String @map("organization_id")
+  regionId String @map("region_id")
+  source String
+  model String
+  initTime Timestamp(3) @map("init_time")
+  retrievedAt Timestamp(3) @map("retrieved_at")
+  expiresAt Timestamp(3) @map("expires_at")
+  payloadHash String @map("payload_hash")
+  cells Jsonb
+  quality Jsonb
+  region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, regionId, source, initTime, payloadHash], map: "forecast_run_revision_key")
+  @@index([organizationId, regionId, initTime], map: "forecast_run_region_time_idx")
+  @@index([expiresAt], map: "forecast_run_expiry_idx")
+  @@rls
+  @@map("forecast_runs")
+}
+
+policy_select forecast_read {
+ target = ForecastRun
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '')"
+}
+policy_insert forecast_append {
+ target = ForecastRun
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND current_setting('vops.operations', true) = 'true'"
+}
+policy_select forecast_retention_read {
+ target = ForecastRun
+ using = "current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC')"
+}
+policy_delete forecast_retention_delete {
+ target = ForecastRun
+ using = "current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC')"
+}
+policy_select receipt_retention_read {
+ target = IngressReceipt
+ using = "current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC')"
+}
+policy_delete receipt_retention_delete {
+ target = IngressReceipt
+ using = "current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC')"
+}
+
+// UPDATE USING permits row locking; WITH CHECK false prevents altering immutable content.
+policy_update forecast_retention_lock {
+ target = ForecastRun
+ using = "current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC')"
+ withCheck = "false"
+}
+policy_update receipt_retention_lock {
+ target = IngressReceipt
+ using = "current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC')"
+ withCheck = "false"
+}
+
+policy_update unit_configure {
+ target = OrganizationUnit
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.operations', true) = 'true' AND current_setting('vops.all_regions', true) = 'true'"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.operations', true) = 'true' AND current_setting('vops.all_regions', true) = 'true'"
+}
+
+
+model OrganizationUnit {
+ forecastBounds Jsonb? @map("forecast_bounds")
+ forecastPolicy Jsonb? @map("forecast_policy")
+ id String @id
+ organizationId String @map("organization_id")
+ name String
+ active Boolean @default(true)
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+ @@unique([organizationId, id])
+ @@rls
+ @@map("organization_units")
+}
+
+policy_select volunteers_select {
+ target = Volunteers
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR user_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+}
+
+policy_insert volunteers_insert {
+ target = Volunteers
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR user_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+}
+
+policy_update volunteers_update {
+ target = Volunteers
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR user_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR user_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+}
+
+policy_select skills_select {
+ target = Skills
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR true)"
+}
+
+policy_insert skills_insert {
+ target = Skills
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR false)"
+}
+
+policy_update skills_update {
+ target = Skills
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR false)"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR false)"
+}
+
+policy_select volunteer_skills_select {
+ target = VolunteerSkills
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = volunteer_skills.volunteer_id AND v.organization_id = volunteer_skills.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_insert volunteer_skills_insert {
+ target = VolunteerSkills
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = volunteer_skills.volunteer_id AND v.organization_id = volunteer_skills.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_update volunteer_skills_update {
+ target = VolunteerSkills
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = volunteer_skills.volunteer_id AND v.organization_id = volunteer_skills.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = volunteer_skills.volunteer_id AND v.organization_id = volunteer_skills.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_select locations_select {
+ target = Locations
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR true)"
+}
+
+policy_insert locations_insert {
+ target = Locations
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR false)"
+}
+
+policy_update locations_update {
+ target = Locations
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR false)"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR false)"
+}
+
+policy_select events_select {
+ target = Events
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR true)"
+}
+
+policy_insert events_insert {
+ target = Events
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR false)"
+}
+
+policy_update events_update {
+ target = Events
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR false)"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR false)"
+}
+
+policy_select deployments_select {
+ target = Deployments
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = deployments.volunteer_id AND v.organization_id = deployments.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_insert deployments_insert {
+ target = Deployments
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = deployments.volunteer_id AND v.organization_id = deployments.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_update deployments_update {
+ target = Deployments
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = deployments.volunteer_id AND v.organization_id = deployments.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = deployments.volunteer_id AND v.organization_id = deployments.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_select field_reports_select {
+ target = FieldReports
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.deployments d JOIN public.volunteers v ON v.id = d.volunteer_id AND v.organization_id = d.organization_id WHERE d.id = field_reports.deployment_id AND d.organization_id = field_reports.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_insert field_reports_insert {
+ target = FieldReports
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.deployments d JOIN public.volunteers v ON v.id = d.volunteer_id AND v.organization_id = d.organization_id WHERE d.id = field_reports.deployment_id AND d.organization_id = field_reports.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_update field_reports_update {
+ target = FieldReports
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.deployments d JOIN public.volunteers v ON v.id = d.volunteer_id AND v.organization_id = d.organization_id WHERE d.id = field_reports.deployment_id AND d.organization_id = field_reports.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.deployments d JOIN public.volunteers v ON v.id = d.volunteer_id AND v.organization_id = d.organization_id WHERE d.id = field_reports.deployment_id AND d.organization_id = field_reports.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_select communications_select {
+ target = Communications
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR sender_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+}
+
+policy_insert communications_insert {
+ target = Communications
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR sender_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+}
+
+policy_update communications_update {
+ target = Communications
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR sender_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR sender_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+}
+
+policy_select notifications_select {
+ target = Notifications
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = notifications.volunteer_id AND v.organization_id = notifications.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_insert notifications_insert {
+ target = Notifications
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = notifications.volunteer_id AND v.organization_id = notifications.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_update notifications_update {
+ target = Notifications
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = notifications.volunteer_id AND v.organization_id = notifications.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = notifications.volunteer_id AND v.organization_id = notifications.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_select telemetry_pings_select {
+ target = TelemetryPings
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = telemetry_pings.volunteer_id AND v.organization_id = telemetry_pings.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_insert telemetry_pings_insert {
+ target = TelemetryPings
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = telemetry_pings.volunteer_id AND v.organization_id = telemetry_pings.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_update telemetry_pings_update {
+ target = TelemetryPings
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = telemetry_pings.volunteer_id AND v.organization_id = telemetry_pings.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = telemetry_pings.volunteer_id AND v.organization_id = telemetry_pings.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_select feedback_select {
+ target = Feedback
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = feedback.volunteer_id AND v.organization_id = feedback.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_insert feedback_insert {
+ target = Feedback
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = feedback.volunteer_id AND v.organization_id = feedback.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_update feedback_update {
+ target = Feedback
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = feedback.volunteer_id AND v.organization_id = feedback.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND (current_setting('vops.all_regions', true) = 'true' OR region_id = nullif(current_setting('vops.region_id', true), '')) AND (current_setting('vops.operations', true) = 'true' OR EXISTS (SELECT 1 FROM public.volunteers v WHERE v.id = feedback.volunteer_id AND v.organization_id = feedback.organization_id AND v.user_id = nullif(current_setting('vops.user_id', true), '')::integer))"
+}
+
+policy_select unit_read {
+ target = OrganizationUnit
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '')"
+}
+policy_insert unit_create {
+ target = OrganizationUnit
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.operations', true) = 'true' AND current_setting('vops.all_regions', true) = 'true'"
+}
+
+
+model MemberDevice {
+  id String @id
+  organizationId String @map("organization_id")
+  membershipId String @map("membership_id")
+  installationId String @map("installation_id")
+  platform String
+  revokedAt Timestamp(3)? @map("revoked_at")
+  consentVersion Int @default(1) @map("consent_version")
+  locationConsent Boolean @default(false) @map("location_consent")
+  sensingConsent Boolean @default(false) @map("sensing_consent")
+  relayConsent Boolean @default(false) @map("relay_consent")
+  lastHeartbeatAt Timestamp(3)? @map("last_heartbeat_at")
+  batteryPercent Int? @map("battery_percent")
+  createdAt Timestamp(3) @default(now()) @map("created_at")
+  updatedAt Timestamp(3) @default(now()) @map("updated_at")
+  membership OrganizationMembership @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, id])
+  @@unique([organizationId, membershipId, installationId])
+  @@map("member_devices")
+  @@rls
+}
+
+model IngressReceipt {
+  id String @id
+  organizationId String @map("organization_id")
+  deviceId String @map("device_id")
+  messageId String @map("message_id")
+  payloadHash String @map("payload_hash")
+  consentVersion Int @map("consent_version")
+  acceptedAt Timestamp(3) @default(now()) @map("accepted_at")
+  expiresAt Timestamp(3) @map("expires_at")
+  device MemberDevice @relation(fields: [organizationId, deviceId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+  @@unique([organizationId, deviceId, messageId])
+  @@index([expiresAt])
+  @@map("ingress_receipts")
+  @@rls
+}
+
+policy_select device_select {
+ target = MemberDevice
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.id = member_devices.membership_id AND m.organization_id = member_devices.organization_id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND m.status = 'ACTIVE')"
+}
+
+policy_insert device_insert {
+ target = MemberDevice
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.id = member_devices.membership_id AND m.organization_id = member_devices.organization_id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND m.status = 'ACTIVE')"
+}
+
+policy_update device_update {
+ target = MemberDevice
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.id = member_devices.membership_id AND m.organization_id = member_devices.organization_id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND m.status = 'ACTIVE')"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.id = member_devices.membership_id AND m.organization_id = member_devices.organization_id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND m.status = 'ACTIVE')"
+}
+
+policy_select receipt_select {
+ target = IngressReceipt
+ using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.member_devices d WHERE d.id = ingress_receipts.device_id AND d.organization_id = ingress_receipts.organization_id AND d.revoked_at IS NULL)"
+}
+
+policy_insert receipt_insert {
+ target = IngressReceipt
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND EXISTS (SELECT 1 FROM public.member_devices d WHERE d.id = ingress_receipts.device_id AND d.organization_id = ingress_receipts.organization_id AND d.revoked_at IS NULL)"
+}
+
+
+  model Organization {
+    id String @id
+    slug String @unique
+    displayName String @map("display_name")
+    status String @default("PROVISIONED")
+    version Int @default(1)
+    enrollmentReady Boolean @default(false) @map("enrollment_ready")
+    verificationEvidence String? @map("verification_evidence")
+    allowedProviders String[] @map("allowed_providers")
+    requireMfa Boolean @default(false) @map("require_mfa")
+    createdAt Timestamp(3) @default(now()) @map("created_at")
+    updatedAt Timestamp(3) @default(now()) @map("updated_at")
+    @@map("organizations")
+    @@rls
+    @@check(expression: "status IN ('PROVISIONED', 'ACTIVE', 'SUSPENDED', 'OFFBOARDING', 'ARCHIVED')", name: "organization_status")
+    @@check(expression: "version > 0", name: "organization_version")
+  }
+
+  model OrganizationMembership {
+    id String @id
+    organizationId String @map("organization_id")
+    userId Int @map("user_id")
+    role String @default("VOLUNTEER")
+    status String @default("ACTIVE")
+    version Int @default(1)
+    regionIds String[] @default([]) @map("region_ids")
+    createdAt Timestamp(3) @default(now()) @map("created_at")
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    @@unique([organizationId, id])
+    @@unique([organizationId, userId])
+    @@index([userId])
+    @@map("organization_memberships")
+    @@rls
+    @@check(expression: "role IN ('ORG_ADMIN', 'COORDINATOR', 'TEAM_LEAD', 'VOLUNTEER')", name: "membership_role")
+    @@check(expression: "status IN ('ACTIVE', 'SUSPENDED', 'REMOVED')", name: "membership_status")
+  }
+
+  model PlatformGrant {
+    userId Int @id @map("user_id")
+    role String @default("TECH_ADMIN")
+    active Boolean @default(true)
+    createdAt Timestamp(3) @default(now()) @map("created_at")
+    user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    @@map("platform_grants")
+    @@rls
+    @@check(expression: "role = 'TECH_ADMIN'", name: "platform_grant_role")
+  }
+
+  model OrganizationInvitation {
+    id String @id
+    organizationId String @map("organization_id")
+    recipientEmail String @map("recipient_email")
+    role String
+    regionIds String[] @default([]) @map("region_ids")
+    tokenHash String @unique @map("token_hash")
+    issuerUserId Int @map("issuer_user_id")
+    expiresAt Timestamp(3) @map("expires_at")
+    acceptedByUserId Int? @map("accepted_by_user_id")
+    acceptedAt Timestamp(3)? @map("accepted_at")
+    revokedAt Timestamp(3)? @map("revoked_at")
+    createdAt Timestamp(3) @default(now()) @map("created_at")
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    issuer Users @relation(fields: [issuerUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    @@index([organizationId])
+    @@map("organization_invitations")
+    @@rls
+    @@check(expression: "role IN ('ORG_ADMIN', 'COORDINATOR', 'TEAM_LEAD', 'VOLUNTEER')", name: "invitation_role")
+  }
+
+  model OrganizationAudit {
+    id String @id
+    organizationId String @map("organization_id")
+    actorUserId Int @map("actor_user_id")
+    action String
+    reason String
+    metadata Jsonb
+    createdAt Timestamp(3) @default(now()) @map("created_at")
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    actor Users @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    @@index([organizationId, createdAt])
+    @@map("organization_audit")
+    @@rls
+  }
+  policy_select platform_self {
+    target = PlatformGrant
+    using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+  }
+
+  policy_select organization_read {
+    target = Organization
+    using = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR id = nullif(current_setting('vops.organization_id', true), '') OR EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.organization_id = organizations.id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+  }
+
+  policy_insert organization_provision {
+    target = Organization
+    withCheck = "current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')"
+  }
+
+  policy_update organization_lifecycle {
+    target = Organization
+    using = "current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')"
+    withCheck = "current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')"
+  }
+
+  policy_select membership_read {
+    target = OrganizationMembership
+    using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true')"
+  }
+
+  policy_insert membership_admit {
+    target = OrganizationMembership
+    withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND user_id = nullif(current_setting('vops.user_id', true), '')::integer AND current_setting('vops.admission', true) = 'true'"
+  }
+
+  policy_update membership_manage {
+    target = OrganizationMembership
+    using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.membership_write', true) = 'true'"
+    withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.membership_write', true) = 'true'"
+  }
+
+  policy_select invitation_read {
+    target = OrganizationInvitation
+    using = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR (token_hash = nullif(current_setting('vops.invitation_hash', true), '') AND recipient_email = current_setting('vops.email', true))"
+  }
+
+  policy_insert invitation_issue {
+    target = OrganizationInvitation
+    withCheck = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true')"
+  }
+
+  policy_update invitation_consume {
+    target = OrganizationInvitation
+    using = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR (token_hash = nullif(current_setting('vops.invitation_hash', true), '') AND recipient_email = current_setting('vops.email', true))"
+    withCheck = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR (token_hash = nullif(current_setting('vops.invitation_hash', true), '') AND recipient_email = current_setting('vops.email', true))"
+  }
+
+  policy_select audit_read {
+    target = OrganizationAudit
+    using = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true')"
+  }
+
+  policy_insert audit_append {
+    target = OrganizationAudit
+    withCheck = "actor_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR organization_id = nullif(current_setting('vops.organization_id', true), ''))"
+  }
+
+  model DurableJob {
+    organizationId String? @map("organization_id")
+    priority Int @default(1)
+    lastClaimedAt Timestamp(3)? @map("last_claimed_at")
+    @@index([queue, organizationId, lastClaimedAt], map: "durable_jobs_tenant_fairness_idx")
+    id String @id
+    queue String
+    kind String
+    businessKey String @unique @map("business_key")
+    payload Jsonb
+    state String @default("PENDING")
+    attempts Int @default(0)
+    maxAttempts Int @default(8) @map("max_attempts")
+    fence Int @default(0)
+    leaseOwner String? @map("lease_owner")
+    leaseUntil Timestamp(3)? @map("lease_until")
+    availableAt Timestamp(3) @default(now()) @map("available_at")
+    deadline Timestamp(3)?
+    lastError String? @map("last_error")
+    createdAt Timestamp(3) @default(now()) @map("created_at")
+    completedAt Timestamp(3)? @map("completed_at")
+
+    @@index([queue, state, availableAt], map: "durable_jobs_claim_idx")
+    @@map("durable_jobs")
+  }
+
+  model FirebaseIdentity {
+    id Int @id @default(autoincrement())
+    projectId String @map("project_id")
+    uid String
+    userId Int @unique @map("user_id")
+    revokedBefore Timestamp(3)? @map("revoked_before")
+    createdAt Timestamp(3) @default(now()) @map("created_at")
+    user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+
+    @@unique([projectId, uid])
+    @@map("firebase_identities")
+  }
+
   model Users {
     id            Int               @id(map: "users_pkey") @default(autoincrement())
     email         String
-    passwordHash  String            @map("password_hash")
+    passwordHash  String?           @map("password_hash")
     fullName      String            @map("full_name")
     role          pg.enum(UserRole) @default("VOLUNTEER")
     phoneNumber   String?           @map("phone_number")
@@ -16,7 +561,7 @@ namespace public {
     updatedAt     Timestamp(3)      @map("updated_at")
     auditLogs     AuditLogs[]
     refreshTokens RefreshTokens[]
-    volunteers    Volunteers?
+    volunteers    Volunteers[]
 
     @@index([email], map: "users_email_key", unique: true)
     @@map("users")
@@ -40,6 +585,9 @@ namespace public {
   }
 
   model Locations {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id           Int            @id(map: "locations_pkey") @default(autoincrement())
     name         String
     address      String
@@ -56,9 +604,18 @@ namespace public {
 
     @@index([latitude, longitude], map: "idx_locations_coords")
     @@map("locations")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "locations_org_id_key")
+  @@index([organizationId, regionId], map: "locations_scope_idx")
+  @@rls
   }
 
   model Events {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id                 Int                      @id(map: "events_pkey") @default(autoincrement())
     eventName          String                   @map("event_name")
     eventType          String                   @map("event_type")
@@ -79,13 +636,22 @@ namespace public {
     deployments        Deployments[]
     feedbacks          Feedback[]
     notifications      Notifications[]
-    location           Locations                @relation(fields: [locationId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "events_location_id_fkey", index: false)
+    location           Locations?                @relation(fields: [organizationId, locationId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "events_location_id_fkey", index: false)
 
     @@index([status, priority], map: "idx_events_status_priority")
     @@map("events")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "events_org_id_key")
+  @@index([organizationId, regionId], map: "events_scope_idx")
+  @@rls
   }
 
   model Communications {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id          Int          @id(map: "communications_pkey") @default(autoincrement())
     eventId     Int?         @map("event_id")
     channelId   String       @default("general") @map("channel_id")
@@ -97,10 +663,16 @@ namespace public {
     messageType String       @default("text") @map("message_type")
     mediaUrl    String?      @map("media_url")
     createdAt   Timestamp(3) @default(now()) @map("created_at")
-    event       Events?      @relation(fields: [eventId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "communications_event_id_fkey", index: false)
+    event       Events?      @relation(fields: [organizationId, eventId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "communications_event_id_fkey", index: false)
 
     @@index([channelId, createdAt], map: "idx_communications_channel")
     @@map("communications")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "communications_org_id_key")
+  @@index([organizationId, regionId], map: "communications_scope_idx")
+  @@rls
   }
 
   model ContactSubmissions {
@@ -122,6 +694,9 @@ namespace public {
   }
 
   model Volunteers {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id                   Int                      @id(map: "volunteers_pkey") @default(autoincrement())
     userId               Int?                     @map("user_id")
     fullName             String                   @map("full_name")
@@ -152,12 +727,22 @@ namespace public {
 
     @@index([latitude, longitude], map: "idx_volunteers_geo")
     @@index([status], map: "idx_volunteers_status")
-    @@index([email], map: "volunteers_email_key", unique: true)
-    @@unique([userId], map: "volunteers_user_id_key")
+    @@unique([organizationId, email], map: "volunteers_org_email_key")
+    @@unique([organizationId, userId], map: "volunteers_org_user_key")
     @@map("volunteers")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "volunteers_org_id_key")
+  @@index([organizationId, regionId], map: "volunteers_scope_idx")
+  membership OrganizationMembership? @relation(fields: [organizationId, userId], references: [organizationId, userId], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@rls
   }
 
   model Deployments {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id               Int                       @id(map: "deployments_pkey") @default(autoincrement())
     volunteerId      Int                       @map("volunteer_id")
     eventId          Int                       @map("event_id")
@@ -174,12 +759,18 @@ namespace public {
     updatedAt        Timestamp(3)              @map("updated_at")
     feedbacks        Feedback[]
     fieldReports     FieldReports[]
-    event            Events                    @relation(fields: [eventId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "deployments_event_id_fkey", index: false)
-    volunteer        Volunteers                @relation(fields: [volunteerId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "deployments_volunteer_id_fkey", index: false)
+    event            Events?                    @relation(fields: [organizationId, eventId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "deployments_event_id_fkey", index: false)
+    volunteer        Volunteers?                @relation(fields: [organizationId, volunteerId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "deployments_volunteer_id_fkey", index: false)
 
     @@index([status], map: "idx_deployments_status")
     @@index([volunteerId, eventId], map: "idx_deployments_volunteer_event")
     @@map("deployments")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "deployments_org_id_key")
+  @@index([organizationId, regionId], map: "deployments_scope_idx")
+  @@rls
   }
 
   model DispatchJobs {
@@ -201,6 +792,9 @@ namespace public {
   }
 
   model Feedback {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id           Int          @id(map: "feedback_pkey") @default(autoincrement())
     volunteerId  Int          @map("volunteer_id")
     deploymentId Int?         @map("deployment_id")
@@ -210,14 +804,23 @@ namespace public {
     comments     String
     submittedVia String       @default("mobile_app") @map("submitted_via")
     createdAt    Timestamp(3) @default(now()) @map("created_at")
-    deployment   Deployments? @relation(fields: [deploymentId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "feedback_deployment_id_fkey", index: false)
-    event        Events?      @relation(fields: [eventId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "feedback_event_id_fkey", index: false)
-    volunteer    Volunteers   @relation(fields: [volunteerId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "feedback_volunteer_id_fkey", index: false)
+    deployment   Deployments? @relation(fields: [organizationId, deploymentId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "feedback_deployment_id_fkey", index: false)
+    event        Events?      @relation(fields: [organizationId, eventId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "feedback_event_id_fkey", index: false)
+    volunteer    Volunteers?   @relation(fields: [organizationId, volunteerId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "feedback_volunteer_id_fkey", index: false)
 
     @@map("feedback")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "feedback_org_id_key")
+  @@index([organizationId, regionId], map: "feedback_scope_idx")
+  @@rls
   }
 
   model FieldReports {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id            Int             @id(map: "field_reports_pkey") @default(autoincrement())
     deploymentId  Int             @map("deployment_id")
     reportTime    Timestamp(3)    @default(now()) @map("report_time")
@@ -232,13 +835,22 @@ namespace public {
     status        String          @default("submitted")
     verifiedBy    String?         @map("verified_by")
     createdAt     Timestamp(3)    @default(now()) @map("created_at")
-    deployment    Deployments     @relation(fields: [deploymentId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "field_reports_deployment_id_fkey", index: false)
+    deployment    Deployments?     @relation(fields: [organizationId, deploymentId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "field_reports_deployment_id_fkey", index: false)
 
     @@index([reportType, status], map: "idx_field_reports_type_status")
     @@map("field_reports")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "field_reports_org_id_key")
+  @@index([organizationId, regionId], map: "field_reports_scope_idx")
+  @@rls
   }
 
   model Notifications {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id               Int           @id(map: "notifications_pkey") @default(autoincrement())
     volunteerId      Int?          @map("volunteer_id")
     eventId          Int?          @map("event_id")
@@ -251,11 +863,17 @@ namespace public {
     status           String        @default("sent")
     readAt           Timestamp(3)? @map("read_at")
     createdAt        Timestamp(3)  @default(now()) @map("created_at")
-    event            Events?       @relation(fields: [eventId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "notifications_event_id_fkey", index: false)
-    volunteer        Volunteers?   @relation(fields: [volunteerId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "notifications_volunteer_id_fkey", index: false)
+    event            Events?       @relation(fields: [organizationId, eventId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "notifications_event_id_fkey", index: false)
+    volunteer        Volunteers?   @relation(fields: [organizationId, volunteerId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, map: "notifications_volunteer_id_fkey", index: false)
 
     @@index([volunteerId, status], map: "idx_notifications_volunteer")
     @@map("notifications")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "notifications_org_id_key")
+  @@index([organizationId, regionId], map: "notifications_scope_idx")
+  @@rls
   }
 
   model RefreshTokens {
@@ -279,6 +897,9 @@ namespace public {
   }
 
   model Skills {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id              Int               @id(map: "skills_pkey") @default(autoincrement())
     skillName       String            @map("skill_name")
     category        String
@@ -288,11 +909,20 @@ namespace public {
     volunteerSkills VolunteerSkills[]
 
     @@index([category], map: "idx_skills_category")
-    @@index([skillName], map: "skills_skill_name_key", unique: true)
+    @@unique([organizationId, skillName], map: "skills_org_name_key")
     @@map("skills")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "skills_org_id_key")
+  @@index([organizationId, regionId], map: "skills_scope_idx")
+  @@rls
   }
 
   model TelemetryPings {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id           Int            @id(map: "telemetry_pings_pkey") @default(autoincrement())
     volunteerId  Int            @map("volunteer_id")
     latitude     Numeric(10, 7)
@@ -303,13 +933,22 @@ namespace public {
     heading      Numeric(5, 2)?
     isDistress   Boolean        @default(false) @map("is_distress")
     recordedAt   Timestamp(3)   @default(now()) @map("recorded_at")
-    volunteer    Volunteers     @relation(fields: [volunteerId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "telemetry_pings_volunteer_id_fkey", index: false)
+    volunteer    Volunteers?     @relation(fields: [organizationId, volunteerId], references: [organizationId, id], onDelete: Cascade, onUpdate: Cascade, map: "telemetry_pings_volunteer_id_fkey", index: false)
 
     @@index([volunteerId, recordedAt], map: "idx_telemetry_volunteer_time")
     @@map("telemetry_pings")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "telemetry_pings_org_id_key")
+  @@index([organizationId, regionId], map: "telemetry_pings_scope_idx")
+  @@rls
   }
 
   model VolunteerSkills {
+  organizationId String? @map("organization_id")
+  regionId String? @map("region_id")
+
     id                Int           @id(map: "volunteer_skills_pkey") @default(autoincrement())
     volunteerId       Int           @map("volunteer_id")
     skillId           Int           @map("skill_id")
@@ -318,11 +957,17 @@ namespace public {
     certificationDate Timestamp(3)? @map("certification_date")
     certifiedBy       String?       @map("certified_by")
     createdAt         Timestamp(3)  @default(now()) @map("created_at")
-    skill             Skills        @relation(fields: [skillId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "volunteer_skills_skill_id_fkey", index: false)
-    volunteer         Volunteers    @relation(fields: [volunteerId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "volunteer_skills_volunteer_id_fkey", index: false)
+    skill             Skills?        @relation(fields: [organizationId, skillId], references: [organizationId, id], onDelete: Cascade, onUpdate: Cascade, map: "volunteer_skills_skill_id_fkey", index: false)
+    volunteer         Volunteers?    @relation(fields: [organizationId, volunteerId], references: [organizationId, id], onDelete: Cascade, onUpdate: Cascade, map: "volunteer_skills_volunteer_id_fkey", index: false)
 
     @@index([volunteerId, skillId], map: "volunteer_skills_volunteer_id_skill_id_key", unique: true)
     @@map("volunteer_skills")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  region OrganizationUnit? @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+  @@unique([organizationId, id], map: "volunteer_skills_org_id_key")
+  @@index([organizationId, regionId], map: "volunteer_skills_scope_idx")
+  @@rls
   }
 
   native_enum ContactStatus {

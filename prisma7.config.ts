@@ -16,8 +16,7 @@ export default defineConfig({
     seed: 'tsx prisma/seed.ts',
   },
   datasource: {
-    // Existing migrations remain owned by Prisma 7 until the incremental
-    // Prisma 8 migration reaches the documented ownership-transfer phase.
+    // Compatibility generation only. Prisma 8 owns migrations/app/.
     url: migrationUrl,
   },
 });

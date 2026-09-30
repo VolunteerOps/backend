@@ -10,7 +10,6 @@ export class LocationsService {
         },
       },
       orderBy: { id: 'asc' },
-      cacheStrategy: { ttl: 60, swr: 30 },
     });
   }
 
@@ -22,7 +21,6 @@ export class LocationsService {
           where: { status: { in: ['ACTIVE', 'STAGED'] } },
         },
       },
-      cacheStrategy: { ttl: 60, swr: 30 },
     });
 
     if (!location) {

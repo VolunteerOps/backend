@@ -8,6 +8,7 @@ coverage/
 src/generated/prisma/
 src/generated/prisma8/
 .prisma/
+.sentinel-test-pg/
 .npm-cache/
 .prisma-composer/
 .alchemy/

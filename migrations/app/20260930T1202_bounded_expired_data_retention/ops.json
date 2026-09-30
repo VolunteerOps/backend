@@ -1,0 +1,213 @@
+[
+  {
+    "id": "index.forecast_runs.forecast_run_expiry_idx",
+    "label": "Create index \"forecast_run_expiry_idx\" on \"forecast_runs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "forecast_run_expiry_idx",
+        "table": "forecast_runs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"forecast_run_expiry_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"forecast_run_expiry_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"forecast_run_expiry_idx\"",
+        "sql": "CREATE INDEX \"forecast_run_expiry_idx\" ON \"public\".\"forecast_runs\" (\"expires_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"forecast_run_expiry_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"forecast_run_expiry_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.forecast_runs.forecast_retention_delete_4f220b2d",
+    "label": "Create RLS policy \"forecast_retention_delete_4f220b2d\" on \"forecast_runs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "forecast_retention_delete_4f220b2d",
+        "table": "forecast_runs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"forecast_retention_delete_4f220b2d\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "forecast_runs",
+          "forecast_retention_delete_4f220b2d"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"forecast_retention_delete_4f220b2d\"",
+        "sql": "CREATE POLICY \"forecast_retention_delete_4f220b2d\" ON \"public\".\"forecast_runs\" AS PERMISSIVE FOR DELETE TO PUBLIC USING (current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"forecast_retention_delete_4f220b2d\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "forecast_runs",
+          "forecast_retention_delete_4f220b2d"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.forecast_runs.forecast_retention_read_9a5dff5a",
+    "label": "Create RLS policy \"forecast_retention_read_9a5dff5a\" on \"forecast_runs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "forecast_retention_read_9a5dff5a",
+        "table": "forecast_runs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"forecast_retention_read_9a5dff5a\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "forecast_runs",
+          "forecast_retention_read_9a5dff5a"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"forecast_retention_read_9a5dff5a\"",
+        "sql": "CREATE POLICY \"forecast_retention_read_9a5dff5a\" ON \"public\".\"forecast_runs\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"forecast_retention_read_9a5dff5a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "forecast_runs",
+          "forecast_retention_read_9a5dff5a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.ingress_receipts.receipt_retention_delete_4f220b2d",
+    "label": "Create RLS policy \"receipt_retention_delete_4f220b2d\" on \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "receipt_retention_delete_4f220b2d",
+        "table": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"receipt_retention_delete_4f220b2d\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_retention_delete_4f220b2d"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"receipt_retention_delete_4f220b2d\"",
+        "sql": "CREATE POLICY \"receipt_retention_delete_4f220b2d\" ON \"public\".\"ingress_receipts\" AS PERMISSIVE FOR DELETE TO PUBLIC USING (current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"receipt_retention_delete_4f220b2d\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_retention_delete_4f220b2d"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.ingress_receipts.receipt_retention_read_9a5dff5a",
+    "label": "Create RLS policy \"receipt_retention_read_9a5dff5a\" on \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "receipt_retention_read_9a5dff5a",
+        "table": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"receipt_retention_read_9a5dff5a\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_retention_read_9a5dff5a"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"receipt_retention_read_9a5dff5a\"",
+        "sql": "CREATE POLICY \"receipt_retention_read_9a5dff5a\" ON \"public\".\"ingress_receipts\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"receipt_retention_read_9a5dff5a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_retention_read_9a5dff5a"
+        ]
+      }
+    ]
+  }
+]

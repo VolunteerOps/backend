@@ -1,0 +1,57 @@
+# Foundation API and identity worker template. Tenant cutover is not complete.
+# Use only in an isolated environment until all Step 1 release gates pass.
+services:
+  api:
+    image: ${VOLUNTEEROPS_API_IMAGE:?Supply a tested image pinned by digest}
+    env_file:
+      - ${VOLUNTEEROPS_API_ENV_FILE:?Supply a private runtime env file without migration credentials}
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+    ports:
+      - "127.0.0.1:${VOLUNTEEROPS_API_PORT:-3001}:3001"
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+    restart: unless-stopped
+  identity-worker: &worker
+    image: ${VOLUNTEEROPS_API_IMAGE:?Supply a tested image pinned by digest}
+    command: ["node", "dist/workers/identity.worker.js"]
+    env_file:
+      - ${VOLUNTEEROPS_API_ENV_FILE:?Supply a private runtime env file without migration credentials}
+    environment:
+      NODE_ENV: production
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/health', {signal: AbortSignal.timeout(4000)}).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+  device-worker:
+    <<: *worker
+    command: ["node", "dist/workers/device.worker.js"]
+
+  forecast-worker:
+    <<: *worker
+    profiles: ["forecast"]
+    command: ["node", "dist/workers/forecast.worker.js"]
+  sources-worker:
+    <<: *worker
+    profiles: ["sources"]
+    command: ["node", "dist/workers/sources.worker.js"]

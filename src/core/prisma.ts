@@ -1,10 +1,11 @@
 import { PrismaClient, Prisma } from '../generated/prisma/client.js';
-import { withAccelerate } from '@prisma/extension-accelerate';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from './config.js';
 import { logger } from './logger.js';
+import { databasePoolConfig } from './database-config.js';
 
 const basePrisma = new PrismaClient({
-  accelerateUrl: config.DATABASE_URL,
+  adapter: new PrismaPg(databasePoolConfig(config)),
   log:
     process.env.NODE_ENV === 'development'
       ? [
@@ -22,10 +23,8 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// Prisma Postgres includes Accelerate pooling and global query caching. The
-// prisma+postgres URL must be passed explicitly when using Prisma's JS engine.
+// Operational decisions use fresh database reads, without an external cache.
 export const prisma = basePrisma
-  .$extends(withAccelerate())
   .$extends({
     name: 'volunteerops-computed-fields',
     result: {

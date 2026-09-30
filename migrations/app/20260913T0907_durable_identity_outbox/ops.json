@@ -1,0 +1,122 @@
+[
+  {
+    "id": "table.durable_jobs",
+    "label": "Create table \"durable_jobs\"",
+    "summary": "Creates table \"durable_jobs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "durable_jobs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"durable_jobs\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"durable_jobs\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"durable_jobs\"",
+        "sql": "CREATE TABLE \"public\".\"durable_jobs\" (\n  \"attempts\" int4 DEFAULT 0 NOT NULL,\n  \"available_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"business_key\" text NOT NULL,\n  \"completed_at\" timestamp(3),\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"deadline\" timestamp(3),\n  \"fence\" int4 DEFAULT 0 NOT NULL,\n  \"id\" text NOT NULL,\n  \"kind\" text NOT NULL,\n  \"last_error\" text,\n  \"lease_owner\" text,\n  \"lease_until\" timestamp(3),\n  \"max_attempts\" int4 DEFAULT 8 NOT NULL,\n  \"payload\" jsonb NOT NULL,\n  \"queue\" text NOT NULL,\n  \"state\" text DEFAULT 'PENDING' NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"durable_jobs\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"durable_jobs\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.durable_jobs.durable_jobs_business_key_key",
+    "label": "Add unique constraint on \"durable_jobs\" (business_key)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "durable_jobs_business_key_key",
+        "table": "durable_jobs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"durable_jobs_business_key_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "durable_jobs_business_key_key",
+          "public",
+          "\"public\".\"durable_jobs\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"durable_jobs_business_key_key\"",
+        "sql": "ALTER TABLE \"public\".\"durable_jobs\" ADD CONSTRAINT \"durable_jobs_business_key_key\" UNIQUE (\"business_key\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"durable_jobs_business_key_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "durable_jobs_business_key_key",
+          "public",
+          "\"public\".\"durable_jobs\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.durable_jobs.durable_jobs_claim_idx",
+    "label": "Create index \"durable_jobs_claim_idx\" on \"durable_jobs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "durable_jobs_claim_idx",
+        "table": "durable_jobs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"durable_jobs_claim_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"durable_jobs_claim_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"durable_jobs_claim_idx\"",
+        "sql": "CREATE INDEX \"durable_jobs_claim_idx\" ON \"public\".\"durable_jobs\" (\"queue\", \"state\", \"available_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"durable_jobs_claim_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"durable_jobs_claim_idx\""
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,1445 @@
+[
+  {
+    "id": "table.organization_audit",
+    "label": "Create table \"organization_audit\"",
+    "summary": "Creates table \"organization_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "organization_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"organization_audit\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_audit\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"organization_audit\"",
+        "sql": "CREATE TABLE \"public\".\"organization_audit\" (\n  \"action\" text NOT NULL,\n  \"actor_user_id\" int4 NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"metadata\" jsonb NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"reason\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"organization_audit\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_audit\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.organization_invitations",
+    "label": "Create table \"organization_invitations\"",
+    "summary": "Creates table \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"organization_invitations\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_invitations\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"organization_invitations\"",
+        "sql": "CREATE TABLE \"public\".\"organization_invitations\" (\n  \"accepted_at\" timestamp(3),\n  \"accepted_by_user_id\" int4,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"expires_at\" timestamp(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"issuer_user_id\" int4 NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"recipient_email\" text NOT NULL,\n  \"region_ids\" text[] DEFAULT '{}' NOT NULL,\n  \"revoked_at\" timestamp(3),\n  \"role\" text NOT NULL,\n  \"token_hash\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"invitation_role_f8fb0bd8\" CHECK (role IN ('ORG_ADMIN', 'COORDINATOR', 'TEAM_LEAD', 'VOLUNTEER')),\n  CONSTRAINT \"organization_invitations_region_ids_elem_not_null_0defcd39\" CHECK (array_position(\"region_ids\", NULL) IS NULL)\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"organization_invitations\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_invitations\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.organization_memberships",
+    "label": "Create table \"organization_memberships\"",
+    "summary": "Creates table \"organization_memberships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"organization_memberships\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"organization_memberships\"",
+        "sql": "CREATE TABLE \"public\".\"organization_memberships\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"region_ids\" text[] DEFAULT '{}' NOT NULL,\n  \"role\" text DEFAULT 'VOLUNTEER' NOT NULL,\n  \"status\" text DEFAULT 'ACTIVE' NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  \"version\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"membership_role_f8fb0bd8\" CHECK (role IN ('ORG_ADMIN', 'COORDINATOR', 'TEAM_LEAD', 'VOLUNTEER')),\n  CONSTRAINT \"membership_status_36df456f\" CHECK (status IN ('ACTIVE', 'SUSPENDED', 'REMOVED')),\n  CONSTRAINT \"organization_memberships_region_ids_elem_not_null_0defcd39\" CHECK (array_position(\"region_ids\", NULL) IS NULL)\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"organization_memberships\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.organizations",
+    "label": "Create table \"organizations\"",
+    "summary": "Creates table \"organizations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "organizations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"organizations\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organizations\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"organizations\"",
+        "sql": "CREATE TABLE \"public\".\"organizations\" (\n  \"allowed_providers\" text[] NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"display_name\" text NOT NULL,\n  \"enrollment_ready\" bool DEFAULT false NOT NULL,\n  \"id\" text NOT NULL,\n  \"require_mfa\" bool DEFAULT false NOT NULL,\n  \"slug\" text NOT NULL,\n  \"status\" text DEFAULT 'PROVISIONED' NOT NULL,\n  \"updated_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"verification_evidence\" text,\n  \"version\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"organization_status_9bfaa026\" CHECK (status IN ('PROVISIONED', 'ACTIVE', 'SUSPENDED', 'OFFBOARDING', 'ARCHIVED')),\n  CONSTRAINT \"organization_version_341aaa74\" CHECK (version > 0),\n  CONSTRAINT \"organizations_allowed_providers_elem_not_null_39804e80\" CHECK (array_position(\"allowed_providers\", NULL) IS NULL)\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"organizations\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organizations\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.platform_grants",
+    "label": "Create table \"platform_grants\"",
+    "summary": "Creates table \"platform_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "platform_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"platform_grants\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"platform_grants\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"platform_grants\"",
+        "sql": "CREATE TABLE \"public\".\"platform_grants\" (\n  \"active\" bool DEFAULT true NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"role\" text DEFAULT 'TECH_ADMIN' NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"user_id\"),\n  CONSTRAINT \"platform_grant_role_c42ac32a\" CHECK (role = 'TECH_ADMIN')\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"platform_grants\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"platform_grants\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.organization_invitations.organization_invitations_token_hash_key",
+    "label": "Add unique constraint on \"organization_invitations\" (token_hash)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "organization_invitations_token_hash_key",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"organization_invitations_token_hash_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_invitations_token_hash_key",
+          "public",
+          "\"public\".\"organization_invitations\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"organization_invitations_token_hash_key\"",
+        "sql": "ALTER TABLE \"public\".\"organization_invitations\" ADD CONSTRAINT \"organization_invitations_token_hash_key\" UNIQUE (\"token_hash\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"organization_invitations_token_hash_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_invitations_token_hash_key",
+          "public",
+          "\"public\".\"organization_invitations\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.organization_memberships.organization_memberships_organization_id_user_id_key",
+    "label": "Add unique constraint on \"organization_memberships\" (organization_id, user_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "organization_memberships_organization_id_user_id_key",
+        "table": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"organization_memberships_organization_id_user_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_memberships_organization_id_user_id_key",
+          "public",
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"organization_memberships_organization_id_user_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"organization_memberships\" ADD CONSTRAINT \"organization_memberships_organization_id_user_id_key\" UNIQUE (\"organization_id\", \"user_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"organization_memberships_organization_id_user_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_memberships_organization_id_user_id_key",
+          "public",
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.organizations.organizations_slug_key",
+    "label": "Add unique constraint on \"organizations\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "organizations_slug_key",
+        "table": "organizations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"organizations_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organizations_slug_key",
+          "public",
+          "\"public\".\"organizations\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"organizations_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"organizations\" ADD CONSTRAINT \"organizations_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"organizations_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organizations_slug_key",
+          "public",
+          "\"public\".\"organizations\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.organization_audit.organization_audit_organization_id_created_at_idx_86b4d119",
+    "label": "Create index \"organization_audit_organization_id_created_at_idx_86b4d119\" on \"organization_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "organization_audit_organization_id_created_at_idx_86b4d119",
+        "table": "organization_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"organization_audit_organization_id_created_at_idx_86b4d119\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_audit_organization_id_created_at_idx_86b4d119\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"organization_audit_organization_id_created_at_idx_86b4d119\"",
+        "sql": "CREATE INDEX \"organization_audit_organization_id_created_at_idx_86b4d119\" ON \"public\".\"organization_audit\" (\"organization_id\", \"created_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"organization_audit_organization_id_created_at_idx_86b4d119\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_audit_organization_id_created_at_idx_86b4d119\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.organization_invitations.organization_invitations_organization_id_idx_1a5cd3f5",
+    "label": "Create index \"organization_invitations_organization_id_idx_1a5cd3f5\" on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "organization_invitations_organization_id_idx_1a5cd3f5",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"organization_invitations_organization_id_idx_1a5cd3f5\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_invitations_organization_id_idx_1a5cd3f5\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"organization_invitations_organization_id_idx_1a5cd3f5\"",
+        "sql": "CREATE INDEX \"organization_invitations_organization_id_idx_1a5cd3f5\" ON \"public\".\"organization_invitations\" (\"organization_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"organization_invitations_organization_id_idx_1a5cd3f5\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_invitations_organization_id_idx_1a5cd3f5\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.organization_memberships.organization_memberships_user_id_idx_6c952402",
+    "label": "Create index \"organization_memberships_user_id_idx_6c952402\" on \"organization_memberships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "organization_memberships_user_id_idx_6c952402",
+        "table": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"organization_memberships_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_memberships_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"organization_memberships_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"organization_memberships_user_id_idx_6c952402\" ON \"public\".\"organization_memberships\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"organization_memberships_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"organization_memberships_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.organization_audit.organization_audit_organization_id_fkey",
+    "label": "Add foreign key \"organization_audit_organization_id_fkey\" on \"organization_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "organization_audit_organization_id_fkey",
+        "table": "organization_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"organization_audit_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_audit_organization_id_fkey",
+          "public",
+          "\"public\".\"organization_audit\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"organization_audit_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"organization_audit\"\nADD CONSTRAINT \"organization_audit_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"organization_audit_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_audit_organization_id_fkey",
+          "public",
+          "\"public\".\"organization_audit\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.organization_audit.organization_audit_actor_user_id_fkey",
+    "label": "Add foreign key \"organization_audit_actor_user_id_fkey\" on \"organization_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "organization_audit_actor_user_id_fkey",
+        "table": "organization_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"organization_audit_actor_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_audit_actor_user_id_fkey",
+          "public",
+          "\"public\".\"organization_audit\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"organization_audit_actor_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"organization_audit\"\nADD CONSTRAINT \"organization_audit_actor_user_id_fkey\"\nFOREIGN KEY (\"actor_user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"organization_audit_actor_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_audit_actor_user_id_fkey",
+          "public",
+          "\"public\".\"organization_audit\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.organization_invitations.organization_invitations_organization_id_fkey",
+    "label": "Add foreign key \"organization_invitations_organization_id_fkey\" on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "organization_invitations_organization_id_fkey",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"organization_invitations_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_invitations_organization_id_fkey",
+          "public",
+          "\"public\".\"organization_invitations\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"organization_invitations_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"organization_invitations\"\nADD CONSTRAINT \"organization_invitations_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"organization_invitations_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_invitations_organization_id_fkey",
+          "public",
+          "\"public\".\"organization_invitations\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.organization_invitations.organization_invitations_issuer_user_id_fkey",
+    "label": "Add foreign key \"organization_invitations_issuer_user_id_fkey\" on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "organization_invitations_issuer_user_id_fkey",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"organization_invitations_issuer_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_invitations_issuer_user_id_fkey",
+          "public",
+          "\"public\".\"organization_invitations\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"organization_invitations_issuer_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"organization_invitations\"\nADD CONSTRAINT \"organization_invitations_issuer_user_id_fkey\"\nFOREIGN KEY (\"issuer_user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"organization_invitations_issuer_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_invitations_issuer_user_id_fkey",
+          "public",
+          "\"public\".\"organization_invitations\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.organization_memberships.organization_memberships_organization_id_fkey",
+    "label": "Add foreign key \"organization_memberships_organization_id_fkey\" on \"organization_memberships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "organization_memberships_organization_id_fkey",
+        "table": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"organization_memberships_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_memberships_organization_id_fkey",
+          "public",
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"organization_memberships_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"organization_memberships\"\nADD CONSTRAINT \"organization_memberships_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"organization_memberships_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_memberships_organization_id_fkey",
+          "public",
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.organization_memberships.organization_memberships_user_id_fkey",
+    "label": "Add foreign key \"organization_memberships_user_id_fkey\" on \"organization_memberships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "organization_memberships_user_id_fkey",
+        "table": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"organization_memberships_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_memberships_user_id_fkey",
+          "public",
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"organization_memberships_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"organization_memberships\"\nADD CONSTRAINT \"organization_memberships_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"organization_memberships_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "organization_memberships_user_id_fkey",
+          "public",
+          "\"public\".\"organization_memberships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.platform_grants.platform_grants_user_id_fkey",
+    "label": "Add foreign key \"platform_grants_user_id_fkey\" on \"platform_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "platform_grants_user_id_fkey",
+        "table": "platform_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"platform_grants_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "platform_grants_user_id_fkey",
+          "public",
+          "\"public\".\"platform_grants\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"platform_grants_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"platform_grants\"\nADD CONSTRAINT \"platform_grants_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"platform_grants_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "platform_grants_user_id_fkey",
+          "public",
+          "\"public\".\"platform_grants\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.organization_audit",
+    "label": "Enable row-level security on \"organization_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "organization_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"organization_audit\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "organization_audit"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"organization_audit\"",
+        "sql": "ALTER TABLE \"public\".\"organization_audit\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"organization_audit\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "organization_audit"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.organization_invitations",
+    "label": "Enable row-level security on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"organization_invitations\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"organization_invitations\"",
+        "sql": "ALTER TABLE \"public\".\"organization_invitations\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"organization_invitations\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.organization_memberships",
+    "label": "Enable row-level security on \"organization_memberships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"organization_memberships\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "organization_memberships"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"organization_memberships\"",
+        "sql": "ALTER TABLE \"public\".\"organization_memberships\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"organization_memberships\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "organization_memberships"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.organizations",
+    "label": "Enable row-level security on \"organizations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "organizations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"organizations\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "organizations"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"organizations\"",
+        "sql": "ALTER TABLE \"public\".\"organizations\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"organizations\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "organizations"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.platform_grants",
+    "label": "Enable row-level security on \"platform_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "platform_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"platform_grants\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"platform_grants\"",
+        "sql": "ALTER TABLE \"public\".\"platform_grants\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"platform_grants\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_audit.audit_append_11366b27",
+    "label": "Create RLS policy \"audit_append_11366b27\" on \"organization_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "audit_append_11366b27",
+        "table": "organization_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"audit_append_11366b27\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_audit",
+          "audit_append_11366b27"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"audit_append_11366b27\"",
+        "sql": "CREATE POLICY \"audit_append_11366b27\" ON \"public\".\"organization_audit\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (actor_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR organization_id = nullif(current_setting('vops.organization_id', true), '')))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"audit_append_11366b27\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_audit",
+          "audit_append_11366b27"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_audit.audit_read_52360ea0",
+    "label": "Create RLS policy \"audit_read_52360ea0\" on \"organization_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "audit_read_52360ea0",
+        "table": "organization_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"audit_read_52360ea0\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_audit",
+          "audit_read_52360ea0"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"audit_read_52360ea0\"",
+        "sql": "CREATE POLICY \"audit_read_52360ea0\" ON \"public\".\"organization_audit\" AS PERMISSIVE FOR SELECT TO PUBLIC USING ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"audit_read_52360ea0\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_audit",
+          "audit_read_52360ea0"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_invitations.invitation_consume_a24f5380",
+    "label": "Create RLS policy \"invitation_consume_a24f5380\" on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "invitation_consume_a24f5380",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"invitation_consume_a24f5380\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_consume_a24f5380"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"invitation_consume_a24f5380\"",
+        "sql": "CREATE POLICY \"invitation_consume_a24f5380\" ON \"public\".\"organization_invitations\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR (token_hash = nullif(current_setting('vops.invitation_hash', true), '') AND recipient_email = current_setting('vops.email', true))) WITH CHECK ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR (token_hash = nullif(current_setting('vops.invitation_hash', true), '') AND recipient_email = current_setting('vops.email', true)))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"invitation_consume_a24f5380\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_consume_a24f5380"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_invitations.invitation_issue_6732cfa1",
+    "label": "Create RLS policy \"invitation_issue_6732cfa1\" on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "invitation_issue_6732cfa1",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"invitation_issue_6732cfa1\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_issue_6732cfa1"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"invitation_issue_6732cfa1\"",
+        "sql": "CREATE POLICY \"invitation_issue_6732cfa1\" ON \"public\".\"organization_invitations\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"invitation_issue_6732cfa1\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_issue_6732cfa1"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_invitations.invitation_read_061c49a5",
+    "label": "Create RLS policy \"invitation_read_061c49a5\" on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "invitation_read_061c49a5",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"invitation_read_061c49a5\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_read_061c49a5"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"invitation_read_061c49a5\"",
+        "sql": "CREATE POLICY \"invitation_read_061c49a5\" ON \"public\".\"organization_invitations\" AS PERMISSIVE FOR SELECT TO PUBLIC USING ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR (token_hash = nullif(current_setting('vops.invitation_hash', true), '') AND recipient_email = current_setting('vops.email', true)))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"invitation_read_061c49a5\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_read_061c49a5"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_memberships.membership_admit_981c377a",
+    "label": "Create RLS policy \"membership_admit_981c377a\" on \"organization_memberships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "membership_admit_981c377a",
+        "table": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"membership_admit_981c377a\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_memberships",
+          "membership_admit_981c377a"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"membership_admit_981c377a\"",
+        "sql": "CREATE POLICY \"membership_admit_981c377a\" ON \"public\".\"organization_memberships\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (organization_id = nullif(current_setting('vops.organization_id', true), '') AND user_id = nullif(current_setting('vops.user_id', true), '')::integer AND current_setting('vops.admission', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"membership_admit_981c377a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_memberships",
+          "membership_admit_981c377a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_memberships.membership_manage_7585ee31",
+    "label": "Create RLS policy \"membership_manage_7585ee31\" on \"organization_memberships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "membership_manage_7585ee31",
+        "table": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"membership_manage_7585ee31\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_memberships",
+          "membership_manage_7585ee31"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"membership_manage_7585ee31\"",
+        "sql": "CREATE POLICY \"membership_manage_7585ee31\" ON \"public\".\"organization_memberships\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.membership_write', true) = 'true') WITH CHECK (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.membership_write', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"membership_manage_7585ee31\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_memberships",
+          "membership_manage_7585ee31"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_memberships.membership_read_4cbcb747",
+    "label": "Create RLS policy \"membership_read_4cbcb747\" on \"organization_memberships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "membership_read_4cbcb747",
+        "table": "organization_memberships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"membership_read_4cbcb747\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_memberships",
+          "membership_read_4cbcb747"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"membership_read_4cbcb747\"",
+        "sql": "CREATE POLICY \"membership_read_4cbcb747\" ON \"public\".\"organization_memberships\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"membership_read_4cbcb747\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_memberships",
+          "membership_read_4cbcb747"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organizations.organization_lifecycle_85d500ea",
+    "label": "Create RLS policy \"organization_lifecycle_85d500ea\" on \"organizations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "organization_lifecycle_85d500ea",
+        "table": "organizations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"organization_lifecycle_85d500ea\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_lifecycle_85d500ea"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"organization_lifecycle_85d500ea\"",
+        "sql": "CREATE POLICY \"organization_lifecycle_85d500ea\" ON \"public\".\"organizations\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) WITH CHECK (current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"organization_lifecycle_85d500ea\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_lifecycle_85d500ea"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organizations.organization_provision_5f87e4be",
+    "label": "Create RLS policy \"organization_provision_5f87e4be\" on \"organizations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "organization_provision_5f87e4be",
+        "table": "organizations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"organization_provision_5f87e4be\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_provision_5f87e4be"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"organization_provision_5f87e4be\"",
+        "sql": "CREATE POLICY \"organization_provision_5f87e4be\" ON \"public\".\"organizations\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"organization_provision_5f87e4be\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_provision_5f87e4be"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organizations.organization_read_29631cf2",
+    "label": "Create RLS policy \"organization_read_29631cf2\" on \"organizations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "organization_read_29631cf2",
+        "table": "organizations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"organization_read_29631cf2\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_read_29631cf2"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"organization_read_29631cf2\"",
+        "sql": "CREATE POLICY \"organization_read_29631cf2\" ON \"public\".\"organizations\" AS PERMISSIVE FOR SELECT TO PUBLIC USING ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR id = nullif(current_setting('vops.organization_id', true), '') OR EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.organization_id = organizations.id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"organization_read_29631cf2\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_read_29631cf2"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.platform_grants.platform_self_95582c40",
+    "label": "Create RLS policy \"platform_self_95582c40\" on \"platform_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "platform_self_95582c40",
+        "table": "platform_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"platform_self_95582c40\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_self_95582c40"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"platform_self_95582c40\"",
+        "sql": "CREATE POLICY \"platform_self_95582c40\" ON \"public\".\"platform_grants\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"platform_self_95582c40\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_self_95582c40"
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,88 @@
+[
+  {
+    "id": "rlsPolicy.public.forecast_runs.forecast_retention_lock_be6f8360",
+    "label": "Create RLS policy \"forecast_retention_lock_be6f8360\" on \"forecast_runs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "forecast_retention_lock_be6f8360",
+        "table": "forecast_runs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"forecast_retention_lock_be6f8360\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "forecast_runs",
+          "forecast_retention_lock_be6f8360"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"forecast_retention_lock_be6f8360\"",
+        "sql": "CREATE POLICY \"forecast_retention_lock_be6f8360\" ON \"public\".\"forecast_runs\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC')) WITH CHECK (false)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"forecast_retention_lock_be6f8360\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "forecast_runs",
+          "forecast_retention_lock_be6f8360"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.ingress_receipts.receipt_retention_lock_be6f8360",
+    "label": "Create RLS policy \"receipt_retention_lock_be6f8360\" on \"ingress_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "receipt_retention_lock_be6f8360",
+        "table": "ingress_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"receipt_retention_lock_be6f8360\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_retention_lock_be6f8360"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"receipt_retention_lock_be6f8360\"",
+        "sql": "CREATE POLICY \"receipt_retention_lock_be6f8360\" ON \"public\".\"ingress_receipts\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (current_setting('vops.retention', true) = 'true' AND expires_at <= (clock_timestamp() AT TIME ZONE 'UTC')) WITH CHECK (false)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"receipt_retention_lock_be6f8360\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ingress_receipts",
+          "receipt_retention_lock_be6f8360"
+        ]
+      }
+    ]
+  }
+]

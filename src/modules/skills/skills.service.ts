@@ -10,7 +10,6 @@ export class SkillsService {
         },
       },
       orderBy: { category: 'asc' },
-      cacheStrategy: { ttl: 60, swr: 30 },
     });
 
     return skills.map((s: any) => ({
@@ -22,7 +21,6 @@ export class SkillsService {
   static async findCategories() {
     const skills = await prisma.skill.findMany({
       select: { category: true, demandLevel: true },
-      cacheStrategy: { ttl: 60, swr: 30 },
     });
 
     const categoryMap: Record<string, { name: string; count: number; criticalCount: number }> = {};

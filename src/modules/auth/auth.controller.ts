@@ -1,190 +1,71 @@
-import { Router, Request, Response } from 'express';
-import { AuthService } from './auth.service.js';
-import {
-  signupSchema,
-  loginSchema,
-  updateProfileSchema,
-  changePasswordSchema,
-  refreshTokenSchema,
-} from './auth.schema.js';
+﻿import { Router } from 'express';
+import type { Response } from 'express';
+import { z } from 'zod';
+import { AuthService, retiredPasswordAuth } from './auth.service.js';
+import { signupSchema, updateProfileSchema } from './auth.schema.js';
 import { ah } from '../../middleware/asyncHandler.js';
 import { requireAuth } from '../../middleware/auth.middleware.js';
+import { createSessionOriginGuard, SESSION_COOKIE } from '../../middleware/firebase-auth.middleware.js';
 import { validateBody } from '../../middleware/validator.js';
 import { authRateLimiter } from '../../middleware/rateLimiter.js';
 import { serialize } from '../../lib/serialize.js';
 import { config } from '../../core/config.js';
+import { ApiError } from '../../core/errors.js';
+import { getFirebaseIdentityVerifier } from '../../core/firebase.js';
+import { OrganizationsService } from '../organizations/organizations.service.js';
+import { requestActor } from '../organizations/context.js';
 
 const router = Router();
-
-function getClientMetadata(req: Request) {
-  return {
-    userAgent: req.headers['user-agent'] || undefined,
-    ipAddress: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || undefined,
-  };
+const guardOrigin = createSessionOriginGuard(config.CORS_ORIGIN);
+const cookieOptions = {
+  httpOnly: true, secure: config.NODE_ENV === 'production' || config.COOKIE_SECURE,
+  sameSite: 'lax' as const, path: '/',
+};
+function clearCookies(res: Response) {
+  res.clearCookie(SESSION_COOKIE, cookieOptions);
+  for (const name of ['vops_access_token', 'vops_session', 'vops_refresh_token']) {
+    res.clearCookie(name, { ...cookieOptions, domain: config.COOKIE_DOMAIN || undefined,
+      path: name === 'vops_refresh_token' ? '/api/auth' : '/' });
+  }
 }
 
-function setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
-  // Short-Lived Access Token Cookie (15 minutes, accessible across entire API)
-  res.cookie('vops_access_token', accessToken, {
-    httpOnly: true,
-    secure: config.COOKIE_SECURE,
-    sameSite: config.COOKIE_SECURE ? 'none' : 'lax',
-    domain: config.COOKIE_DOMAIN || undefined,
-    path: '/',
-    maxAge: 15 * 60 * 1000, // 15 minutes
-  });
+router.post('/firebase/bootstrap', authRateLimiter,
+  validateBody(z.object({ full_name: z.string().trim().min(2).max(120) }).strict()),
+  ah(async (req, res) => {
+    if (!req.firebaseIdentity || req.firebaseCredential !== 'bearer') throw ApiError.unauthorized('Verified Firebase ID token required');
+    const user = await AuthService.bootstrap(req.firebaseIdentity, req.body.full_name);
+    const contexts = await OrganizationsService.memberships({ userId: user.id, identity: req.firebaseIdentity });
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).json(serialize({ user, ...contexts }));
+  }));
 
-  // Legacy compatibility cookie
-  res.cookie('vops_session', accessToken, {
-    httpOnly: true,
-    secure: config.COOKIE_SECURE,
-    sameSite: config.COOKIE_SECURE ? 'none' : 'lax',
-    domain: config.COOKIE_DOMAIN || undefined,
-    path: '/',
-    maxAge: 15 * 60 * 1000, // 15 minutes
-  });
+router.post('/session', authRateLimiter, guardOrigin, requireAuth,
+  ah(async (req, res) => {
+    if (req.firebaseCredential !== 'bearer') throw ApiError.unauthorized('Firebase bearer token required');
+    const cookie = await getFirebaseIdentityVerifier().createSessionCookie(req.headers.authorization!.slice(7));
+    clearCookies(res);
+    res.cookie(SESSION_COOKIE, cookie, { ...cookieOptions, maxAge: 5 * 24 * 60 * 60 * 1000 });
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(204).end();
+  }));
 
-  // Long-Lived Refresh Token Cookie (7 days, scoped only to /api/auth)
-  res.cookie('vops_refresh_token', refreshToken, {
-    httpOnly: true,
-    secure: config.COOKIE_SECURE,
-    sameSite: config.COOKIE_SECURE ? 'none' : 'lax',
-    domain: config.COOKIE_DOMAIN || undefined,
-    path: '/api/auth',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
+// Clears this browser only; does not claim to revoke copied or other-device tokens.
+router.delete('/session', guardOrigin, (_req, res) => { clearCookies(res); res.status(204).end(); });
+router.post('/sessions/revoke', authRateLimiter, requireAuth, ah(async (req, res) => {
+  const result = await AuthService.revokeSessions(req.user!.userId, req.firebaseIdentity!);
+  clearCookies(res);
+  res.status(202).json(result);
+}));
+router.post('/logout', guardOrigin, (_req, res) => { clearCookies(res); res.status(204).end(); });
+router.get('/me', requireAuth, ah(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(serialize({ user: await AuthService.getMe(req.user!.userId), ...await OrganizationsService.memberships(requestActor(req)) }));
+}));
+router.patch('/profile', requireAuth, validateBody(updateProfileSchema), ah(async (req, res) => {
+  res.json(serialize({ user: await AuthService.updateProfile(req.user!.userId, req.body) }));
+}));
+router.post('/signup', authRateLimiter, validateBody(signupSchema), () => { throw retiredPasswordAuth(); });
+for (const path of ['/login', '/refresh', '/change-password']) {
+  router.post(path, authRateLimiter, () => { throw retiredPasswordAuth(); });
 }
-
-function clearAuthCookies(res: Response) {
-  const cookieOptions = {
-    httpOnly: true,
-    secure: config.COOKIE_SECURE,
-    sameSite: (config.COOKIE_SECURE ? 'none' : 'lax') as any,
-    domain: config.COOKIE_DOMAIN || undefined,
-  };
-
-  res.clearCookie('vops_access_token', { ...cookieOptions, path: '/' });
-  res.clearCookie('vops_session', { ...cookieOptions, path: '/' });
-  res.clearCookie('vops_refresh_token', { ...cookieOptions, path: '/api/auth' });
-}
-
-router.post(
-  '/signup',
-  authRateLimiter,
-  validateBody(signupSchema),
-  ah(async (req, res) => {
-    const clientInfo = getClientMetadata(req);
-    const result = await AuthService.signup(req.body, clientInfo);
-    setAuthCookies(res, result.accessToken, result.refreshToken);
-    res.status(201).json(
-      serialize({
-        user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        tokenType: result.tokenType,
-        expiresIn: result.expiresIn,
-        token: result.accessToken, // Backwards compatibility
-      })
-    );
-  })
-);
-
-router.post(
-  '/login',
-  authRateLimiter,
-  validateBody(loginSchema),
-  ah(async (req, res) => {
-    const clientInfo = getClientMetadata(req);
-    const result = await AuthService.login(req.body, clientInfo);
-    setAuthCookies(res, result.accessToken, result.refreshToken);
-    res.json(
-      serialize({
-        user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        tokenType: result.tokenType,
-        expiresIn: result.expiresIn,
-        token: result.accessToken, // Backwards compatibility
-      })
-    );
-  })
-);
-
-router.post(
-  '/refresh',
-  authRateLimiter,
-  validateBody(refreshTokenSchema),
-  ah(async (req, res) => {
-    // 1. Extract from cookie, request body, or header
-    const tokenFromCookie = req.cookies?.['vops_refresh_token'];
-    const tokenFromBody = req.body?.refreshToken || req.body?.refresh_token;
-    const tokenFromHeader = req.headers['x-refresh-token'] as string;
-
-    const refreshTokenString = tokenFromCookie || tokenFromBody || tokenFromHeader;
-
-    const clientInfo = getClientMetadata(req);
-    const result = await AuthService.refresh(refreshTokenString, clientInfo);
-
-    setAuthCookies(res, result.accessToken, result.refreshToken);
-
-    res.json(
-      serialize({
-        user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        tokenType: result.tokenType,
-        expiresIn: result.expiresIn,
-        token: result.accessToken, // Backwards compatibility
-      })
-    );
-  })
-);
-
-router.get(
-  '/me',
-  requireAuth,
-  ah(async (req, res) => {
-    const user = await AuthService.getMe(req.user!.userId);
-    res.json(serialize({ user }));
-  })
-);
-
-router.patch(
-  '/profile',
-  requireAuth,
-  validateBody(updateProfileSchema),
-  ah(async (req, res) => {
-    const updated = await AuthService.updateProfile(req.user!.userId, req.body);
-    res.json(serialize({ user: updated }));
-  })
-);
-
-router.post(
-  '/change-password',
-  requireAuth,
-  validateBody(changePasswordSchema),
-  ah(async (req, res) => {
-    const result = await AuthService.changePassword(
-      req.user!.userId,
-      req.body.current_password,
-      req.body.new_password
-    );
-    clearAuthCookies(res);
-    res.json(result);
-  })
-);
-
-router.post(
-  '/logout',
-  ah(async (req, res) => {
-    const tokenFromCookie = req.cookies?.['vops_refresh_token'];
-    const tokenFromBody = req.body?.refreshToken || req.body?.refresh_token;
-    const refreshTokenString = tokenFromCookie || tokenFromBody;
-
-    await AuthService.logout(refreshTokenString, req.user?.userId);
-    clearAuthCookies(res);
-    res.json({ success: true, message: 'Logged out successfully' });
-  })
-);
-
 export default router;

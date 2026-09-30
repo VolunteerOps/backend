@@ -4,11 +4,20 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { config } from './core/config.js';
 import { authenticate } from './middleware/auth.middleware.js';
+import { createCookieMutationGuard } from './middleware/firebase-auth.middleware.js';
+import { ApiError } from './core/errors.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 import { generalRateLimiter } from './middleware/rateLimiter.js';
+import { prisma } from './core/prisma.js';
+import { databaseReadinessQuery, type DatabaseFacts } from './core/database-readiness.js';
+import { createDatabaseReadinessHandler } from './middleware/readiness.middleware.js';
 
 // Domain Module Routers
 import authRouter from './modules/auth/auth.controller.js';
+import organizationsRouter from './modules/organizations/organizations.controller.js';
+import sentinelRouter from './modules/sentinel/sentinel.controller.js';
+import portalRouter from './modules/sentinel/portal.controller.js';
+import platformRouter from './modules/platform/platform.controller.js';
 import usersRouter from './modules/users/users.controller.js';
 import volunteersRouter from './modules/volunteers/volunteers.controller.js';
 import skillsRouter from './modules/skills/skills.controller.js';
@@ -56,7 +65,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(generalRateLimiter);
+app.use('/sentinel', portalRouter);
 app.use(authenticate);
+app.use(createCookieMutationGuard(config.CORS_ORIGIN));
 
 // API Root Discovery Handler
 const apiDiscoveryHandler = (_req: express.Request, res: express.Response) => {
@@ -107,8 +118,23 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.get('/api/ready', createDatabaseReadinessHandler(async () => {
+  const rows = await prisma.$queryRawUnsafe<DatabaseFacts[]>(databaseReadinessQuery);
+  if (rows.length !== 1) throw new Error('Database facts unavailable');
+  return rows[0];
+}, config.NODE_ENV === 'production'));
+
 // REST Domain Routes
 app.use('/api/auth', authRouter);
+app.use('/api/platform', platformRouter);
+app.use('/api', organizationsRouter);
+app.use('/api/organizations/:orgId/sentinel', sentinelRouter);
+// Global roles cannot authorize institution-private legacy tables without ownership.
+app.use(['/api/users', '/api/volunteers', '/api/skills', '/api/locations', '/api/events',
+  '/api/deployments', '/api/field-reports', '/api/communications', '/api/telemetry',
+  '/api/notifications', '/api/feedback', '/api/analytics', '/api/admin', '/api/storage'],
+  (_req, _res, next) => next(new ApiError(503, 'TENANT_MIGRATION_REQUIRED',
+    'Operational access is unavailable until organization ownership is migrated')));
 app.use('/api/users', usersRouter);
 app.use('/api/volunteers', volunteersRouter);
 app.use('/api/skills', skillsRouter);

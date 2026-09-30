@@ -1,0 +1,210 @@
+[
+  {
+    "id": "table.firebase_identities",
+    "label": "Create table \"firebase_identities\"",
+    "summary": "Creates table \"firebase_identities\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "firebase_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"firebase_identities\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"firebase_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"firebase_identities\"",
+        "sql": "CREATE TABLE \"public\".\"firebase_identities\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"project_id\" text NOT NULL,\n  \"revoked_before\" timestamp(3),\n  \"uid\" text NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"firebase_identities\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"firebase_identities\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.dropNotNull.users.password_hash",
+    "label": "Drop NOT NULL on \"users\".\"password_hash\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "password_hash",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"password_hash\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "users",
+          "password_hash"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"password_hash\"",
+        "sql": "ALTER TABLE \"public\".\"users\" ALTER COLUMN \"password_hash\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"password_hash\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "users",
+          "password_hash",
+          "YES"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.firebase_identities.firebase_identities_user_id_key",
+    "label": "Add unique constraint on \"firebase_identities\" (user_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "firebase_identities_user_id_key",
+        "table": "firebase_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"firebase_identities_user_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "firebase_identities_user_id_key",
+          "public",
+          "\"public\".\"firebase_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"firebase_identities_user_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"firebase_identities\" ADD CONSTRAINT \"firebase_identities_user_id_key\" UNIQUE (\"user_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"firebase_identities_user_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "firebase_identities_user_id_key",
+          "public",
+          "\"public\".\"firebase_identities\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.firebase_identities.firebase_identities_project_id_uid_key",
+    "label": "Add unique constraint on \"firebase_identities\" (project_id, uid)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "firebase_identities_project_id_uid_key",
+        "table": "firebase_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"firebase_identities_project_id_uid_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "firebase_identities_project_id_uid_key",
+          "public",
+          "\"public\".\"firebase_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"firebase_identities_project_id_uid_key\"",
+        "sql": "ALTER TABLE \"public\".\"firebase_identities\" ADD CONSTRAINT \"firebase_identities_project_id_uid_key\" UNIQUE (\"project_id\", \"uid\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"firebase_identities_project_id_uid_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "firebase_identities_project_id_uid_key",
+          "public",
+          "\"public\".\"firebase_identities\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.firebase_identities.firebase_identities_user_id_fkey",
+    "label": "Add foreign key \"firebase_identities_user_id_fkey\" on \"firebase_identities\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "firebase_identities_user_id_fkey",
+        "table": "firebase_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"firebase_identities_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "firebase_identities_user_id_fkey",
+          "public",
+          "\"public\".\"firebase_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"firebase_identities_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"firebase_identities\"\nADD CONSTRAINT \"firebase_identities_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"firebase_identities_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "firebase_identities_user_id_fkey",
+          "public",
+          "\"public\".\"firebase_identities\""
+        ]
+      }
+    ]
+  }
+]

@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { config } from '../core/config.js';
+import { getFirebaseIdentityVerifier } from '../core/firebase.js';
+import { createFirebaseAuthenticator } from './firebase-auth.middleware.js';
 import { ApiError } from '../core/errors.js';
+import { prisma } from '../core/prisma.js';
 
 export interface AuthPayload {
   userId: number;
@@ -40,26 +42,61 @@ export function extractToken(req: Request): string | null {
   return null;
 }
 
-export function authenticate(req: Request, _res: Response, next: NextFunction) {
-  const token = extractToken(req);
-  if (!token) {
-    return next();
-  }
+interface CurrentAccount {
+  id: number;
+  email: string;
+  fullName: string;
+  role: 'SUPER_ADMIN' | 'COORDINATOR' | 'TEAM_LEAD' | 'VOLUNTEER';
+  isActive: boolean;
+}
 
-  try {
-    const payload = jwt.verify(token, config.JWT_SECRET) as AuthPayload;
-    if (payload.tokenType && payload.tokenType !== 'access') {
+export function createLegacyAuthenticator(
+  verify: (token: string) => unknown,
+  loadAccount: (id: number) => Promise<CurrentAccount | null>,
+) {
+  return async (req: Request, _res: Response, next: NextFunction) => {
+    req.user = undefined;
+    req.tokenExpired = false;
+    const token = extractToken(req);
+    if (!token) return next();
+
+    let userId: number;
+    try {
+      const payload = verify(token);
+      if (!payload || typeof payload !== 'object' || !('userId' in payload) ||
+          typeof payload.userId !== 'number' || !Number.isSafeInteger(payload.userId) || payload.userId < 1 ||
+          ('tokenType' in payload && payload.tokenType !== 'access')) return next();
+      userId = payload.userId;
+    } catch (err) {
+      if (err instanceof jwt.TokenExpiredError) req.tokenExpired = true;
       return next();
     }
-    req.user = payload;
-  } catch (err: any) {
-    if (err instanceof jwt.TokenExpiredError) {
-      req.tokenExpired = true;
+
+    try {
+      const account = await loadAccount(userId);
+      if (account?.isActive && account.id === userId &&
+          ['SUPER_ADMIN', 'COORDINATOR', 'TEAM_LEAD', 'VOLUNTEER'].includes(account.role)) {
+        req.user = {
+          userId: account.id, email: account.email, name: account.fullName, role: account.role, tokenType: 'access',
+        };
+      }
+    } catch {
+      return next(new ApiError(503, 'AUTHORIZATION_UNAVAILABLE', 'Current account authorization is unavailable'));
     }
-    // Token invalid or expired, continue unauthenticated
-  }
-  next();
+    next();
+  };
 }
+
+export const authenticate = createFirebaseAuthenticator(
+  getFirebaseIdentityVerifier,
+  async identity => {
+    const mapping = await prisma.firebaseIdentity.findUnique({
+      where: { projectId_uid: { projectId: identity.projectId, uid: identity.uid } },
+      include: { user: true },
+    });
+    return mapping ? { ...mapping.user, revokedBefore: mapping.revokedBefore } : null;
+  },
+);
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   if (req.tokenExpired) {
@@ -80,12 +117,7 @@ export function requireRole(...allowedRoles: string[]) {
     const normalizedRole = req.user.role.toUpperCase();
     const normalizedAllowed = allowedRoles.map((r) => r.toUpperCase());
 
-    // Map legacy 'admin' to COORDINATOR / SUPER_ADMIN
-    if (normalizedRole === 'ADMIN') {
-      return next();
-    }
-
-    if (!normalizedAllowed.includes(normalizedRole) && normalizedRole !== 'SUPER_ADMIN') {
+    if (normalizedRole === 'ADMIN' || !normalizedAllowed.includes(normalizedRole)) {
       throw ApiError.forbidden(`Access denied. Requires role: ${allowedRoles.join(', ')}`);
     }
 
@@ -93,5 +125,5 @@ export function requireRole(...allowedRoles: string[]) {
   };
 }
 
-export const requireAdmin = requireRole('SUPER_ADMIN', 'COORDINATOR', 'admin');
-export const requireCoordinator = requireRole('SUPER_ADMIN', 'COORDINATOR', 'TEAM_LEAD', 'admin');
+export const requireAdmin = requireRole('SUPER_ADMIN', 'COORDINATOR');
+export const requireCoordinator = requireRole('SUPER_ADMIN', 'COORDINATOR', 'TEAM_LEAD');
