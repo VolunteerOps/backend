@@ -17,3 +17,5 @@ src/generated/prisma8/
 .devin/
 
 .sentinel-deploy/
+
+GCP service account keys/

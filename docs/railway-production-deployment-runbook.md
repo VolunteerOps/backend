@@ -50,7 +50,8 @@ Use one measured region for API, database and workers initially; compare Kenya l
 | `resq-postgres` | Reviewed custom PostgreSQL 18 + PostGIS image | Private port 5432; volume `/var/lib/postgresql` for the proposed PG18 image | SQL/TLS/extension/role probes; backup restore |
 | `resq-migrate` | Proposed `deploy/railway/Dockerfile.migrate` | Private DB access; no public domain, no volume | Runs migration/verify once and exits; never runtime credentials |
 | `resq-api` | Existing backend `Dockerfile`; `node dist/index.js` | Public HTTPS, `PORT=3001`; no persistent volume | `/api/ready`, plus release acceptance |
-| `resq-identity` | Backend image; `node dist/workers/identity.worker.js` | Private; no public domain | Queue age, completion, revocation probe |
+| `resq-identity` | Backend image; `node scripts/start-with-google-credentials.mjs dist/workers/identity.worker.js` | Private; no public domain | Queue age, completion, revocation probe |
+| `resq-invitation-email` | Backend image; `node dist/workers/invitation-email.worker.js` | Private; no public domain | Queue age, provider acceptance, controlled-inbox delivery |
 | `resq-devices` | Backend image; `node dist/workers/device.worker.js` | Private; no public domain | Consent/revocation receipt tests |
 | `resq-sources` | Backend image; `node dist/workers/sources.worker.js` | Private; provider outbound access | Source freshness and successful revisions |
 | `resq-forecast` | Backend image; `node dist/workers/forecast.worker.js` | Private; approved Google identity | Start only after provider access and model/ingestion gates |

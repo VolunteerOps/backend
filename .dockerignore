@@ -17,3 +17,5 @@ coverage
 .codex
 
 .sentinel-deploy/
+
+GCP service account keys/

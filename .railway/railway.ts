@@ -60,6 +60,20 @@ export default defineRailway(() => {
     deploy: { drainingSeconds: 30, overlapSeconds: 0 },
     env: { DATABASE_POOL_MAX: preserve(), DATABASE_TLS_CA: preserve(), DATABASE_URL: preserve(), NODE_ENV: preserve(), WORKER_HEALTH_HOST: preserve() },
   });
+  const resqIdentity = service("resq-identity", {
+    build: { buildEnvironment: "V3", builder: "DOCKERFILE", dockerfilePath: "Dockerfile" },
+    start: "node scripts/start-with-google-credentials.mjs dist/workers/identity.worker.js",
+    replicas: { "europe-west4-drams3a": 1 },
+    deploy: { drainingSeconds: 30, overlapSeconds: 0, restartPolicyMaxRetries: 5, restartPolicyType: "ON_FAILURE" },
+    env: { DATABASE_POOL_MAX: preserve(), DATABASE_TLS_CA: preserve(), DATABASE_URL: preserve(), FIREBASE_PROJECT_ID: preserve(), GOOGLE_CREDENTIALS_REQUIRED: preserve(), GOOGLE_SERVICE_ACCOUNT_B64: preserve(), NODE_ENV: preserve(), WORKER_HEALTH_HOST: preserve() },
+  });
+  const resqInvitationEmail = service("resq-invitation-email", {
+    build: { buildEnvironment: "V3", builder: "DOCKERFILE", dockerfilePath: "Dockerfile" },
+    start: "node dist/workers/invitation-email.worker.js",
+    replicas: { "europe-west4-drams3a": 1 },
+    deploy: { drainingSeconds: 30, overlapSeconds: 0, restartPolicyMaxRetries: 5, restartPolicyType: "ON_FAILURE" },
+    env: { DATABASE_POOL_MAX: preserve(), DATABASE_TLS_CA: preserve(), DATABASE_URL: preserve(), INVITATION_EMAIL_FROM: preserve(), NODE_ENV: preserve(), RESEND_API_KEY: preserve(), VOLUNTEER_APP_ORIGIN: preserve(), WORKER_HEALTH_HOST: preserve() },
+  });
   const resqAdmin = service("resq-admin", {
     build: { buildEnvironment: "V3", builder: "DOCKERFILE", dockerfilePath: "Dockerfile" },
     healthcheck: "/",
@@ -92,6 +106,6 @@ export default defineRailway(() => {
   });
 
   return project("ResQ / Volunteer Ops", {
-    resources: [resqPostgres, resqMigrate, resqRetention, resqStorageScan, resqVolunteer, resqClamav, resqWeb, resqDevices, resqAdmin, resqBackup, resqMonitor, resqApi, resqPostgresVolume, resqRecovery, resqPrivateFiles],
+    resources: [resqPostgres, resqMigrate, resqRetention, resqStorageScan, resqVolunteer, resqClamav, resqWeb, resqDevices, resqIdentity, resqInvitationEmail, resqAdmin, resqBackup, resqMonitor, resqApi, resqPostgresVolume, resqRecovery, resqPrivateFiles],
   });
 });

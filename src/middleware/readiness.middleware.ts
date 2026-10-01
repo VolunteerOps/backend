@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { assessDatabaseReadiness, type DatabaseFacts } from '../core/database-readiness.js';
+import { logger } from '../core/logger.js';
 
 export function createDatabaseReadinessHandler(load: () => Promise<DatabaseFacts>, requireTls: boolean, schemaReady?: () => Promise<boolean>) {
   return async (_req: Request, res: Response) => {
@@ -7,12 +8,14 @@ export function createDatabaseReadinessHandler(load: () => Promise<DatabaseFacts
     try {
       const result = assessDatabaseReadiness(await load(), requireTls);
       if (result.ready && schemaReady && !await schemaReady()) { result.ready = false; result.blockers.push('SCHEMA_MIGRATION_REQUIRED'); }
+      if (!result.ready) logger.warn('READINESS_BLOCKED', { blockers: result.blockers });
       res.status(result.ready ? 200 : 503).json({
         ok: result.ready,
         scope: 'database_prerequisites',
         blockers: result.blockers,
       });
-    } catch {
+    } catch (error) {
+      logger.error('READINESS_CHECK_FAILED', { blockers: ['DATABASE_UNAVAILABLE'] }, error);
       res.status(503).json({ ok: false, scope: 'database_prerequisites', blockers: ['DATABASE_UNAVAILABLE'] });
     }
   };
