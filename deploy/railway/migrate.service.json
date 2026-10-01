@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "deploy/railway/Dockerfile.migrate"
+  },
+  "deploy": {
+    "restartPolicyType": "NEVER",
+    "startCommand": "node scripts/railway-migrate.mjs"
+  }
+}

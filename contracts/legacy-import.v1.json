@@ -1,0 +1,274 @@
+{
+  "version": 1,
+  "sourceMajor": 17,
+  "tables": [
+    {
+      "name": "contact_submissions",
+      "columns": [
+        "id",
+        "name",
+        "email",
+        "subject",
+        "message",
+        "organization",
+        "inquiry_type",
+        "status",
+        "response_notes",
+        "ip_address",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "dispatch_jobs",
+      "columns": [
+        "id",
+        "job_type",
+        "payload",
+        "priority",
+        "status",
+        "locked_at",
+        "locked_by",
+        "attempts",
+        "max_attempts",
+        "last_error",
+        "created_at",
+        "processed_at"
+      ]
+    },
+    {
+      "name": "locations",
+      "columns": [
+        "id",
+        "name",
+        "address",
+        "city",
+        "state",
+        "country",
+        "latitude",
+        "longitude",
+        "osm_id",
+        "hazard_level",
+        "radius_meters",
+        "created_at"
+      ]
+    },
+    {
+      "name": "skills",
+      "columns": [
+        "id",
+        "skill_name",
+        "category",
+        "demand_level",
+        "description",
+        "created_at"
+      ]
+    },
+    {
+      "name": "users",
+      "columns": [
+        "id",
+        "email",
+        "password_hash",
+        "full_name",
+        "role",
+        "phone_number",
+        "avatar_url",
+        "is_active",
+        "last_login_at",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "volunteers",
+      "columns": [
+        "id",
+        "user_id",
+        "full_name",
+        "phone_number",
+        "email",
+        "registration_channel",
+        "consent_given",
+        "registration_date",
+        "status",
+        "date_of_birth",
+        "emergency_contact",
+        "bio",
+        "availability_schedule",
+        "address",
+        "latitude",
+        "longitude",
+        "avatar_url",
+        "total_hours",
+        "badge_count",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "audit_logs",
+      "columns": [
+        "id",
+        "user_id",
+        "action",
+        "entity_type",
+        "entity_id",
+        "old_values",
+        "new_values",
+        "ip_address",
+        "user_agent",
+        "created_at"
+      ]
+    },
+    {
+      "name": "events",
+      "columns": [
+        "id",
+        "event_name",
+        "event_type",
+        "priority",
+        "description",
+        "start_date",
+        "end_date",
+        "location_id",
+        "status",
+        "required_volunteers",
+        "coordinator_name",
+        "coordinator_id",
+        "required_skills",
+        "tags",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "notifications",
+      "columns": [
+        "id",
+        "volunteer_id",
+        "event_id",
+        "notification_type",
+        "priority",
+        "title",
+        "message",
+        "sent_at",
+        "sent_by",
+        "status",
+        "read_at",
+        "created_at"
+      ]
+    },
+    {
+      "name": "refresh_tokens",
+      "columns": [
+        "id",
+        "token_hash",
+        "user_id",
+        "family",
+        "is_revoked",
+        "expires_at",
+        "user_agent",
+        "ip_address",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "telemetry_pings",
+      "columns": [
+        "id",
+        "volunteer_id",
+        "latitude",
+        "longitude",
+        "altitude",
+        "battery_level",
+        "speed",
+        "heading",
+        "is_distress",
+        "recorded_at"
+      ]
+    },
+    {
+      "name": "volunteer_skills",
+      "columns": [
+        "id",
+        "volunteer_id",
+        "skill_id",
+        "proficiency_level",
+        "is_certified",
+        "certification_date",
+        "certified_by",
+        "created_at"
+      ]
+    },
+    {
+      "name": "communications",
+      "columns": [
+        "id",
+        "event_id",
+        "channel_id",
+        "sender_id",
+        "sender_name",
+        "sender_role",
+        "message",
+        "priority",
+        "message_type",
+        "media_url",
+        "created_at"
+      ]
+    },
+    {
+      "name": "deployments",
+      "columns": [
+        "id",
+        "volunteer_id",
+        "event_id",
+        "assigned_by",
+        "assigned_at",
+        "check_in_time",
+        "check_in_latitude",
+        "check_in_longitude",
+        "check_in_method",
+        "completed_at",
+        "status",
+        "notes",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "feedback",
+      "columns": [
+        "id",
+        "volunteer_id",
+        "deployment_id",
+        "event_id",
+        "feedback_time",
+        "rating",
+        "comments",
+        "submitted_via",
+        "created_at"
+      ]
+    },
+    {
+      "name": "field_reports",
+      "columns": [
+        "id",
+        "deployment_id",
+        "report_time",
+        "report_type",
+        "priority",
+        "text_response",
+        "media_url",
+        "file_upload_url",
+        "latitude",
+        "longitude",
+        "submitted_via",
+        "status",
+        "verified_by",
+        "created_at"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 ﻿# ResQ documentation
 
+Stage 1 implementation: [evidence and status](stage-1-implementation.md) ? [manual setup and credential rotation](stage-1-manual-setup.md).
+
 Start with the [seven-stage production implementation roadmap](resq-production-implementation-roadmap.md). It is the controlling plan across backend, volunteer, admin and landing site, including Railway, standalone signup/recruitment, RevenueCat, full Sentinel and production acceptance. Specialist documents below preserve detailed requirements; dated evidence is not a claim of present deployment.
 
 ## Primary delivery documents

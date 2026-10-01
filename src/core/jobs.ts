@@ -1,4 +1,6 @@
-﻿import type { Pool } from 'pg';
+﻿import { traceContext } from './trace-context.js';
+import type { Pool } from 'pg';
+import { logger } from './logger.js';
 
 export interface ClaimedJob {
   id: string; kind: string; payload: unknown; attempts: number; fence: number;
@@ -73,6 +75,7 @@ export class PermanentJobError extends Error {}
 export type JobHandler = (payload: unknown, signal: AbortSignal, job: ClaimedJob) => Promise<void>;
 
 export async function executeJob(store: JobStore, job: ClaimedJob, handlers: ReadonlyMap<string, JobHandler>) {
+  const started = performance.now();
   const handler = handlers.get(job.kind);
   if (!handler) { await store.fail(job, 'UNSUPPORTED_JOB_KIND', true); return; }
   const controller = new AbortController();
@@ -83,14 +86,17 @@ export async function executeJob(store: JobStore, job: ClaimedJob, handlers: Rea
     }
     // Leave time for the fenced completion write before the 60-second lease expires.
     await Promise.race([
-      handler(job.payload, controller.signal, job),
+      traceContext.run({ job_id: job.id }, () => handler(job.payload, controller.signal, job)),
       new Promise<never>((_resolve, reject) => {
         timeout = setTimeout(() => { controller.abort(); reject(new Error('JOB_TIMEOUT')); }, 20_000);
       }),
     ]);
-    await store.complete(job);
+    const completed = await store.complete(job);
+    logger.info('JOB_RESULT', { job_id: job.id, kind: job.kind, fence: job.fence, attempt: job.attempts, outcome: completed ? 'completed' : 'lease_lost', duration_ms: Math.round(performance.now() - started) });
   } catch (error) {
-    await store.fail(job, error instanceof PermanentJobError ? 'INVALID_JOB_PAYLOAD' : 'JOB_FAILED', error instanceof PermanentJobError);
+    const code = error instanceof PermanentJobError ? 'INVALID_JOB_PAYLOAD' : 'JOB_FAILED';
+    await store.fail(job, code, error instanceof PermanentJobError);
+    logger.warn('JOB_RESULT', { job_id: job.id, kind: job.kind, fence: job.fence, attempt: job.attempts, outcome: code, duration_ms: Math.round(performance.now() - started) });
   } finally {
     if (timeout) clearTimeout(timeout);
     controller.abort();

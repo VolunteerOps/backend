@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { config } from '../../core/config.js';
 import { ApiError } from '../../core/errors.js';
@@ -67,6 +67,22 @@ export class S3PrivateObjectStore implements PrivateObjectStore {
       throw new ApiError(503, 'STORAGE_UNAVAILABLE', 'Object storage verification is temporarily unavailable');
     }
   }
+  async readForScan(object: ObjectUpload & ObjectDownload): Promise<Buffer> {
+    const result = await this.client.send(new GetObjectCommand({ Bucket: object.bucket, Key: object.objectKey,
+      IfMatch: object.etag, ...(object.versionId ? { VersionId: object.versionId } : {}) }), { abortSignal: AbortSignal.timeout(8000) });
+    if (!result.Body || !(Symbol.asyncIterator in result.Body)) throw new Error('SCAN_OBJECT_UNAVAILABLE');
+    const chunks: Buffer[] = []; let size = 0;
+    for await (const chunk of result.Body as AsyncIterable<Uint8Array>) {
+      size += chunk.byteLength;
+      if (size > object.byteSize || size > MAX_OBJECT_BYTES) throw new Error('SCAN_SIZE_EXCEEDED');
+      chunks.push(Buffer.from(chunk));
+    }
+    if (size !== object.byteSize) throw new Error('SCAN_OBJECT_INCOMPLETE');
+    return Buffer.concat(chunks);
+  }
+  async remove(object: ObjectAddress) {
+    await this.client.send(new DeleteObjectCommand({ Bucket: object.bucket, Key: object.objectKey }), { abortSignal: AbortSignal.timeout(8000) });
+  }
   async download(object: ObjectDownload) {
     const command = new GetObjectCommand({ Bucket: object.bucket, Key: object.objectKey,
       IfMatch: object.etag, ...(object.versionId ? { VersionId: object.versionId } : {}),
@@ -78,8 +94,8 @@ export class S3PrivateObjectStore implements PrivateObjectStore {
   }
 }
 
-let configuredStore: PrivateObjectStore | undefined;
-export function configuredObjectStore(): PrivateObjectStore {
+let configuredStore: S3PrivateObjectStore | undefined;
+export function configuredObjectStore(): S3PrivateObjectStore {
   if (configuredStore) return configuredStore;
   if (!config.S3_ENDPOINT || !config.S3_BUCKET || !config.S3_ACCESS_KEY_ID || !config.S3_SECRET_ACCESS_KEY) {
     throw new ApiError(503, 'STORAGE_NOT_CONFIGURED', 'Private object storage is not configured');

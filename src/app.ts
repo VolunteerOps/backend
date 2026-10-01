@@ -35,7 +35,13 @@ import adminRouter from './modules/admin/admin.controller.js';
 import storageRouter from './modules/storage/storage.controller.js';
 import scopedStorageRouter from './modules/scoped-storage/scoped-storage.controller.js';
 
+import { requestTelemetry } from './core/http-foundation.js';
+import contract from './generated/prisma8/contract.json' with { type: 'json' };
+
 export const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', config.TRUST_PROXY_CIDRS);
+app.use(requestTelemetry);
 
 // Security Headers & CORS
 app.use(
@@ -49,16 +55,17 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, Postman)
       if (!origin) return callback(null, true);
-      if (config.CORS_ORIGIN.includes('*') || config.CORS_ORIGIN.includes(origin)) {
+      if (config.CORS_ORIGIN.includes(origin)) {
         return callback(null, true);
       }
       // Keep local iteration convenient, but never reflect an unapproved origin
       // from a production deployment.
-      return callback(null, config.NODE_ENV !== 'production');
+      return callback(null, false);
     },
     credentials: true,
+    exposedHeaders: ['X-Request-ID', 'Retry-After', 'ETag'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-Refresh-Token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Idempotency-Key', 'If-Match', 'Last-Event-ID'],
   })
 );
 
@@ -76,8 +83,9 @@ const apiDiscoveryHandler = (_req: express.Request, res: express.Response) => {
     message: 'VolunteerOps Backend API',
     service: 'VolunteerOps-Enterprise-Backend',
     version: '2.0.0',
-    status: 'OPERATIONAL',
-    environment: config.NODE_ENV,
+    status: 'AVAILABLE',
+    readiness: '/api/ready',
+    operational_routes: 'TENANT_MIGRATION_REQUIRED',
     description: 'RESTful API for the VolunteerOps disaster response and operational field management platform',
     timestamp: new Date().toISOString(),
     endpoints: {
@@ -110,12 +118,11 @@ app.get('/api', apiDiscoveryHandler);
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    status: 'OPERATIONAL',
+    status: 'ALIVE',
+    scope: 'process',
     service: 'VolunteerOps-Enterprise-Backend',
     version: '2.0.0',
     timestamp: new Date().toISOString(),
-    uptime_seconds: process.uptime(),
-    memory_usage: process.memoryUsage(),
   });
 });
 
@@ -123,7 +130,19 @@ app.get('/api/ready', createDatabaseReadinessHandler(async () => {
   const rows = await prisma.$queryRawUnsafe<DatabaseFacts[]>(databaseReadinessQuery);
   if (rows.length !== 1) throw new Error('Database facts unavailable');
   return rows[0];
-}, config.NODE_ENV === 'production'));
+}, config.NODE_ENV === 'production', async () => {
+  const rows = await prisma.$queryRawUnsafe<Array<{ core_hash: string }>>('SELECT core_hash FROM public.resq_schema_readiness');
+  return rows.length === 1 && rows[0].core_hash === contract.storage.storageHash;
+}));
+
+app.get('/api/features', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ scope: 'configuration', operational_routes: 'TENANT_MIGRATION_REQUIRED',
+    identity: process.env.FIREBASE_PROJECT_ID && process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'CONFIGURED_UNVERIFIED' : 'NOT_CONFIGURED',
+    storage: config.S3_BUCKET ? 'CONFIGURED_UNVERIFIED' : 'NOT_CONFIGURED',
+    weather: process.env.WEATHERNEXT_ACCESS_ENABLED === 'true' ? 'CONFIGURED_UNVERIFIED' : 'DISABLED',
+    models: 'NOT_VALIDATED' });
+});
 
 // REST Domain Routes
 app.use('/api/auth', authRouter);

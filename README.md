@@ -1,5 +1,7 @@
 ﻿# ResQ backend
 
+Stage 1 implementation: [evidence and status](docs/stage-1-implementation.md) ? [manual setup and credential rotation](docs/stage-1-manual-setup.md).
+
 Modular Express/TypeScript backend for ResQ volunteer operations and the Sentinel disaster engine. Client repositories are `../volunteer` (Kotlin Multiplatform), `../admin` (Kotlin Multiplatform), and `../web` (Next.js).
 
 The production target is **Railway**. Implementation is incomplete: current core operational routes are deliberately gated until tenant-scoped replacements and client integration are complete. A successful build does not certify live disaster models, billing or deployment.

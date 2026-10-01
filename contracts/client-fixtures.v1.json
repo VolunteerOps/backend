@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "error": {
+    "error": "MEMBERSHIP_REQUIRED",
+    "message": "Active organization membership required"
+  },
+  "health": {
+    "ok": true,
+    "status": "ALIVE",
+    "scope": "process"
+  },
+  "uploadCompleted": {
+    "object_id": "00000000-0000-4000-8000-000000000001",
+    "state": "QUARANTINED"
+  },
+  "serialization": {
+    "timestamp": "2026-10-01T00:00:00.000Z",
+    "decimal": "1.2300",
+    "legacy_id": 123,
+    "uuid": "00000000-0000-4000-8000-000000000001"
+  },
+  "retry": {
+    "mutations": "Never automatically retry; preserve business key only for endpoints that implement it",
+    "rateLimit": "Honor Retry-After",
+    "replayCursors": "Not yet implemented; Stage 3"
+  }
+}

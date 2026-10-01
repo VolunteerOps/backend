@@ -9,7 +9,7 @@ export function workerHealth(port: number) {
     res.writeHead(req.url === '/health' && healthy ? 200 : 503, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: healthy ? 'ok' : 'unavailable' }));
   });
-  server.listen(port, '127.0.0.1');
+  server.listen(port, process.env.WORKER_HEALTH_HOST ?? '127.0.0.1');
   return {
     progress() { lastProgress = Date.now(); },
     close() { stopping = true; server.close(); },

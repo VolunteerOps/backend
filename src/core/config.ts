@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 import { z } from 'zod';
 import { databaseEnvSchema, databasePoolConfig } from './database-config.js';
 
+import { exactOrigins, trustedProxyAddresses } from './http-foundation.js';
+
 dotenv.config();
 
 const envSchema = z.object({
@@ -19,7 +21,8 @@ const envSchema = z.object({
   CORS_ORIGIN: z
     .string()
     .default('http://localhost:5173')
-    .transform((val) => val.split(',').map((s) => s.trim())),
+    .transform(exactOrigins),
+  TRUST_PROXY_CIDRS: z.string().default('').transform(trustedProxyAddresses),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   S3_ENDPOINT: z.string().url().optional(),

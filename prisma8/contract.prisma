@@ -20,17 +20,29 @@ model StoredObject {
   completedAt Timestamp(3)? @map("completed_at")
   etag String?
   versionId String? @map("version_id")
+  scannedAt Timestamp(3)? @map("scanned_at")
+  scanCode String? @map("scan_code")
   region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
   membership OrganizationMembership @relation(fields: [organizationId, uploaderUserId], references: [organizationId, userId], onDelete: Restrict, onUpdate: Cascade)
   @@index([organizationId, regionId, uploaderUserId, createdAt], map: "stored_object_owner_idx")
   @@index([state, expiresAt], map: "stored_object_expiry_idx")
-  @@check(expression: "state IN ('PENDING', 'READY')", name: "stored_object_state")
+  @@check(expression: "state IN ('PENDING', 'READY', 'QUARANTINED', 'CLEAN', 'REJECTED', 'DELETED')", name: "stored_object_state")
   @@check(expression: "byte_size > 0 AND byte_size <= 10485760", name: "stored_object_size")
-  @@check(expression: "(state = 'PENDING' AND completed_at IS NULL) OR (state = 'READY' AND completed_at IS NOT NULL AND etag IS NOT NULL)", name: "stored_object_completion")
+  @@check(expression: "(state IN ('PENDING', 'DELETED')) OR (state IN ('READY', 'QUARANTINED', 'CLEAN', 'REJECTED') AND completed_at IS NOT NULL AND etag IS NOT NULL)", name: "stored_object_completion")
+  @@check(expression: "state != 'CLEAN' OR (scanned_at IS NOT NULL AND scan_code = 'CLEAN')", name: "stored_object_scan")
   @@rls
   @@map("stored_objects")
 }
 
+policy_select stored_object_scan_read {
+ target = StoredObject
+ using = "current_user = 'sentinel_scanner' AND state IN ('QUARANTINED', 'READY', 'CLEAN', 'REJECTED', 'PENDING', 'DELETED')"
+}
+policy_update stored_object_scan_update {
+ target = StoredObject
+ using = "current_user = 'sentinel_scanner' AND state IN ('QUARANTINED', 'READY', 'PENDING', 'REJECTED')"
+ withCheck = "current_user = 'sentinel_scanner' AND state IN ('CLEAN', 'REJECTED', 'DELETED')"
+}
 policy_select stored_object_read {
  target = StoredObject
  using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer"
@@ -44,7 +56,7 @@ policy_insert stored_object_create {
 policy_update stored_object_complete {
  target = StoredObject
  using = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'PENDING'"
- withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'READY'"
+ withCheck = "organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'QUARANTINED'"
 }
 
 

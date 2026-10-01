@@ -734,6 +734,8 @@ model StoredObject {
   completedAt DateTime? @map("completed_at")
   etag String?
   versionId String? @map("version_id")
+  scannedAt DateTime? @map("scanned_at")
+  scanCode String? @map("scan_code")
   region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
   membership OrganizationMembership @relation(fields: [organizationId, uploaderUserId], references: [organizationId, userId], onDelete: Restrict, onUpdate: Cascade)
   @@index([organizationId, regionId, uploaderUserId, createdAt], map: "stored_object_owner_idx")

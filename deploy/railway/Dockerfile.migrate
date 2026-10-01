@@ -1,0 +1,12 @@
+FROM node:24.20-bookworm-slim
+WORKDIR /app
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci
+COPY prisma.config.ts prisma7.config.ts ./
+COPY prisma ./prisma
+COPY prisma8 ./prisma8
+COPY --chown=node:node migrations ./migrations
+COPY scripts/railway-migrate.mjs ./scripts/railway-migrate.mjs
+RUN npm run prisma8:emit
+USER node
+CMD ["node", "scripts/railway-migrate.mjs"]

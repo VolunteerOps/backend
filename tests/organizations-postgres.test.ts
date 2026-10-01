@@ -165,10 +165,14 @@ test('real PostgreSQL organization lifecycle, RLS, enrollment races and isolatio
     invalidStorageFacts = true;
     await assert.rejects(storage.complete(volunteer, a.id, regionA, upload.object_id), { code: 'OBJECT_MISMATCH' });
     invalidStorageFacts = false;
-    assert.equal((await storage.complete(volunteer, a.id, regionA, upload.object_id)).state, 'READY');
+    assert.equal((await storage.complete(volunteer, a.id, regionA, upload.object_id)).state, 'QUARANTINED');
     const inspectionCount = storageInspections;
-    assert.equal((await storage.complete(volunteer, a.id, regionA, upload.object_id)).state, 'READY');
+    assert.equal((await storage.complete(volunteer, a.id, regionA, upload.object_id)).state, 'QUARANTINED');
     assert.equal(storageInspections, inspectionCount, 'completion retry must be idempotent');
+    await assert.rejects(storage.download(volunteer, a.id, regionA, upload.object_id), { code: 'OBJECT_NOT_READY' });
+    await assert.rejects(withRegion(volunteer, a.id, regionA, false, tx => tx.storedObject.update({ where: { id: upload.object_id }, data: { state: 'CLEAN' } })));
+    assert.equal((await owner.query("SELECT count(*)::int AS n FROM durable_jobs WHERE business_key = $1", ['storage-scan:' + upload.object_id])).rows[0].n, 1);
+    await owner.query("UPDATE stored_objects SET state = 'CLEAN', scanned_at = now(), scan_code = 'CLEAN' WHERE id = $1", [upload.object_id]);
     assert.equal((await storage.download(volunteer, a.id, regionA, upload.object_id)).expires_in_seconds, 60);
     await assert.rejects(storage.download(adminA, a.id, regionA, upload.object_id), { statusCode: 404 });
     await assert.rejects(owner.query('UPDATE stored_objects SET region_id = $1 WHERE id = $2', [regionB, upload.object_id]), { code: '23503' });

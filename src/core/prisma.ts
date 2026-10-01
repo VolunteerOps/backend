@@ -6,22 +6,10 @@ import { databasePoolConfig } from './database-config.js';
 
 const basePrisma = new PrismaClient({
   adapter: new PrismaPg(databasePoolConfig(config)),
-  log:
-    process.env.NODE_ENV === 'development'
-      ? [
-          { emit: 'event', level: 'query' },
-          { emit: 'stdout', level: 'info' },
-          { emit: 'stdout', level: 'warn' },
-          { emit: 'stdout', level: 'error' },
-        ]
-      : [{ emit: 'stdout', level: 'error' }],
+  log: [{ emit: 'event', level: 'error' }],
 });
-
-if (process.env.NODE_ENV === 'development') {
-  (basePrisma as any).$on('query', (e: any) => {
-    logger.debug(`[SQL Query] ${e.query} - ${e.duration}ms`);
-  });
-}
+// Prisma error messages can include SQL values; log only a stable event, never raw parameters.
+(basePrisma as any).$on('error', () => logger.error('DATABASE_QUERY_FAILED'));
 
 // Operational decisions use fresh database reads, without an external cache.
 export const prisma = basePrisma

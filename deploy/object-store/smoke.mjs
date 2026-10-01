@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 export async function storageSmoke(env = process.env) {
   const endpoint = new URL(env.S3_ENDPOINT);
   assert.ok(endpoint.protocol === 'https:' || (endpoint.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(endpoint.hostname)), 'Probe endpoint must use HTTPS or loopback');
-  const client = new S3Client({ endpoint: endpoint.origin, region: env.S3_REGION || 'us-east-1', forcePathStyle: true, maxAttempts: 1,
+  const client = new S3Client({ endpoint: endpoint.origin, region: env.S3_REGION || 'us-east-1', forcePathStyle: env.S3_FORCE_PATH_STYLE !== 'false', maxAttempts: 1,
     credentials: { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY } });
   const Bucket = env.S3_BUCKET;
   const Key = '__resq_probe__/' + randomUUID() + '/upload with spaces.txt';
@@ -36,7 +36,7 @@ export async function storageSmoke(env = process.env) {
     const download = await getSignedUrl(client, new GetObjectCommand({ Bucket, Key, IfMatch: head.ETag, ResponseContentType:'application/octet-stream', ResponseContentDisposition:'attachment; filename="probe.txt"' }), { expiresIn:60, signableHeaders: new Set(['if-match']) });
     const response = await fetch(download,{ headers:{'if-match':head.ETag}, signal:AbortSignal.timeout(15000) });
     assert.equal(response.status,200); assert.equal(response.headers.get('content-type'),'application/octet-stream'); assert.match(response.headers.get('content-disposition'),/^attachment/); await response.arrayBuffer();
-    const anonymous = await fetch(endpoint.origin + '/' + Bucket + '/' + Key.split('/').map(encodeURIComponent).join('/'), { signal:AbortSignal.timeout(15000) });
+    const anonymous = await fetch(new URL(url).origin + new URL(url).pathname, { signal:AbortSignal.timeout(15000) });
     assert.ok([401,403].includes(anonymous.status),'Unsigned object access must be denied'); await anonymous.arrayBuffer();
     console.log(JSON.stringify({ upload:true, checksum_header_bound:true, corrupt_content_rejected:true, duplicate_put_rejected:true, head:true, sha256_download:true, conditional_download:true, attachment_headers:true, anonymous_denied:true, head_has_checksum:!!head.ChecksumSHA256 }));
   } finally {

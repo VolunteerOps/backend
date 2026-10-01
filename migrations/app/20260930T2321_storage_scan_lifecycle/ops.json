@@ -1,0 +1,468 @@
+[
+  {
+    "id": "dropCheckConstraint.stored_objects.stored_object_completion_a37fde25",
+    "label": "Drop check constraint \"stored_object_completion_a37fde25\" on \"stored_objects\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "stored_object_completion_a37fde25",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"stored_object_completion_a37fde25\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_completion_a37fde25",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop check constraint \"stored_object_completion_a37fde25\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\" DROP CONSTRAINT \"stored_object_completion_a37fde25\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"stored_object_completion_a37fde25\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_completion_a37fde25",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropCheckConstraint.stored_objects.stored_object_state_a37b3d27",
+    "label": "Drop check constraint \"stored_object_state_a37b3d27\" on \"stored_objects\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "stored_object_state_a37b3d27",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"stored_object_state_a37b3d27\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_state_a37b3d27",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop check constraint \"stored_object_state_a37b3d27\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\" DROP CONSTRAINT \"stored_object_state_a37b3d27\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"stored_object_state_a37b3d27\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_state_a37b3d27",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.stored_objects.scan_code",
+    "label": "Add column \"scan_code\" to \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "scan_code",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"scan_code\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "scan_code"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"scan_code\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\" ADD COLUMN \"scan_code\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"scan_code\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "scan_code"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.stored_objects.scanned_at",
+    "label": "Add column \"scanned_at\" to \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "scanned_at",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"scanned_at\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "scanned_at"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"scanned_at\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\" ADD COLUMN \"scanned_at\" timestamp(3)"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"scanned_at\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "scanned_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.stored_objects.stored_object_completion_f65889f3",
+    "label": "Add check constraint \"stored_object_completion_f65889f3\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "stored_object_completion_f65889f3",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"stored_object_completion_f65889f3\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_completion_f65889f3",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"stored_object_completion_f65889f3\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\" ADD CONSTRAINT \"stored_object_completion_f65889f3\" CHECK ((state IN ('PENDING', 'DELETED')) OR (state IN ('READY', 'QUARANTINED', 'CLEAN', 'REJECTED') AND completed_at IS NOT NULL AND etag IS NOT NULL))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"stored_object_completion_f65889f3\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_completion_f65889f3",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.stored_objects.stored_object_scan_c005fb48",
+    "label": "Add check constraint \"stored_object_scan_c005fb48\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "stored_object_scan_c005fb48",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"stored_object_scan_c005fb48\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_scan_c005fb48",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"stored_object_scan_c005fb48\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\" ADD CONSTRAINT \"stored_object_scan_c005fb48\" CHECK (state != 'CLEAN' OR (scanned_at IS NOT NULL AND scan_code = 'CLEAN'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"stored_object_scan_c005fb48\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_scan_c005fb48",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.stored_objects.stored_object_state_ace896ac",
+    "label": "Add check constraint \"stored_object_state_ace896ac\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "stored_object_state_ace896ac",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"stored_object_state_ace896ac\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_state_ace896ac",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"stored_object_state_ace896ac\"",
+        "sql": "ALTER TABLE \"public\".\"stored_objects\" ADD CONSTRAINT \"stored_object_state_ace896ac\" CHECK (state IN ('PENDING', 'READY', 'QUARANTINED', 'CLEAN', 'REJECTED', 'DELETED'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"stored_object_state_ace896ac\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "stored_object_state_ace896ac",
+          "public",
+          "\"public\".\"stored_objects\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.stored_objects.stored_object_complete_c00bfc04",
+    "label": "Create RLS policy \"stored_object_complete_c00bfc04\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "stored_object_complete_c00bfc04",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"stored_object_complete_c00bfc04\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_complete_c00bfc04"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"stored_object_complete_c00bfc04\"",
+        "sql": "CREATE POLICY \"stored_object_complete_c00bfc04\" ON \"public\".\"stored_objects\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'PENDING') WITH CHECK (organization_id = nullif(current_setting('vops.organization_id', true), '') AND region_id = nullif(current_setting('vops.region_id', true), '') AND uploader_user_id = nullif(current_setting('vops.user_id', true), '')::integer AND state = 'QUARANTINED')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"stored_object_complete_c00bfc04\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_complete_c00bfc04"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.stored_objects.stored_object_scan_read_6f4a3851",
+    "label": "Create RLS policy \"stored_object_scan_read_6f4a3851\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "stored_object_scan_read_6f4a3851",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"stored_object_scan_read_6f4a3851\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_scan_read_6f4a3851"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"stored_object_scan_read_6f4a3851\"",
+        "sql": "CREATE POLICY \"stored_object_scan_read_6f4a3851\" ON \"public\".\"stored_objects\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (current_user = 'sentinel_scanner' AND state IN ('QUARANTINED', 'READY', 'CLEAN', 'REJECTED', 'PENDING', 'DELETED'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"stored_object_scan_read_6f4a3851\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_scan_read_6f4a3851"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.stored_objects.stored_object_scan_update_cb1d5a00",
+    "label": "Create RLS policy \"stored_object_scan_update_cb1d5a00\" on \"stored_objects\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "stored_object_scan_update_cb1d5a00",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"stored_object_scan_update_cb1d5a00\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_scan_update_cb1d5a00"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"stored_object_scan_update_cb1d5a00\"",
+        "sql": "CREATE POLICY \"stored_object_scan_update_cb1d5a00\" ON \"public\".\"stored_objects\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (current_user = 'sentinel_scanner' AND state IN ('QUARANTINED', 'READY', 'PENDING', 'REJECTED')) WITH CHECK (current_user = 'sentinel_scanner' AND state IN ('CLEAN', 'REJECTED', 'DELETED'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"stored_object_scan_update_cb1d5a00\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_scan_update_cb1d5a00"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.stored_objects.stored_object_complete_a84ca85a.drop",
+    "label": "Drop RLS policy \"stored_object_complete_a84ca85a\" on \"stored_objects\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "stored_object_complete_a84ca85a",
+        "table": "stored_objects"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"stored_object_complete_a84ca85a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_complete_a84ca85a"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop RLS policy \"stored_object_complete_a84ca85a\"",
+        "sql": "DROP POLICY \"stored_object_complete_a84ca85a\" ON \"public\".\"stored_objects\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"stored_object_complete_a84ca85a\" is absent",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "stored_objects",
+          "stored_object_complete_a84ca85a"
+        ]
+      }
+    ]
+  }
+]

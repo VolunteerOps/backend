@@ -1,0 +1,12 @@
+{
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "node scripts/start-with-google-credentials.mjs dist/workers/monitor.worker.js",
+    "restartPolicyType": "NEVER",
+    "restartPolicyMaxRetries": 5,
+    "cronSchedule": "*/5 * * * *"
+  }
+}

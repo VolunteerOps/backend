@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "deploy/railway/Dockerfile.backup"
+  },
+  "deploy": {
+    "restartPolicyType": "NEVER",
+    "cronSchedule": "0 2 * * *"
+  }
+}

@@ -18,7 +18,7 @@ export class ScopedStorageService {
         uploaderUserId: actor.userId, createdAt: { gt: new Date(now.getTime() - 86400000) } } });
       // Expired intents still reserve quota until an operator reconciles their
       // possible bucket object. Expiry must not allow unlimited orphan uploads.
-      const aggregate = await tx.storedObject.aggregate({ where: { organizationId, regionId, uploaderUserId: actor.userId }, _sum: { byteSize: true } });
+      const aggregate = await tx.storedObject.aggregate({ where: { organizationId, regionId, uploaderUserId: actor.userId, state: { not: 'DELETED' } }, _sum: { byteSize: true } });
       if (pending >= 10 || daily >= 100 || (aggregate._sum.byteSize ?? 0) + data.byte_size > 250 * 1024 * 1024) {
         throw new ApiError(429, 'STORAGE_QUOTA_EXCEEDED', 'Your scoped upload quota is full');
       }
@@ -37,7 +37,7 @@ export class ScopedStorageService {
   }
   async complete(actor: Actor, organizationId: string, regionId: string, objectId: string) {
     const object = await this.owned(actor, organizationId, regionId, objectId);
-    if (object.state === 'READY') return { object_id: object.id, state: 'READY' as const };
+    if (object.state !== 'PENDING') return { object_id: object.id, state: object.state };
     if (object.expiresAt.getTime() <= Date.now()) throw ApiError.conflict('Upload completion deadline has expired', 'UPLOAD_EXPIRED');
     const facts = await this.resolveStore().inspect(object);
     if (facts.byteSize !== object.byteSize || facts.contentType !== object.contentType || facts.checksumSha256 !== object.checksumSha256 || !facts.etag) {
@@ -48,19 +48,22 @@ export class ScopedStorageService {
     return withRegion(actor, organizationId, regionId, false, async tx => {
       const current = await tx.storedObject.findFirst({ where: { id: objectId, organizationId, regionId, uploaderUserId: actor.userId } });
       if (!current) throw ApiError.notFound('Object');
-      if (current.state === 'READY') return { object_id: objectId, state: 'READY' as const };
+      if (current.state !== 'PENDING') return { object_id: objectId, state: current.state };
       if (current.expiresAt.getTime() <= Date.now()) throw ApiError.conflict('Upload completion deadline has expired', 'UPLOAD_EXPIRED');
-      await tx.storedObject.update({ where: { id: objectId }, data: { state: 'READY', completedAt: new Date(), etag: facts.etag, versionId: facts.versionId } });
+      await tx.storedObject.update({ where: { id: objectId }, data: { state: 'QUARANTINED', completedAt: new Date(), etag: facts.etag, versionId: facts.versionId } });
       await tx.organizationAudit.createMany({ data: { id: randomUUID(), organizationId, actorUserId: actor.userId,
         action: 'OBJECT_UPLOAD_VERIFIED', reason: 'Object size, type and SHA-256 verified', metadata: { region_id: regionId, object_id: objectId } } });
-      return { object_id: objectId, state: 'READY' as const };
+      await tx.durableJob.create({ data: { id: randomUUID(), organizationId, queue: 'storage', kind: 'STORAGE_SCAN_V1',
+        businessKey: 'storage-scan:' + objectId, payload: { version: 1, objectId }, maxAttempts: 8,
+        deadline: new Date(Date.now() + 86400000) } });
+      return { object_id: objectId, state: 'QUARANTINED' as const };
     });
   }
   async download(actor: Actor, organizationId: string, regionId: string, objectId: string) {
     return withRegion(actor, organizationId, regionId, false, async tx => {
       const object = await tx.storedObject.findFirst({ where: { id: objectId, organizationId, regionId, uploaderUserId: actor.userId } });
       if (!object) throw ApiError.notFound('Object');
-      if (object.state !== 'READY' || !object.etag) throw ApiError.conflict('Object verification has not completed', 'OBJECT_NOT_READY');
+      if (object.state !== 'CLEAN' || !object.etag || !object.scannedAt || object.scanCode !== 'CLEAN') throw ApiError.conflict('Object verification has not completed', 'OBJECT_NOT_READY');
       const signed = await this.resolveStore().download({ ...object, etag: object.etag });
       await tx.organizationAudit.createMany({ data: { id: randomUUID(), organizationId, actorUserId: actor.userId,
         action: 'OBJECT_DOWNLOAD_AUTHORIZED', reason: 'Uploader requested a private attachment', metadata: { region_id: regionId, object_id: objectId } } });

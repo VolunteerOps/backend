@@ -8,8 +8,11 @@ const server = app.listen(config.PORT, '0.0.0.0', () => {
   logger.info(`📡 Healthcheck endpoint available at http://localhost:${config.PORT}/api/health`);
 });
 
+let stopping = false;
 // Graceful Shutdown Handlers
 async function gracefulShutdown(signal: string) {
+  if (stopping) return;
+  stopping = true;
   logger.info(`Received ${signal}. Initiating graceful shutdown sequence...`);
   server.close(async () => {
     logger.info('HTTP server closed.');
@@ -18,10 +21,11 @@ async function gracefulShutdown(signal: string) {
     process.exit(0);
   });
 
+  server.closeIdleConnections();
   setTimeout(() => {
     logger.error('Forced shutdown due to timeout.');
     process.exit(1);
-  }, 10000);
+  }, 10000).unref();
 }
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

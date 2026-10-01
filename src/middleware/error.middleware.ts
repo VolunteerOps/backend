@@ -7,8 +7,8 @@ import { logger } from '../core/logger.js';
 export function notFoundHandler(req: Request, res: Response) {
   res.status(404).json({
     error: 'not_found',
-    message: `Cannot ${req.method} ${req.originalUrl}`,
-    path: req.originalUrl,
+    message: 'The requested route does not exist',
+    request_id: res.locals.requestId,
   });
 }
 
@@ -67,7 +67,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     }
   }
 
-  logger.error(`Unhandled Exception on ${req.method} ${req.originalUrl}`, {}, err);
+  logger.error('UNHANDLED_REQUEST_ERROR', { request_id: res.locals.requestId, method: req.method });
 
   res.status(500).json({
     error: 'internal_error',
