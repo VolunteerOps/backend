@@ -16,19 +16,97 @@ export async function appendAudit(tx: TenantTransaction, actor: Actor, organizat
 
 export async function issueInvitation(tx: TenantTransaction, actor: Actor, organizationId: string,
   input: z.infer<typeof invitationSchema>) {
+  await lockOrganization(tx, organizationId);
+  const issuerMember = await tx.organizationMembership.findUnique({where:{organizationId_userId:{organizationId,userId:actor.userId}}});
+  const recipient=await tx.user.findFirst({where:{email:{equals:input.recipient_email,mode:'insensitive'}},select:{id:true}});
+  if(recipient && await tx.recruitmentBlock.findFirst({where:{userId:recipient.id,organizationId}})) throw ApiError.forbidden('Recruitment is unavailable','RECRUITMENT_UNAVAILABLE');
+  const since=new Date(Date.now()-86400000);
+  if(await tx.organizationInvitation.count({where:{organizationId,recipientEmail:input.recipient_email,createdAt:{gt:since}}})>=3 ||
+     await tx.organizationInvitation.count({where:{organizationId,createdAt:{gt:since}}})>=100) throw new ApiError(429,'INVITATION_LIMIT','Invitation limit reached');
+  const regions=await tx.organizationUnit.count({where:{organizationId,id:{in:input.region_ids}}});
+  if(regions!==new Set(input.region_ids).size) throw ApiError.badRequest('Invitation scopes must belong to this organization');
   const token = randomBytes(32).toString('base64url');
   const invitation = await tx.organizationInvitation.create({ data: {
+    issuerMembershipId: issuerMember?.id ?? null, issuerMembershipVersion: issuerMember?.version ?? null,
+    recipientUserId: recipient?.id ?? null, deliveryStatus: process.env.INVITATION_EMAIL_ENABLED==='true'?'QUEUED':'NOT_CONFIGURED',
     id: randomUUID(), organizationId, recipientEmail: input.recipient_email, role: input.role,
     regionIds: [...new Set(input.region_ids)], tokenHash: invitationHash(token), issuerUserId: actor.userId,
     expiresAt: new Date(Date.now() + input.expires_in_hours * 3600_000),
   } });
   await appendAudit(tx, actor, organizationId, 'INVITATION_ISSUED', input.reason,
     { invitation_id: invitation.id, role: invitation.role });
-  // The secret is returned once for controlled manual delivery, never persisted or audited.
-  return { id: invitation.id, token, expires_at: invitation.expiresAt, delivery: 'MANUAL_DELIVERY_REQUIRED' };
+  if(process.env.INVITATION_EMAIL_ENABLED==='true') {
+    if(!process.env.RESEND_API_KEY || !process.env.INVITATION_EMAIL_FROM || !process.env.VOLUNTEER_APP_ORIGIN) throw new ApiError(503,'EMAIL_NOT_CONFIGURED','Invitation delivery configuration is incomplete');
+    await tx.durableJob.create({data:{id:randomUUID(),queue:'invitation-email',kind:'INVITATION_EMAIL_V1',organizationId,
+      businessKey:'invitation-email:'+invitation.id,payload:{version:1,invitationId:invitation.id},deadline:invitation.expiresAt}});
+  }
+  // Recipients can also use their authenticated inbox; the token is never stored in plaintext.
+  return { id: invitation.id, token, expires_at: invitation.expiresAt, delivery: invitation.deliveryStatus };
 }
 
 export class OrganizationsService {
+
+  static async importInvitations(actor:Actor,orgId:string,rows:unknown[],preview:boolean){
+    await withActor(actor,tx=>requireOrganization(tx,actor,orgId,'members.invite'));
+    const {invitationSchema}=await import('./organizations.schema.js');const results=[];
+    for(const [index,row] of rows.entries()){
+      const parsed=invitationSchema.safeParse(row);
+      if(!parsed.success){results.push({row:index+1,status:'INVALID'});continue;}
+      try{
+        const result=await withActor(actor,async tx=>{
+          const {role}=await requireOrganization(tx,actor,orgId,'members.invite');assertInvitableRole(role,parsed.data.role);
+          const existing=await tx.organizationInvitation.findFirst({where:{organizationId:orgId,recipientEmail:parsed.data.recipient_email,acceptedAt:null,revokedAt:null,declinedAt:null,expiresAt:{gt:new Date()}}});
+          if(existing)return {status:'EXISTING',id:existing.id};
+          if(preview)return {status:'READY'};
+          const issued=await issueInvitation(tx,actor,orgId,parsed.data);return {status:'CREATED',id:issued.id,delivery:issued.delivery};
+        });results.push({row:index+1,...result});
+      }catch(error){results.push({row:index+1,status:'REJECTED',code:error instanceof ApiError?error.code:'REQUEST_FAILED'});}
+    }
+    return {preview,results};
+  }
+  static async inbox(actor:Actor,after?:string) {
+    return withActor(actor,tx=>tx.organizationInvitation.findMany({where:{recipientEmail:actor.identity.email.toLowerCase(),...(after?{id:{gt:after}}:{})},
+      select:{id:true,organizationId:true,organization:{select:{displayName:true}},role:true,expiresAt:true,acceptedAt:true,revokedAt:true,declinedAt:true,deliveryStatus:true},orderBy:{id:'asc'},take:100}));
+  }
+  static async decline(actor:Actor,id:string) {
+    return withActor(actor,async tx=>{
+      const invite=await tx.organizationInvitation.findFirst({where:{id,recipientEmail:actor.identity.email.toLowerCase()}});
+      if(!invite) throw ApiError.notFound('Invitation');await lockOrganization(tx,invite.organizationId);
+      const result=await tx.organizationInvitation.updateMany({where:{id,acceptedAt:null},data:{declinedAt:new Date(),deliveryStatus:'CANCELLED'}});
+      if(result.count!==1) throw ApiError.conflict('Leave the membership separately','INVITATION_ALREADY_ACCEPTED');
+      return {id,status:'DECLINED'};
+    });
+  }
+  static async listInvitations(actor:Actor,organizationId:string,after?:string) {
+    return withActor(actor,async tx=>{await requireOrganization(tx,actor,organizationId,'members.invite');
+      return tx.organizationInvitation.findMany({where:{organizationId,...(after?{id:{gt:after}}:{})},
+       select:{id:true,recipientEmail:true,role:true,expiresAt:true,acceptedAt:true,revokedAt:true,declinedAt:true,deliveryStatus:true},orderBy:{id:'asc'},take:100});
+    });
+  }
+  static async resend(actor:Actor,organizationId:string,id:string,reason:string) {
+    return withActor(actor,async tx=>{
+      const {role}=await requireOrganization(tx,actor,organizationId,'members.invite');
+      const invite=await tx.organizationInvitation.findFirst({where:{id,organizationId}});
+      if(!invite || (role!=='ORG_ADMIN' && invite.issuerUserId!==actor.userId)) throw ApiError.notFound('Invitation');
+      if(invite.acceptedAt || invite.declinedAt || invite.revokedAt) throw ApiError.conflict('Invitation is closed','INVITATION_CLOSED');
+      assertInvitableRole(role,invite.role as OrganizationRole);
+      await tx.organizationInvitation.update({where:{id},data:{revokedAt:new Date(),deliveryStatus:'CANCELLED'}});
+      return issueInvitation(tx,actor,organizationId,{recipient_email:invite.recipientEmail,role:invite.role as OrganizationRole,region_ids:invite.regionIds,expires_in_hours:48,reason});
+    });
+  }
+  static async leave(actor:Actor,organizationId:string) {
+    return withActor(actor,async tx=>{
+      await requireOrganization(tx,actor,organizationId,'organization.read');
+      const member=await tx.organizationMembership.findUniqueOrThrow({where:{organizationId_userId:{organizationId,userId:actor.userId}}});
+      if(member.role==='ORG_ADMIN') throw ApiError.conflict('Complete administrator handover first','HANDOVER_REQUIRED');
+      await tx.$queryRaw`SELECT set_config('vops.membership_write','true',true)`;
+      await tx.organizationMembership.update({where:{id:member.id},data:{status:'REMOVED',version:{increment:1}}});
+      await tx.organizationInvitation.updateMany({where:{organizationId,issuerUserId:actor.userId,acceptedAt:null},data:{revokedAt:new Date(),deliveryStatus:'CANCELLED'}});
+      await appendAudit(tx,actor,organizationId,'MEMBERSHIP_LEFT','Member voluntarily left the workspace',{membership_id:member.id});
+      return {status:'REMOVED',personal_account:'RETAINED'};
+    });
+  }
+
   static async memberships(actor: Actor) {
     return withActor(actor, async tx => {
       const memberships = await tx.organizationMembership.findMany({
@@ -89,11 +167,11 @@ export class OrganizationsService {
     });
   }
 
-  static async accept(actor: Actor, token: string) {
+  static async accept(actor: Actor, token: string, invitationId?: string) {
     return withActor(actor, async tx => {
       const hash = invitationHash(token);
       await tx.$queryRaw`SELECT set_config('vops.invitation_hash', ${hash}, true)`;
-      const invite = await tx.organizationInvitation.findUnique({ where: { tokenHash: hash } });
+      const invite = invitationId ? await tx.organizationInvitation.findFirst({where:{id:invitationId,recipientEmail:actor.identity.email.toLowerCase()}}) : await tx.organizationInvitation.findUnique({ where: { tokenHash: hash } });
       if (!invite) throw ApiError.notFound('Invitation', 'INVITATION_UNAVAILABLE');
       // The bound invitation allows access only to its workspace, never arbitrary caller scope.
       await tx.$queryRaw`SELECT set_config('vops.organization_id', ${invite.organizationId}, true)`;
@@ -105,10 +183,24 @@ export class OrganizationsService {
       if (organization.status !== 'ACTIVE') throw ApiError.forbidden('Organization is not active', 'ORG_NOT_ACTIVE');
       if (!organization.enrollmentReady) throw ApiError.forbidden('Organization verification is pending', 'ENROLLMENT_PENDING');
       checkAssurance(organization, actor.identity, current.role !== 'VOLUNTEER');
-      if (current.revokedAt || current.recipientEmail !== actor.identity.email.toLowerCase() ||
+      if (current.revokedAt || current.declinedAt || (current.recipientUserId !== null && current.recipientUserId !== actor.userId) || current.recipientEmail !== actor.identity.email.toLowerCase() ||
           (current.acceptedByUserId !== null && current.acceptedByUserId !== actor.userId)) {
         throw ApiError.notFound('Invitation', 'INVITATION_UNAVAILABLE');
       }
+      await tx.$queryRaw`SELECT set_config('vops.roster','true',true),set_config('vops.invitation_issuer',${String(current.issuerUserId)},true)`;
+      if(current.issuerMembershipId){
+        const issuingMember=await tx.organizationMembership.findUnique({where:{id:current.issuerMembershipId}});
+        if(!issuingMember || issuingMember.organizationId!==invite.organizationId || issuingMember.userId!==current.issuerUserId ||
+           issuingMember.status!=='ACTIVE' || issuingMember.version!==current.issuerMembershipVersion || issuingMember.regionIds.length) throw ApiError.notFound('Invitation','INVITATION_UNAVAILABLE');
+        assertInvitableRole(issuingMember.role as OrganizationRole,current.role as OrganizationRole);
+      } else {
+        const grant=await tx.platformGrant.findUnique({where:{userId:current.issuerUserId}});
+        if(!grant?.active) throw ApiError.notFound('Invitation','INVITATION_UNAVAILABLE');
+      }
+      if(await tx.recruitmentBlock.findFirst({where:{userId:actor.userId,organizationId:invite.organizationId}})) throw ApiError.notFound('Invitation','INVITATION_UNAVAILABLE');
+      const regionCount=await tx.organizationUnit.count({where:{organizationId:invite.organizationId,id:{in:current.regionIds}}});
+      if(regionCount!==current.regionIds.length) throw ApiError.notFound('Invitation','INVITATION_UNAVAILABLE');
+      await tx.$queryRaw`SELECT set_config('vops.roster','',true)`;
       const existing = await tx.organizationMembership.findUnique({
         where: { organizationId_userId: { organizationId: invite.organizationId, userId: actor.userId } },
       });
@@ -149,7 +241,7 @@ export class OrganizationsService {
       } });
       await tx.organizationInvitation.updateMany({ where: {
         organizationId, issuerUserId: member.userId, acceptedByUserId: null, revokedAt: null,
-      }, data: { revokedAt: new Date() } });
+      }, data: { revokedAt: new Date(), deliveryStatus: 'CANCELLED' } });
       await appendAudit(tx, actor, organizationId, 'MEMBERSHIP_STATUS_CHANGED', input.reason,
         { membership_id: member.id, from: member.status, to: updated.status });
       return { id: updated.id, status: updated.status, version: updated.version };
@@ -172,7 +264,7 @@ export class OrganizationsService {
       if (!invitation) throw ApiError.notFound('Invitation');
       if (invitation.acceptedAt) throw ApiError.conflict('Accepted membership requires a separate access review', 'INVITATION_ALREADY_ACCEPTED');
       if (!invitation.revokedAt) {
-        await tx.organizationInvitation.update({ where: { id: invitation.id }, data: { revokedAt: new Date() } });
+        await tx.organizationInvitation.update({ where: { id: invitation.id }, data: { revokedAt: new Date(), deliveryStatus: 'CANCELLED' } });
         await appendAudit(tx, actor, organizationId, 'INVITATION_REVOKED', reason, { invitation_id: invitation.id });
       }
       return { id: invitation.id, status: 'REVOKED' };

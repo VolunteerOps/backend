@@ -51,4 +51,12 @@ router.delete('/organizations/:orgId/me/devices/:deviceId', ah(async (req, res) 
 router.post('/organizations/:orgId/me/devices/:deviceId/heartbeats', validateBody(heartbeatSchema), ah(async (req, res) => {
   res.status(202).json(serialize(await DevicesService.heartbeat(requestActor(req), idSchema.parse(req.params.orgId), idSchema.parse(req.params.deviceId), req.body)));
 }));
+
+router.get('/me/invitations',ah(async(req,res)=>res.json(serialize(await OrganizationsService.inbox(requestActor(req),req.query.after===undefined?undefined:idSchema.parse(req.query.after))))));
+router.post('/me/invitations/:invitationId/accept',authRateLimiter,validateBody(z.object({}).strict()),ah(async(req,res)=>res.json(await OrganizationsService.accept(requestActor(req),'',idSchema.parse(req.params.invitationId)))));
+router.post('/me/invitations/:invitationId/decline',validateBody(z.object({}).strict()),ah(async(req,res)=>res.json(await OrganizationsService.decline(requestActor(req),idSchema.parse(req.params.invitationId)))));
+router.get('/organizations/:orgId/invitations',ah(async(req,res)=>res.json(serialize(await OrganizationsService.listInvitations(requestActor(req),idSchema.parse(req.params.orgId),req.query.after===undefined?undefined:idSchema.parse(req.query.after))))));
+router.post('/organizations/:orgId/invitations/:invitationId/resend',authRateLimiter,validateBody(z.object({reason:reasonSchema}).strict()),ah(async(req,res)=>res.status(201).json(await OrganizationsService.resend(requestActor(req),idSchema.parse(req.params.orgId),idSchema.parse(req.params.invitationId),req.body.reason))));
+router.post('/organizations/:orgId/leave',validateBody(z.object({}).strict()),ah(async(req,res)=>res.json(await OrganizationsService.leave(requestActor(req),idSchema.parse(req.params.orgId)))));
+router.post('/organizations/:orgId/invitation-imports',authRateLimiter,validateBody(z.object({preview:z.boolean(),rows:z.array(z.unknown()).min(1).max(50)}).strict()),ah(async(req,res)=>res.json(await OrganizationsService.importInvitations(requestActor(req),idSchema.parse(req.params.orgId),req.body.rows,req.body.preview))));
 export default router;

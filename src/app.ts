@@ -13,6 +13,8 @@ import { databaseReadinessQuery, type DatabaseFacts } from './core/database-read
 import { createDatabaseReadinessHandler } from './middleware/readiness.middleware.js';
 
 // Domain Module Routers
+import enterpriseRouter from './modules/enterprise/enterprise.controller.js';
+import personalRouter from './modules/personal/personal.controller.js';
 import authRouter from './modules/auth/auth.controller.js';
 import organizationsRouter from './modules/organizations/organizations.controller.js';
 import sentinelRouter from './modules/sentinel/sentinel.controller.js';
@@ -171,6 +173,9 @@ app.use('/api/feedback', feedbackRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/storage', storageRouter);
+
+app.use('/api', personalRouter);
+app.use('/api', enterpriseRouter);
 
 // Centralized Error Handlers
 app.use(notFoundHandler);

@@ -51,6 +51,13 @@ export class AuthService {
         if (!existing.user.isActive || (existing.revokedBefore && identity.authTime * 1000 <= existing.revokedBefore.getTime())) {
           throw ApiError.unauthorized('Account or session is no longer active', 'SESSION_REVOKED');
         }
+        if(existing.user.email.toLowerCase()!==identity.email.toLowerCase()){
+          if(Date.now()/1000-identity.authTime>300)throw ApiError.unauthorized('Recent sign-in required for verified email change','RECENT_AUTH_REQUIRED');
+          const collision=await tx.user.findFirst({where:{email:{equals:identity.email,mode:'insensitive'},id:{not:existing.userId}},select:{id:true}});
+          if(collision)throw ApiError.conflict('Verified address belongs to another account; use reviewed recovery','IDENTITY_CONFLICT');
+          await tx.user.update({where:{id:existing.userId},data:{email:identity.email.toLowerCase()}});
+          await tx.auditLog.create({data:{userId:existing.userId,action:'VERIFIED_EMAIL_CHANGED',entityType:'User',entityId:existing.userId}});
+        }
         return tx.user.findUniqueOrThrow({ where: { id: existing.userId }, select: publicProfile });
       }
       const addressOwner = await tx.user.findFirst({

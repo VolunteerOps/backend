@@ -36,3 +36,5 @@ Start with the [seven-stage production implementation roadmap](resq-production-i
 Latest user decisions and this roadmap govern delivery, hosting and product policy. The detailed Sentinel specification governs scientific/behavioral requirements except the explicitly superseded signup/directory/commercial/hosting decisions. Code inspection governs what exists; dated test records govern only the environment/commit tested. Provider configuration, paid entitlement, scientific validity and a successful deployment are separate facts.
 
 The old Render/Prisma Console hosting guides and outdated database-hosting rewrite documents have been removed; useful data-preservation/build facts were migrated. Existing provider-specific scripts/configuration and live services were not deleted. Stage 1 replaces their runtime deployment wiring and Stage 7 performs the reviewed cutover. Prisma ORM documentation remains relevant.
+
+Stage 2: [implementation ledger](stage-2-implementation.md) and [manual setup](stage-2-manual-setup.md).

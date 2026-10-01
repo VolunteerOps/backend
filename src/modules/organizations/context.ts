@@ -25,7 +25,10 @@ export async function withActor<T>(actor: Actor, action: (tx: TenantTransaction)
         WHERE n.nspname = 'public' AND c.relname IN ('organizations', 'organization_memberships',
           'organization_invitations', 'organization_audit', 'platform_grants', 'member_devices', 'ingress_receipts',
           'stored_objects', 'organization_units', 'forecast_runs', 'volunteers', 'skills', 'volunteer_skills', 'locations',
-          'events', 'deployments', 'field_reports', 'communications', 'notifications', 'telemetry_pings', 'feedback')
+          'events', 'deployments', 'field_reports', 'communications', 'notifications', 'telemetry_pings', 'feedback',
+          'volunteer_profiles', 'directory_preferences', 'profile_shares', 'recruitment_blocks', 'consent_records',
+          'account_deletion_requests', 'recruitment_reports', 'personal_audit', 'join_requests', 'domain_claims',
+          'support_access_grants', 'coordination_grants', 'partner_applications', 'responder_reservations')
           AND pg_has_role(current_user, c.relowner, 'MEMBER')) AS unsafe`;
     if (role.length !== 1 || role[0].unsafe) {
       throw new ApiError(503, 'UNSAFE_RUNTIME_ROLE', 'Tenant operations require a non-owner runtime database role');
@@ -44,7 +47,7 @@ export async function withActor<T>(actor: Actor, action: (tx: TenantTransaction)
       set_config('vops.email', ${actor.identity.email.toLowerCase()}, true),
       set_config('vops.retention', '', true), set_config('vops.operations', '', true), set_config('vops.all_regions', '', true),
       set_config('vops.region_id', '', true), set_config('vops.organization_id', '', true), set_config('vops.platform', '', true),
-      set_config('vops.roster', '', true), set_config('vops.admission', '', true),
+      set_config('vops.public_workspaces', '', true), set_config('vops.organization_settings', '', true), set_config('vops.directory', '', true), set_config('vops.share_hash', '', true), set_config('vops.invitation_issuer', '', true), set_config('vops.roster', '', true), set_config('vops.admission', '', true),
       set_config('vops.membership_write', '', true), set_config('vops.invitation_hash', '', true)`;
     return action(tx);
   }, { maxWait: 5000, timeout: 10_000 });

@@ -26,4 +26,5 @@ router.post('/organizations/:orgId/verification', validateBody(verificationSchem
 router.post('/organizations/:orgId/invitations', validateBody(invitationSchema), ah(async (req, res) => {
   res.status(201).json(await PlatformService.nominate(requestActor(req), idSchema.parse(req.params.orgId), req.body));
 }));
+router.post('/organizations/:orgId/complete-offboarding',validateBody(verificationSchema),ah(async(req,res)=>res.json(serialize(await PlatformService.completeOffboarding(requestActor(req),idSchema.parse(req.params.orgId),req.body)))));
 export default router;

@@ -29,6 +29,12 @@ function clearCookies(res: Response) {
   }
 }
 
+router.get('/config',(_req,res)=>{
+ res.setHeader('Cache-Control','no-store');
+ const key=process.env.FIREBASE_WEB_API_KEY;
+ const configured=Boolean(process.env.FIREBASE_PROJECT_ID && key && /^[A-Za-z0-9_-]{20,200}$/.test(key));
+ res.json({status:configured?'CONFIGURED_UNVERIFIED':'NOT_CONFIGURED',api_key:configured?key:null,project_id:configured?process.env.FIREBASE_PROJECT_ID:null});
+});
 router.post('/firebase/bootstrap', authRateLimiter,
   validateBody(z.object({ full_name: z.string().trim().min(2).max(120) }).strict()),
   ah(async (req, res) => {

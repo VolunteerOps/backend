@@ -55,6 +55,19 @@ enum ContactStatus {
 }
 
 model User {
+ responderReservation ResponderReservation?
+ stage2PartnerApplication PartnerApplication[]
+ stage2SupportAccessGrant SupportAccessGrant[]
+  stage2VolunteerProfile VolunteerProfile?
+  stage2DirectoryPreferences DirectoryPreferences?
+  stage2ProfileShare ProfileShare[]
+  stage2RecruitmentBlock RecruitmentBlock[]
+  stage2ConsentRecord ConsentRecord[]
+  stage2AccountDeletionRequest AccountDeletionRequest?
+  stage2RecruitmentReport RecruitmentReport[]
+  stage2PersonalAudit PersonalAudit[]
+  stage2JoinRequest JoinRequest[]
+
   id           Int        @id @default(autoincrement())
   email        String     @unique
   passwordHash String?    @map("password_hash")
@@ -81,6 +94,15 @@ model User {
 
 
 model Organization {
+ responderReservations ResponderReservation[]
+ stage2PartnerApplication PartnerApplication[]
+ stage2CoordinationGrant CoordinationGrant[]
+ stage2SupportAccessGrant SupportAccessGrant[]
+ stage2DomainClaim DomainClaim[]
+ recruitmentOpen Boolean @default(false) @map("recruitment_open")
+ stage2JoinRequest JoinRequest[]
+ stage2RecruitmentReport RecruitmentReport[]
+ stage2RecruitmentBlock RecruitmentBlock[]
   units OrganizationUnit[]
   ownedVolunteer Volunteer[]
   ownedSkill Skill[]
@@ -141,6 +163,11 @@ model PlatformGrant {
 }
 
 model OrganizationInvitation {
+ declinedAt DateTime? @map("declined_at")
+ deliveryStatus String @default("NOT_CONFIGURED") @map("delivery_status")
+ issuerMembershipId String? @map("issuer_membership_id")
+ issuerMembershipVersion Int? @map("issuer_membership_version")
+ recipientUserId Int? @map("recipient_user_id")
   id String @id
   organizationId String @map("organization_id")
   recipientEmail String @map("recipient_email")
@@ -741,4 +768,188 @@ model StoredObject {
   @@index([organizationId, regionId, uploaderUserId, createdAt], map: "stored_object_owner_idx")
   @@index([state, expiresAt], map: "stored_object_expiry_idx")
   @@map("stored_objects")
+}
+
+model VolunteerProfile {
+userId Int @id @map("user_id")
+publicId String @unique @map("public_id")
+displayName String @map("display_name")
+biography String @default("")
+region String @default("")
+skills String[] @default([])
+availability String @default("UNSPECIFIED")
+privateDetails Json @map("private_details")
+version Int @default(1)
+updatedAt DateTime @default(now()) @map("updated_at")
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@map("volunteer_profiles")
+}
+
+model DirectoryPreferences {
+userId Int @id @map("user_id")
+publicId String @unique @map("public_id")
+displayName String @map("display_name")
+biography String @default("")
+region String @default("")
+skills String[] @default([])
+availability String @default("UNSPECIFIED")
+discoverable Boolean @default(false)
+publicPreview Boolean @default(false) @map("public_preview")
+showAvailability Boolean @default(false) @map("show_availability")
+version Int @default(1)
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@index([discoverable, region, publicId], map: "directory_region_cursor_idx")
+@@map("directory_preferences")
+}
+
+model ProfileShare {
+id String @id
+userId Int @map("user_id")
+tokenHash String @unique @map("token_hash")
+expiresAt DateTime @map("expires_at")
+revokedAt DateTime? @map("revoked_at")
+createdAt DateTime @default(now()) @map("created_at")
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@index([userId])
+@@map("profile_shares")
+}
+
+model RecruitmentBlock {
+id String @id
+userId Int @map("user_id")
+organizationId String @map("organization_id")
+createdAt DateTime @default(now()) @map("created_at")
+@@unique([userId, organizationId])
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@index([userId])
+@@map("recruitment_blocks")
+}
+
+model ConsentRecord {
+id String @id
+userId Int @map("user_id")
+purpose String
+policyVersion String @map("policy_version")
+granted Boolean
+createdAt DateTime @default(now()) @map("created_at")
+@@index([userId, createdAt])
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@index([userId])
+@@map("consent_records")
+}
+
+model AccountDeletionRequest {
+userId Int @id @map("user_id")
+id String @unique
+status String @default("REQUESTED")
+requestedAt DateTime @default(now()) @map("requested_at")
+cancelledAt DateTime? @map("cancelled_at")
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@map("account_deletion_requests")
+}
+
+model RecruitmentReport {
+id String @id
+userId Int @map("user_id")
+organizationId String @map("organization_id")
+reason String
+status String @default("PENDING")
+createdAt DateTime @default(now()) @map("created_at")
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@index([userId])
+@@map("recruitment_reports")
+}
+
+model PersonalAudit {
+id String @id
+userId Int @map("user_id")
+action String
+actorUserId Int @map("actor_user_id")
+createdAt DateTime @default(now()) @map("created_at")
+@@index([userId, createdAt])
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@index([userId])
+@@map("personal_audit")
+}
+
+model JoinRequest {
+id String @id
+userId Int @map("user_id")
+organizationId String @map("organization_id")
+message String
+status String @default("PENDING")
+version Int @default(1)
+createdAt DateTime @default(now()) @map("created_at")
+@@unique([userId, organizationId])
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@index([userId])
+@@map("join_requests")
+}
+
+model DomainClaim {
+id String @id
+organizationId String @map("organization_id")
+domain String @unique
+tokenHash String @map("token_hash")
+expiresAt DateTime @map("expires_at")
+verifiedUntil DateTime? @map("verified_until")
+disputed Boolean @default(false)
+createdAt DateTime @default(now()) @map("created_at")
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@map("domain_claims")
+}
+
+model SupportAccessGrant {
+id String @id
+organizationId String @map("organization_id")
+userId Int @map("user_id")
+reason String
+expiresAt DateTime @map("expires_at")
+revokedAt DateTime? @map("revoked_at")
+createdAt DateTime @default(now()) @map("created_at")
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@map("support_access_grants")
+}
+
+model CoordinationGrant {
+id String @id
+organizationId String @map("organization_id")
+partnerOrganizationId String @map("partner_organization_id")
+leadOrganizationId String @map("lead_organization_id")
+resourceReference String @map("resource_reference")
+expiresAt DateTime @map("expires_at")
+acceptedAt DateTime? @map("accepted_at")
+revokedAt DateTime? @map("revoked_at")
+createdAt DateTime @default(now()) @map("created_at")
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@map("coordination_grants")
+}
+
+model PartnerApplication {
+id String @id
+userId Int @map("user_id")
+name String
+domain String
+message String
+status String @default("PENDING")
+reviewReason String? @map("review_reason")
+organizationId String? @map("organization_id")
+createdAt DateTime @default(now()) @map("created_at")
+organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+@@map("partner_applications")
+}
+
+model ResponderReservation {
+ userId Int @id @map("user_id")
+ organizationId String @map("organization_id")
+ resourceReference String @map("resource_reference")
+ expiresAt DateTime @map("expires_at")
+ user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+ @@map("responder_reservations")
 }

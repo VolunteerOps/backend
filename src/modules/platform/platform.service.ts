@@ -7,6 +7,23 @@ import { appendAudit, issueInvitation } from '../organizations/organizations.ser
 import type { provisionSchema, lifecycleSchema, verificationSchema, invitationSchema } from '../organizations/organizations.schema.js';
 
 export class PlatformService {
+  static async completeOffboarding(actor:Actor,organizationId:string,input:z.infer<typeof verificationSchema>){
+    return withActor(actor,async tx=>{
+      await requirePlatform(tx,actor);await lockOrganization(tx,organizationId);
+      const current=await tx.organization.findUnique({where:{id:organizationId}});
+      if(!current || current.status!=='OFFBOARDING')throw ApiError.conflict('Workspace must be offboarding','INVALID_TRANSITION');
+      if(current.version!==input.expected_version)throw ApiError.conflict('Workspace changed','STALE_VERSION');
+      await tx.$queryRaw`SELECT set_config('vops.organization_id',${organizationId},true),set_config('vops.roster','true',true),set_config('vops.membership_write','true',true)`;
+      await tx.organizationMembership.updateMany({where:{organizationId,status:{not:'REMOVED'}},data:{status:'REMOVED',version:{increment:1}}});
+      await tx.organizationInvitation.updateMany({where:{organizationId,acceptedAt:null},data:{revokedAt:new Date(),deliveryStatus:'CANCELLED'}});
+      await tx.supportAccessGrant.updateMany({where:{organizationId,revokedAt:null},data:{revokedAt:new Date()}});
+      await tx.coordinationGrant.updateMany({where:{OR:[{organizationId},{partnerOrganizationId:organizationId}],revokedAt:null},data:{revokedAt:new Date()}});
+      const result=await tx.organization.update({where:{id:organizationId},data:{status:'ARCHIVED',version:{increment:1},recruitmentOpen:false,updatedAt:new Date()}});
+      await appendAudit(tx,actor,organizationId,'OFFBOARDING_COMPLETED',input.reason,{handover_evidence:input.evidence_reference,version:result.version});
+      return result;
+    });
+  }
+
   static async list(actor: Actor, after?: string) {
     return withActor(actor, async tx => {
       await requirePlatform(tx, actor);
@@ -43,7 +60,9 @@ export class PlatformService {
         // Suspended/offboarding admission cannot resume with an old invitation.
         await tx.organizationInvitation.updateMany({ where: {
           organizationId, acceptedByUserId: null, revokedAt: null,
-        }, data: { revokedAt: new Date() } });
+        }, data: { revokedAt: new Date(),deliveryStatus:'CANCELLED' } });
+        await tx.supportAccessGrant.updateMany({where:{organizationId,revokedAt:null},data:{revokedAt:new Date()}});
+        await tx.coordinationGrant.updateMany({where:{OR:[{organizationId},{partnerOrganizationId:organizationId}],revokedAt:null},data:{revokedAt:new Date()}});
       }
       await appendAudit(tx, actor, organizationId, 'ORGANIZATION_STATUS_CHANGED', input.reason,
         { from: current.status, to: target, version: organization.version });

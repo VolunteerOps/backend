@@ -1,0 +1,3393 @@
+[
+  {
+    "id": "table.account_deletion_requests",
+    "label": "Create table \"account_deletion_requests\"",
+    "summary": "Creates table \"account_deletion_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "account_deletion_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"account_deletion_requests\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"account_deletion_requests\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"account_deletion_requests\"",
+        "sql": "CREATE TABLE \"public\".\"account_deletion_requests\" (\n  \"cancelled_at\" timestamp(3),\n  \"id\" text NOT NULL,\n  \"requested_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"status\" text DEFAULT 'REQUESTED' NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"user_id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"account_deletion_requests\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"account_deletion_requests\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.consent_records",
+    "label": "Create table \"consent_records\"",
+    "summary": "Creates table \"consent_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "consent_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"consent_records\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consent_records\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"consent_records\"",
+        "sql": "CREATE TABLE \"public\".\"consent_records\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"granted\" bool NOT NULL,\n  \"id\" text NOT NULL,\n  \"policy_version\" text NOT NULL,\n  \"purpose\" text NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"consent_records\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consent_records\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.directory_preferences",
+    "label": "Create table \"directory_preferences\"",
+    "summary": "Creates table \"directory_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "directory_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"directory_preferences\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"directory_preferences\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"directory_preferences\"",
+        "sql": "CREATE TABLE \"public\".\"directory_preferences\" (\n  \"availability\" text DEFAULT 'UNSPECIFIED' NOT NULL,\n  \"biography\" text DEFAULT '' NOT NULL,\n  \"discoverable\" bool DEFAULT false NOT NULL,\n  \"display_name\" text NOT NULL,\n  \"public_id\" text NOT NULL,\n  \"public_preview\" bool DEFAULT false NOT NULL,\n  \"region\" text DEFAULT '' NOT NULL,\n  \"show_availability\" bool DEFAULT false NOT NULL,\n  \"skills\" text[] DEFAULT '{}' NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  \"version\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"user_id\"),\n  CONSTRAINT \"directory_preferences_skills_elem_not_null_79c19a4f\" CHECK (array_position(\"skills\", NULL) IS NULL)\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"directory_preferences\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"directory_preferences\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.join_requests",
+    "label": "Create table \"join_requests\"",
+    "summary": "Creates table \"join_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "join_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"join_requests\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"join_requests\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"join_requests\"",
+        "sql": "CREATE TABLE \"public\".\"join_requests\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"message\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  \"version\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"join_requests\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"join_requests\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.personal_audit",
+    "label": "Create table \"personal_audit\"",
+    "summary": "Creates table \"personal_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "personal_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"personal_audit\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_audit\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"personal_audit\"",
+        "sql": "CREATE TABLE \"public\".\"personal_audit\" (\n  \"action\" text NOT NULL,\n  \"actor_user_id\" int4 NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"personal_audit\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_audit\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.profile_shares",
+    "label": "Create table \"profile_shares\"",
+    "summary": "Creates table \"profile_shares\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "profile_shares"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"profile_shares\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"profile_shares\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"profile_shares\"",
+        "sql": "CREATE TABLE \"public\".\"profile_shares\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"expires_at\" timestamp(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"revoked_at\" timestamp(3),\n  \"token_hash\" text NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"profile_shares\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"profile_shares\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.recruitment_blocks",
+    "label": "Create table \"recruitment_blocks\"",
+    "summary": "Creates table \"recruitment_blocks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "recruitment_blocks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"recruitment_blocks\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"recruitment_blocks\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"recruitment_blocks\"",
+        "sql": "CREATE TABLE \"public\".\"recruitment_blocks\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"recruitment_blocks\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"recruitment_blocks\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.recruitment_reports",
+    "label": "Create table \"recruitment_reports\"",
+    "summary": "Creates table \"recruitment_reports\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "recruitment_reports"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"recruitment_reports\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"recruitment_reports\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"recruitment_reports\"",
+        "sql": "CREATE TABLE \"public\".\"recruitment_reports\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"reason\" text NOT NULL,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"recruitment_reports\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"recruitment_reports\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.volunteer_profiles",
+    "label": "Create table \"volunteer_profiles\"",
+    "summary": "Creates table \"volunteer_profiles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "volunteer_profiles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"volunteer_profiles\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"volunteer_profiles\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"volunteer_profiles\"",
+        "sql": "CREATE TABLE \"public\".\"volunteer_profiles\" (\n  \"availability\" text DEFAULT 'UNSPECIFIED' NOT NULL,\n  \"biography\" text DEFAULT '' NOT NULL,\n  \"display_name\" text NOT NULL,\n  \"private_details\" jsonb NOT NULL,\n  \"public_id\" text NOT NULL,\n  \"region\" text DEFAULT '' NOT NULL,\n  \"skills\" text[] DEFAULT '{}' NOT NULL,\n  \"updated_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  \"version\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"user_id\"),\n  CONSTRAINT \"volunteer_profiles_skills_elem_not_null_79c19a4f\" CHECK (array_position(\"skills\", NULL) IS NULL)\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"volunteer_profiles\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"volunteer_profiles\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.organization_invitations.declined_at",
+    "label": "Add column \"declined_at\" to \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "declined_at",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"declined_at\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "declined_at"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"declined_at\"",
+        "sql": "ALTER TABLE \"public\".\"organization_invitations\" ADD COLUMN \"declined_at\" timestamp(3)"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"declined_at\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "declined_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.organization_invitations.delivery_status",
+    "label": "Add column \"delivery_status\" to \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "delivery_status",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"delivery_status\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "delivery_status"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"delivery_status\"",
+        "sql": "ALTER TABLE \"public\".\"organization_invitations\" ADD COLUMN \"delivery_status\" text DEFAULT 'NOT_CONFIGURED' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"delivery_status\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "delivery_status"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.organization_invitations.issuer_membership_id",
+    "label": "Add column \"issuer_membership_id\" to \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "issuer_membership_id",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"issuer_membership_id\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "issuer_membership_id"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"issuer_membership_id\"",
+        "sql": "ALTER TABLE \"public\".\"organization_invitations\" ADD COLUMN \"issuer_membership_id\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"issuer_membership_id\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "issuer_membership_id"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.organization_invitations.issuer_membership_version",
+    "label": "Add column \"issuer_membership_version\" to \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "issuer_membership_version",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"issuer_membership_version\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "issuer_membership_version"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"issuer_membership_version\"",
+        "sql": "ALTER TABLE \"public\".\"organization_invitations\" ADD COLUMN \"issuer_membership_version\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"issuer_membership_version\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "issuer_membership_version"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.organization_invitations.recipient_user_id",
+    "label": "Add column \"recipient_user_id\" to \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "recipient_user_id",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"recipient_user_id\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "recipient_user_id"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"recipient_user_id\"",
+        "sql": "ALTER TABLE \"public\".\"organization_invitations\" ADD COLUMN \"recipient_user_id\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"recipient_user_id\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "recipient_user_id"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.account_deletion_requests.account_deletion_requests_id_key",
+    "label": "Add unique constraint on \"account_deletion_requests\" (id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "account_deletion_requests_id_key",
+        "table": "account_deletion_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"account_deletion_requests_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "account_deletion_requests_id_key",
+          "public",
+          "\"public\".\"account_deletion_requests\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"account_deletion_requests_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"account_deletion_requests\" ADD CONSTRAINT \"account_deletion_requests_id_key\" UNIQUE (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"account_deletion_requests_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "account_deletion_requests_id_key",
+          "public",
+          "\"public\".\"account_deletion_requests\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.directory_preferences.directory_preferences_public_id_key",
+    "label": "Add unique constraint on \"directory_preferences\" (public_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "directory_preferences_public_id_key",
+        "table": "directory_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"directory_preferences_public_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "directory_preferences_public_id_key",
+          "public",
+          "\"public\".\"directory_preferences\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"directory_preferences_public_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"directory_preferences\" ADD CONSTRAINT \"directory_preferences_public_id_key\" UNIQUE (\"public_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"directory_preferences_public_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "directory_preferences_public_id_key",
+          "public",
+          "\"public\".\"directory_preferences\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.join_requests.join_requests_user_id_organization_id_key",
+    "label": "Add unique constraint on \"join_requests\" (user_id, organization_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "join_requests_user_id_organization_id_key",
+        "table": "join_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"join_requests_user_id_organization_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "join_requests_user_id_organization_id_key",
+          "public",
+          "\"public\".\"join_requests\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"join_requests_user_id_organization_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"join_requests\" ADD CONSTRAINT \"join_requests_user_id_organization_id_key\" UNIQUE (\"user_id\", \"organization_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"join_requests_user_id_organization_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "join_requests_user_id_organization_id_key",
+          "public",
+          "\"public\".\"join_requests\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.profile_shares.profile_shares_token_hash_key",
+    "label": "Add unique constraint on \"profile_shares\" (token_hash)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "profile_shares_token_hash_key",
+        "table": "profile_shares"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"profile_shares_token_hash_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "profile_shares_token_hash_key",
+          "public",
+          "\"public\".\"profile_shares\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"profile_shares_token_hash_key\"",
+        "sql": "ALTER TABLE \"public\".\"profile_shares\" ADD CONSTRAINT \"profile_shares_token_hash_key\" UNIQUE (\"token_hash\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"profile_shares_token_hash_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "profile_shares_token_hash_key",
+          "public",
+          "\"public\".\"profile_shares\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.recruitment_blocks.recruitment_blocks_user_id_organization_id_key",
+    "label": "Add unique constraint on \"recruitment_blocks\" (user_id, organization_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "recruitment_blocks_user_id_organization_id_key",
+        "table": "recruitment_blocks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"recruitment_blocks_user_id_organization_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_blocks_user_id_organization_id_key",
+          "public",
+          "\"public\".\"recruitment_blocks\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"recruitment_blocks_user_id_organization_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"recruitment_blocks\" ADD CONSTRAINT \"recruitment_blocks_user_id_organization_id_key\" UNIQUE (\"user_id\", \"organization_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"recruitment_blocks_user_id_organization_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_blocks_user_id_organization_id_key",
+          "public",
+          "\"public\".\"recruitment_blocks\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.volunteer_profiles.volunteer_profiles_public_id_key",
+    "label": "Add unique constraint on \"volunteer_profiles\" (public_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "volunteer_profiles_public_id_key",
+        "table": "volunteer_profiles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"volunteer_profiles_public_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "volunteer_profiles_public_id_key",
+          "public",
+          "\"public\".\"volunteer_profiles\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"volunteer_profiles_public_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"volunteer_profiles\" ADD CONSTRAINT \"volunteer_profiles_public_id_key\" UNIQUE (\"public_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"volunteer_profiles_public_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "volunteer_profiles_public_id_key",
+          "public",
+          "\"public\".\"volunteer_profiles\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.consent_records.consent_records_user_id_created_at_idx_b562028f",
+    "label": "Create index \"consent_records_user_id_created_at_idx_b562028f\" on \"consent_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "consent_records_user_id_created_at_idx_b562028f",
+        "table": "consent_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"consent_records_user_id_created_at_idx_b562028f\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consent_records_user_id_created_at_idx_b562028f\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"consent_records_user_id_created_at_idx_b562028f\"",
+        "sql": "CREATE INDEX \"consent_records_user_id_created_at_idx_b562028f\" ON \"public\".\"consent_records\" (\"user_id\", \"created_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"consent_records_user_id_created_at_idx_b562028f\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consent_records_user_id_created_at_idx_b562028f\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.consent_records.consent_records_user_id_idx_6c952402",
+    "label": "Create index \"consent_records_user_id_idx_6c952402\" on \"consent_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "consent_records_user_id_idx_6c952402",
+        "table": "consent_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"consent_records_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consent_records_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"consent_records_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"consent_records_user_id_idx_6c952402\" ON \"public\".\"consent_records\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"consent_records_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consent_records_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.directory_preferences.directory_region_cursor_idx",
+    "label": "Create index \"directory_region_cursor_idx\" on \"directory_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "directory_region_cursor_idx",
+        "table": "directory_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"directory_region_cursor_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"directory_region_cursor_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"directory_region_cursor_idx\"",
+        "sql": "CREATE INDEX \"directory_region_cursor_idx\" ON \"public\".\"directory_preferences\" (\"discoverable\", \"region\", \"public_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"directory_region_cursor_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"directory_region_cursor_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.join_requests.join_requests_user_id_idx_6c952402",
+    "label": "Create index \"join_requests_user_id_idx_6c952402\" on \"join_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "join_requests_user_id_idx_6c952402",
+        "table": "join_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"join_requests_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"join_requests_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"join_requests_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"join_requests_user_id_idx_6c952402\" ON \"public\".\"join_requests\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"join_requests_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"join_requests_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.organization_invitations.invitation_recipient_date_idx",
+    "label": "Create index \"invitation_recipient_date_idx\" on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "invitation_recipient_date_idx",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"invitation_recipient_date_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"invitation_recipient_date_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"invitation_recipient_date_idx\"",
+        "sql": "CREATE INDEX \"invitation_recipient_date_idx\" ON \"public\".\"organization_invitations\" (\"recipient_email\", \"created_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"invitation_recipient_date_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"invitation_recipient_date_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.personal_audit.personal_audit_user_id_created_at_idx_b562028f",
+    "label": "Create index \"personal_audit_user_id_created_at_idx_b562028f\" on \"personal_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "personal_audit_user_id_created_at_idx_b562028f",
+        "table": "personal_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"personal_audit_user_id_created_at_idx_b562028f\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_audit_user_id_created_at_idx_b562028f\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"personal_audit_user_id_created_at_idx_b562028f\"",
+        "sql": "CREATE INDEX \"personal_audit_user_id_created_at_idx_b562028f\" ON \"public\".\"personal_audit\" (\"user_id\", \"created_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"personal_audit_user_id_created_at_idx_b562028f\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_audit_user_id_created_at_idx_b562028f\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.personal_audit.personal_audit_user_id_idx_6c952402",
+    "label": "Create index \"personal_audit_user_id_idx_6c952402\" on \"personal_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "personal_audit_user_id_idx_6c952402",
+        "table": "personal_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"personal_audit_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_audit_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"personal_audit_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"personal_audit_user_id_idx_6c952402\" ON \"public\".\"personal_audit\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"personal_audit_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_audit_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.profile_shares.profile_shares_user_id_idx_6c952402",
+    "label": "Create index \"profile_shares_user_id_idx_6c952402\" on \"profile_shares\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "profile_shares_user_id_idx_6c952402",
+        "table": "profile_shares"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"profile_shares_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"profile_shares_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"profile_shares_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"profile_shares_user_id_idx_6c952402\" ON \"public\".\"profile_shares\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"profile_shares_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"profile_shares_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.recruitment_blocks.recruitment_blocks_user_id_idx_6c952402",
+    "label": "Create index \"recruitment_blocks_user_id_idx_6c952402\" on \"recruitment_blocks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "recruitment_blocks_user_id_idx_6c952402",
+        "table": "recruitment_blocks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"recruitment_blocks_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"recruitment_blocks_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"recruitment_blocks_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"recruitment_blocks_user_id_idx_6c952402\" ON \"public\".\"recruitment_blocks\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"recruitment_blocks_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"recruitment_blocks_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.recruitment_reports.recruitment_reports_user_id_idx_6c952402",
+    "label": "Create index \"recruitment_reports_user_id_idx_6c952402\" on \"recruitment_reports\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "recruitment_reports_user_id_idx_6c952402",
+        "table": "recruitment_reports"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"recruitment_reports_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"recruitment_reports_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"recruitment_reports_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"recruitment_reports_user_id_idx_6c952402\" ON \"public\".\"recruitment_reports\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"recruitment_reports_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"recruitment_reports_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.account_deletion_requests.account_deletion_requests_user_id_fkey",
+    "label": "Add foreign key \"account_deletion_requests_user_id_fkey\" on \"account_deletion_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "account_deletion_requests_user_id_fkey",
+        "table": "account_deletion_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"account_deletion_requests_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "account_deletion_requests_user_id_fkey",
+          "public",
+          "\"public\".\"account_deletion_requests\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"account_deletion_requests_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"account_deletion_requests\"\nADD CONSTRAINT \"account_deletion_requests_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"account_deletion_requests_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "account_deletion_requests_user_id_fkey",
+          "public",
+          "\"public\".\"account_deletion_requests\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.consent_records.consent_records_user_id_fkey",
+    "label": "Add foreign key \"consent_records_user_id_fkey\" on \"consent_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "consent_records_user_id_fkey",
+        "table": "consent_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"consent_records_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "consent_records_user_id_fkey",
+          "public",
+          "\"public\".\"consent_records\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"consent_records_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"consent_records\"\nADD CONSTRAINT \"consent_records_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"consent_records_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "consent_records_user_id_fkey",
+          "public",
+          "\"public\".\"consent_records\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.directory_preferences.directory_preferences_user_id_fkey",
+    "label": "Add foreign key \"directory_preferences_user_id_fkey\" on \"directory_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "directory_preferences_user_id_fkey",
+        "table": "directory_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"directory_preferences_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "directory_preferences_user_id_fkey",
+          "public",
+          "\"public\".\"directory_preferences\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"directory_preferences_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"directory_preferences\"\nADD CONSTRAINT \"directory_preferences_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"directory_preferences_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "directory_preferences_user_id_fkey",
+          "public",
+          "\"public\".\"directory_preferences\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.join_requests.join_requests_user_id_fkey",
+    "label": "Add foreign key \"join_requests_user_id_fkey\" on \"join_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "join_requests_user_id_fkey",
+        "table": "join_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"join_requests_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "join_requests_user_id_fkey",
+          "public",
+          "\"public\".\"join_requests\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"join_requests_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"join_requests\"\nADD CONSTRAINT \"join_requests_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"join_requests_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "join_requests_user_id_fkey",
+          "public",
+          "\"public\".\"join_requests\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.join_requests.join_requests_organization_id_fkey",
+    "label": "Add foreign key \"join_requests_organization_id_fkey\" on \"join_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "join_requests_organization_id_fkey",
+        "table": "join_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"join_requests_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "join_requests_organization_id_fkey",
+          "public",
+          "\"public\".\"join_requests\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"join_requests_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"join_requests\"\nADD CONSTRAINT \"join_requests_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"join_requests_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "join_requests_organization_id_fkey",
+          "public",
+          "\"public\".\"join_requests\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.personal_audit.personal_audit_user_id_fkey",
+    "label": "Add foreign key \"personal_audit_user_id_fkey\" on \"personal_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "personal_audit_user_id_fkey",
+        "table": "personal_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"personal_audit_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "personal_audit_user_id_fkey",
+          "public",
+          "\"public\".\"personal_audit\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"personal_audit_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"personal_audit\"\nADD CONSTRAINT \"personal_audit_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"personal_audit_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "personal_audit_user_id_fkey",
+          "public",
+          "\"public\".\"personal_audit\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.profile_shares.profile_shares_user_id_fkey",
+    "label": "Add foreign key \"profile_shares_user_id_fkey\" on \"profile_shares\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "profile_shares_user_id_fkey",
+        "table": "profile_shares"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"profile_shares_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "profile_shares_user_id_fkey",
+          "public",
+          "\"public\".\"profile_shares\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"profile_shares_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"profile_shares\"\nADD CONSTRAINT \"profile_shares_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"profile_shares_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "profile_shares_user_id_fkey",
+          "public",
+          "\"public\".\"profile_shares\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.recruitment_blocks.recruitment_blocks_user_id_fkey",
+    "label": "Add foreign key \"recruitment_blocks_user_id_fkey\" on \"recruitment_blocks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "recruitment_blocks_user_id_fkey",
+        "table": "recruitment_blocks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"recruitment_blocks_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_blocks_user_id_fkey",
+          "public",
+          "\"public\".\"recruitment_blocks\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"recruitment_blocks_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"recruitment_blocks\"\nADD CONSTRAINT \"recruitment_blocks_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"recruitment_blocks_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_blocks_user_id_fkey",
+          "public",
+          "\"public\".\"recruitment_blocks\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.recruitment_blocks.recruitment_blocks_organization_id_fkey",
+    "label": "Add foreign key \"recruitment_blocks_organization_id_fkey\" on \"recruitment_blocks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "recruitment_blocks_organization_id_fkey",
+        "table": "recruitment_blocks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"recruitment_blocks_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_blocks_organization_id_fkey",
+          "public",
+          "\"public\".\"recruitment_blocks\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"recruitment_blocks_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"recruitment_blocks\"\nADD CONSTRAINT \"recruitment_blocks_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"recruitment_blocks_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_blocks_organization_id_fkey",
+          "public",
+          "\"public\".\"recruitment_blocks\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.recruitment_reports.recruitment_reports_user_id_fkey",
+    "label": "Add foreign key \"recruitment_reports_user_id_fkey\" on \"recruitment_reports\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "recruitment_reports_user_id_fkey",
+        "table": "recruitment_reports"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"recruitment_reports_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_reports_user_id_fkey",
+          "public",
+          "\"public\".\"recruitment_reports\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"recruitment_reports_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"recruitment_reports\"\nADD CONSTRAINT \"recruitment_reports_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"recruitment_reports_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_reports_user_id_fkey",
+          "public",
+          "\"public\".\"recruitment_reports\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.recruitment_reports.recruitment_reports_organization_id_fkey",
+    "label": "Add foreign key \"recruitment_reports_organization_id_fkey\" on \"recruitment_reports\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "recruitment_reports_organization_id_fkey",
+        "table": "recruitment_reports"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"recruitment_reports_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_reports_organization_id_fkey",
+          "public",
+          "\"public\".\"recruitment_reports\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"recruitment_reports_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"recruitment_reports\"\nADD CONSTRAINT \"recruitment_reports_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"recruitment_reports_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "recruitment_reports_organization_id_fkey",
+          "public",
+          "\"public\".\"recruitment_reports\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.volunteer_profiles.volunteer_profiles_user_id_fkey",
+    "label": "Add foreign key \"volunteer_profiles_user_id_fkey\" on \"volunteer_profiles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "volunteer_profiles_user_id_fkey",
+        "table": "volunteer_profiles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"volunteer_profiles_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "volunteer_profiles_user_id_fkey",
+          "public",
+          "\"public\".\"volunteer_profiles\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"volunteer_profiles_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"volunteer_profiles\"\nADD CONSTRAINT \"volunteer_profiles_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"volunteer_profiles_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "volunteer_profiles_user_id_fkey",
+          "public",
+          "\"public\".\"volunteer_profiles\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.account_deletion_requests",
+    "label": "Enable row-level security on \"account_deletion_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "account_deletion_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"account_deletion_requests\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "account_deletion_requests"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"account_deletion_requests\"",
+        "sql": "ALTER TABLE \"public\".\"account_deletion_requests\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"account_deletion_requests\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "account_deletion_requests"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.consent_records",
+    "label": "Enable row-level security on \"consent_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "consent_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"consent_records\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "consent_records"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"consent_records\"",
+        "sql": "ALTER TABLE \"public\".\"consent_records\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"consent_records\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "consent_records"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.directory_preferences",
+    "label": "Enable row-level security on \"directory_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "directory_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"directory_preferences\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "directory_preferences"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"directory_preferences\"",
+        "sql": "ALTER TABLE \"public\".\"directory_preferences\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"directory_preferences\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "directory_preferences"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.join_requests",
+    "label": "Enable row-level security on \"join_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "join_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"join_requests\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "join_requests"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"join_requests\"",
+        "sql": "ALTER TABLE \"public\".\"join_requests\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"join_requests\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "join_requests"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.personal_audit",
+    "label": "Enable row-level security on \"personal_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "personal_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"personal_audit\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "personal_audit"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"personal_audit\"",
+        "sql": "ALTER TABLE \"public\".\"personal_audit\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"personal_audit\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "personal_audit"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.profile_shares",
+    "label": "Enable row-level security on \"profile_shares\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "profile_shares"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"profile_shares\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "profile_shares"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"profile_shares\"",
+        "sql": "ALTER TABLE \"public\".\"profile_shares\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"profile_shares\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "profile_shares"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.recruitment_blocks",
+    "label": "Enable row-level security on \"recruitment_blocks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "recruitment_blocks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"recruitment_blocks\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_blocks"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"recruitment_blocks\"",
+        "sql": "ALTER TABLE \"public\".\"recruitment_blocks\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"recruitment_blocks\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_blocks"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.recruitment_reports",
+    "label": "Enable row-level security on \"recruitment_reports\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "recruitment_reports"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"recruitment_reports\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_reports"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"recruitment_reports\"",
+        "sql": "ALTER TABLE \"public\".\"recruitment_reports\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"recruitment_reports\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_reports"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.volunteer_profiles",
+    "label": "Enable row-level security on \"volunteer_profiles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "volunteer_profiles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"volunteer_profiles\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "volunteer_profiles"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"volunteer_profiles\"",
+        "sql": "ALTER TABLE \"public\".\"volunteer_profiles\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"volunteer_profiles\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "volunteer_profiles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.account_deletion_requests.account_deletion_requests_insert_7bfc6356",
+    "label": "Create RLS policy \"account_deletion_requests_insert_7bfc6356\" on \"account_deletion_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "account_deletion_requests_insert_7bfc6356",
+        "table": "account_deletion_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"account_deletion_requests_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "account_deletion_requests",
+          "account_deletion_requests_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"account_deletion_requests_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"account_deletion_requests_insert_7bfc6356\" ON \"public\".\"account_deletion_requests\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"account_deletion_requests_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "account_deletion_requests",
+          "account_deletion_requests_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.account_deletion_requests.account_deletion_requests_select_95582c40",
+    "label": "Create RLS policy \"account_deletion_requests_select_95582c40\" on \"account_deletion_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "account_deletion_requests_select_95582c40",
+        "table": "account_deletion_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"account_deletion_requests_select_95582c40\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "account_deletion_requests",
+          "account_deletion_requests_select_95582c40"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"account_deletion_requests_select_95582c40\"",
+        "sql": "CREATE POLICY \"account_deletion_requests_select_95582c40\" ON \"public\".\"account_deletion_requests\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"account_deletion_requests_select_95582c40\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "account_deletion_requests",
+          "account_deletion_requests_select_95582c40"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.account_deletion_requests.account_deletion_requests_update_1abd90af",
+    "label": "Create RLS policy \"account_deletion_requests_update_1abd90af\" on \"account_deletion_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "account_deletion_requests_update_1abd90af",
+        "table": "account_deletion_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"account_deletion_requests_update_1abd90af\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "account_deletion_requests",
+          "account_deletion_requests_update_1abd90af"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"account_deletion_requests_update_1abd90af\"",
+        "sql": "CREATE POLICY \"account_deletion_requests_update_1abd90af\" ON \"public\".\"account_deletion_requests\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer) WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"account_deletion_requests_update_1abd90af\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "account_deletion_requests",
+          "account_deletion_requests_update_1abd90af"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.consent_records.consent_records_insert_7bfc6356",
+    "label": "Create RLS policy \"consent_records_insert_7bfc6356\" on \"consent_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "consent_records_insert_7bfc6356",
+        "table": "consent_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"consent_records_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "consent_records",
+          "consent_records_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"consent_records_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"consent_records_insert_7bfc6356\" ON \"public\".\"consent_records\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"consent_records_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "consent_records",
+          "consent_records_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.consent_records.consent_records_select_95582c40",
+    "label": "Create RLS policy \"consent_records_select_95582c40\" on \"consent_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "consent_records_select_95582c40",
+        "table": "consent_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"consent_records_select_95582c40\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "consent_records",
+          "consent_records_select_95582c40"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"consent_records_select_95582c40\"",
+        "sql": "CREATE POLICY \"consent_records_select_95582c40\" ON \"public\".\"consent_records\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"consent_records_select_95582c40\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "consent_records",
+          "consent_records_select_95582c40"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.directory_preferences.directory_preferences_insert_7bfc6356",
+    "label": "Create RLS policy \"directory_preferences_insert_7bfc6356\" on \"directory_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "directory_preferences_insert_7bfc6356",
+        "table": "directory_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"directory_preferences_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "directory_preferences",
+          "directory_preferences_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"directory_preferences_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"directory_preferences_insert_7bfc6356\" ON \"public\".\"directory_preferences\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"directory_preferences_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "directory_preferences",
+          "directory_preferences_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.directory_preferences.directory_preferences_select_a08754ba",
+    "label": "Create RLS policy \"directory_preferences_select_a08754ba\" on \"directory_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "directory_preferences_select_a08754ba",
+        "table": "directory_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"directory_preferences_select_a08754ba\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "directory_preferences",
+          "directory_preferences_select_a08754ba"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"directory_preferences_select_a08754ba\"",
+        "sql": "CREATE POLICY \"directory_preferences_select_a08754ba\" ON \"public\".\"directory_preferences\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (discoverable AND current_setting('vops.directory', true) = 'true' AND NOT EXISTS (SELECT 1 FROM public.recruitment_blocks b WHERE b.user_id = directory_preferences.user_id AND b.organization_id = current_setting('vops.organization_id', true))) OR (public_preview AND EXISTS (SELECT 1 FROM public.profile_shares s WHERE s.user_id = directory_preferences.user_id AND s.token_hash = current_setting('vops.share_hash', true) AND s.revoked_at IS NULL AND s.expires_at > now())))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"directory_preferences_select_a08754ba\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "directory_preferences",
+          "directory_preferences_select_a08754ba"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.directory_preferences.directory_preferences_update_1abd90af",
+    "label": "Create RLS policy \"directory_preferences_update_1abd90af\" on \"directory_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "directory_preferences_update_1abd90af",
+        "table": "directory_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"directory_preferences_update_1abd90af\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "directory_preferences",
+          "directory_preferences_update_1abd90af"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"directory_preferences_update_1abd90af\"",
+        "sql": "CREATE POLICY \"directory_preferences_update_1abd90af\" ON \"public\".\"directory_preferences\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer) WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"directory_preferences_update_1abd90af\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "directory_preferences",
+          "directory_preferences_update_1abd90af"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.join_requests.join_requests_insert_7bfc6356",
+    "label": "Create RLS policy \"join_requests_insert_7bfc6356\" on \"join_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "join_requests_insert_7bfc6356",
+        "table": "join_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"join_requests_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "join_requests",
+          "join_requests_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"join_requests_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"join_requests_insert_7bfc6356\" ON \"public\".\"join_requests\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"join_requests_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "join_requests",
+          "join_requests_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.join_requests.join_requests_select_3e45ce8f",
+    "label": "Create RLS policy \"join_requests_select_3e45ce8f\" on \"join_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "join_requests_select_3e45ce8f",
+        "table": "join_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"join_requests_select_3e45ce8f\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "join_requests",
+          "join_requests_select_3e45ce8f"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"join_requests_select_3e45ce8f\"",
+        "sql": "CREATE POLICY \"join_requests_select_3e45ce8f\" ON \"public\".\"join_requests\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"join_requests_select_3e45ce8f\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "join_requests",
+          "join_requests_select_3e45ce8f"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.join_requests.join_requests_update_c2428490",
+    "label": "Create RLS policy \"join_requests_update_c2428490\" on \"join_requests\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "join_requests_update_c2428490",
+        "table": "join_requests"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"join_requests_update_c2428490\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "join_requests",
+          "join_requests_update_c2428490"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"join_requests_update_c2428490\"",
+        "sql": "CREATE POLICY \"join_requests_update_c2428490\" ON \"public\".\"join_requests\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true')) WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"join_requests_update_c2428490\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "join_requests",
+          "join_requests_update_c2428490"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_invitations.invitation_consume_379b1ac6",
+    "label": "Create RLS policy \"invitation_consume_379b1ac6\" on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "invitation_consume_379b1ac6",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"invitation_consume_379b1ac6\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_consume_379b1ac6"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"invitation_consume_379b1ac6\"",
+        "sql": "CREATE POLICY \"invitation_consume_379b1ac6\" ON \"public\".\"organization_invitations\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR recipient_email = current_setting('vops.email', true)) WITH CHECK ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR recipient_email = current_setting('vops.email', true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"invitation_consume_379b1ac6\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_consume_379b1ac6"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_invitations.invitation_read_fca90d31",
+    "label": "Create RLS policy \"invitation_read_fca90d31\" on \"organization_invitations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "invitation_read_fca90d31",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"invitation_read_fca90d31\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_read_fca90d31"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"invitation_read_fca90d31\"",
+        "sql": "CREATE POLICY \"invitation_read_fca90d31\" ON \"public\".\"organization_invitations\" AS PERMISSIVE FOR SELECT TO PUBLIC USING ((current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR recipient_email = current_setting('vops.email', true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"invitation_read_fca90d31\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_read_fca90d31"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.personal_audit.personal_audit_insert_7bfc6356",
+    "label": "Create RLS policy \"personal_audit_insert_7bfc6356\" on \"personal_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "personal_audit_insert_7bfc6356",
+        "table": "personal_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"personal_audit_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "personal_audit",
+          "personal_audit_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"personal_audit_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"personal_audit_insert_7bfc6356\" ON \"public\".\"personal_audit\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"personal_audit_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "personal_audit",
+          "personal_audit_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.personal_audit.personal_audit_select_95582c40",
+    "label": "Create RLS policy \"personal_audit_select_95582c40\" on \"personal_audit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "personal_audit_select_95582c40",
+        "table": "personal_audit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"personal_audit_select_95582c40\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "personal_audit",
+          "personal_audit_select_95582c40"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"personal_audit_select_95582c40\"",
+        "sql": "CREATE POLICY \"personal_audit_select_95582c40\" ON \"public\".\"personal_audit\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"personal_audit_select_95582c40\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "personal_audit",
+          "personal_audit_select_95582c40"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.platform_grants.platform_self_0fb9c30e",
+    "label": "Create RLS policy \"platform_self_0fb9c30e\" on \"platform_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "platform_self_0fb9c30e",
+        "table": "platform_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"platform_self_0fb9c30e\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_self_0fb9c30e"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"platform_self_0fb9c30e\"",
+        "sql": "CREATE POLICY \"platform_self_0fb9c30e\" ON \"public\".\"platform_grants\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR user_id = nullif(current_setting('vops.invitation_issuer', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"platform_self_0fb9c30e\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_self_0fb9c30e"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.profile_shares.profile_shares_insert_7bfc6356",
+    "label": "Create RLS policy \"profile_shares_insert_7bfc6356\" on \"profile_shares\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "profile_shares_insert_7bfc6356",
+        "table": "profile_shares"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"profile_shares_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "profile_shares",
+          "profile_shares_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"profile_shares_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"profile_shares_insert_7bfc6356\" ON \"public\".\"profile_shares\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"profile_shares_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "profile_shares",
+          "profile_shares_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.profile_shares.profile_shares_select_22402a5c",
+    "label": "Create RLS policy \"profile_shares_select_22402a5c\" on \"profile_shares\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "profile_shares_select_22402a5c",
+        "table": "profile_shares"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"profile_shares_select_22402a5c\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "profile_shares",
+          "profile_shares_select_22402a5c"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"profile_shares_select_22402a5c\"",
+        "sql": "CREATE POLICY \"profile_shares_select_22402a5c\" ON \"public\".\"profile_shares\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (token_hash = current_setting('vops.share_hash', true) AND revoked_at IS NULL AND expires_at > now()))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"profile_shares_select_22402a5c\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "profile_shares",
+          "profile_shares_select_22402a5c"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.profile_shares.profile_shares_update_1abd90af",
+    "label": "Create RLS policy \"profile_shares_update_1abd90af\" on \"profile_shares\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "profile_shares_update_1abd90af",
+        "table": "profile_shares"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"profile_shares_update_1abd90af\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "profile_shares",
+          "profile_shares_update_1abd90af"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"profile_shares_update_1abd90af\"",
+        "sql": "CREATE POLICY \"profile_shares_update_1abd90af\" ON \"public\".\"profile_shares\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer) WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"profile_shares_update_1abd90af\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "profile_shares",
+          "profile_shares_update_1abd90af"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.recruitment_blocks.recruitment_blocks_insert_7bfc6356",
+    "label": "Create RLS policy \"recruitment_blocks_insert_7bfc6356\" on \"recruitment_blocks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "recruitment_blocks_insert_7bfc6356",
+        "table": "recruitment_blocks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"recruitment_blocks_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_blocks",
+          "recruitment_blocks_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"recruitment_blocks_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"recruitment_blocks_insert_7bfc6356\" ON \"public\".\"recruitment_blocks\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"recruitment_blocks_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_blocks",
+          "recruitment_blocks_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.recruitment_blocks.recruitment_blocks_select_3e238f38",
+    "label": "Create RLS policy \"recruitment_blocks_select_3e238f38\" on \"recruitment_blocks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "recruitment_blocks_select_3e238f38",
+        "table": "recruitment_blocks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"recruitment_blocks_select_3e238f38\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_blocks",
+          "recruitment_blocks_select_3e238f38"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"recruitment_blocks_select_3e238f38\"",
+        "sql": "CREATE POLICY \"recruitment_blocks_select_3e238f38\" ON \"public\".\"recruitment_blocks\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR organization_id = current_setting('vops.organization_id', true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"recruitment_blocks_select_3e238f38\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_blocks",
+          "recruitment_blocks_select_3e238f38"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.recruitment_blocks.recruitment_blocks_update_1abd90af",
+    "label": "Create RLS policy \"recruitment_blocks_update_1abd90af\" on \"recruitment_blocks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "recruitment_blocks_update_1abd90af",
+        "table": "recruitment_blocks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"recruitment_blocks_update_1abd90af\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_blocks",
+          "recruitment_blocks_update_1abd90af"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"recruitment_blocks_update_1abd90af\"",
+        "sql": "CREATE POLICY \"recruitment_blocks_update_1abd90af\" ON \"public\".\"recruitment_blocks\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer) WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"recruitment_blocks_update_1abd90af\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_blocks",
+          "recruitment_blocks_update_1abd90af"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.recruitment_reports.recruitment_reports_insert_7bfc6356",
+    "label": "Create RLS policy \"recruitment_reports_insert_7bfc6356\" on \"recruitment_reports\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "recruitment_reports_insert_7bfc6356",
+        "table": "recruitment_reports"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"recruitment_reports_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_reports",
+          "recruitment_reports_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"recruitment_reports_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"recruitment_reports_insert_7bfc6356\" ON \"public\".\"recruitment_reports\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"recruitment_reports_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_reports",
+          "recruitment_reports_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.recruitment_reports.recruitment_reports_select_576a0082",
+    "label": "Create RLS policy \"recruitment_reports_select_576a0082\" on \"recruitment_reports\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "recruitment_reports_select_576a0082",
+        "table": "recruitment_reports"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"recruitment_reports_select_576a0082\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_reports",
+          "recruitment_reports_select_576a0082"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"recruitment_reports_select_576a0082\"",
+        "sql": "CREATE POLICY \"recruitment_reports_select_576a0082\" ON \"public\".\"recruitment_reports\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"recruitment_reports_select_576a0082\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_reports",
+          "recruitment_reports_select_576a0082"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.recruitment_reports.recruitment_reports_update_1abd90af",
+    "label": "Create RLS policy \"recruitment_reports_update_1abd90af\" on \"recruitment_reports\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "recruitment_reports_update_1abd90af",
+        "table": "recruitment_reports"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"recruitment_reports_update_1abd90af\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_reports",
+          "recruitment_reports_update_1abd90af"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"recruitment_reports_update_1abd90af\"",
+        "sql": "CREATE POLICY \"recruitment_reports_update_1abd90af\" ON \"public\".\"recruitment_reports\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer) WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"recruitment_reports_update_1abd90af\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "recruitment_reports",
+          "recruitment_reports_update_1abd90af"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.volunteer_profiles.volunteer_profiles_insert_7bfc6356",
+    "label": "Create RLS policy \"volunteer_profiles_insert_7bfc6356\" on \"volunteer_profiles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "volunteer_profiles_insert_7bfc6356",
+        "table": "volunteer_profiles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"volunteer_profiles_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "volunteer_profiles",
+          "volunteer_profiles_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"volunteer_profiles_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"volunteer_profiles_insert_7bfc6356\" ON \"public\".\"volunteer_profiles\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"volunteer_profiles_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "volunteer_profiles",
+          "volunteer_profiles_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.volunteer_profiles.volunteer_profiles_select_95582c40",
+    "label": "Create RLS policy \"volunteer_profiles_select_95582c40\" on \"volunteer_profiles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "volunteer_profiles_select_95582c40",
+        "table": "volunteer_profiles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"volunteer_profiles_select_95582c40\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "volunteer_profiles",
+          "volunteer_profiles_select_95582c40"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"volunteer_profiles_select_95582c40\"",
+        "sql": "CREATE POLICY \"volunteer_profiles_select_95582c40\" ON \"public\".\"volunteer_profiles\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"volunteer_profiles_select_95582c40\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "volunteer_profiles",
+          "volunteer_profiles_select_95582c40"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.volunteer_profiles.volunteer_profiles_update_1abd90af",
+    "label": "Create RLS policy \"volunteer_profiles_update_1abd90af\" on \"volunteer_profiles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "volunteer_profiles_update_1abd90af",
+        "table": "volunteer_profiles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"volunteer_profiles_update_1abd90af\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "volunteer_profiles",
+          "volunteer_profiles_update_1abd90af"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"volunteer_profiles_update_1abd90af\"",
+        "sql": "CREATE POLICY \"volunteer_profiles_update_1abd90af\" ON \"public\".\"volunteer_profiles\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer) WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"volunteer_profiles_update_1abd90af\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "volunteer_profiles",
+          "volunteer_profiles_update_1abd90af"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_invitations.invitation_consume_a24f5380.drop",
+    "label": "Drop RLS policy \"invitation_consume_a24f5380\" on \"organization_invitations\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "invitation_consume_a24f5380",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"invitation_consume_a24f5380\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_consume_a24f5380"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop RLS policy \"invitation_consume_a24f5380\"",
+        "sql": "DROP POLICY \"invitation_consume_a24f5380\" ON \"public\".\"organization_invitations\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"invitation_consume_a24f5380\" is absent",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_consume_a24f5380"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organization_invitations.invitation_read_061c49a5.drop",
+    "label": "Drop RLS policy \"invitation_read_061c49a5\" on \"organization_invitations\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "invitation_read_061c49a5",
+        "table": "organization_invitations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"invitation_read_061c49a5\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_read_061c49a5"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop RLS policy \"invitation_read_061c49a5\"",
+        "sql": "DROP POLICY \"invitation_read_061c49a5\" ON \"public\".\"organization_invitations\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"invitation_read_061c49a5\" is absent",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organization_invitations",
+          "invitation_read_061c49a5"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.platform_grants.platform_self_95582c40.drop",
+    "label": "Drop RLS policy \"platform_self_95582c40\" on \"platform_grants\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "platform_self_95582c40",
+        "table": "platform_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"platform_self_95582c40\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_self_95582c40"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop RLS policy \"platform_self_95582c40\"",
+        "sql": "DROP POLICY \"platform_self_95582c40\" ON \"public\".\"platform_grants\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"platform_self_95582c40\" is absent",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_self_95582c40"
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,42 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { requireAuth } from '../../middleware/auth.middleware.js';
+import { ah } from '../../middleware/asyncHandler.js';
+import { authRateLimiter } from '../../middleware/rateLimiter.js';
+import { validateBody } from '../../middleware/validator.js';
+import { requestActor } from '../organizations/context.js';
+import { idSchema, reasonSchema } from '../organizations/organizations.schema.js';
+import { serialize } from '../../lib/serialize.js';
+import { PersonalService } from './personal.service.js';
+import { profileSchema, directorySchema, consentSchema, shareSchema, directoryQuery } from './personal.schema.js';
+import { RecruitmentService } from './recruitment.service.js';
+const router=Router();
+router.use((_req,res,next)=>{res.setHeader('Cache-Control','no-store');res.setHeader('X-Robots-Tag','noindex, nofollow');next();});
+// Secrets travel in POST bodies, never URLs, logs, referrers or analytics.
+router.post('/profile-shares/preview',authRateLimiter,validateBody(z.object({token:z.string().regex(/^[A-Za-z0-9_-]{43}$/)}).strict()),ah(async(req,res)=>{
+ res.json(await PersonalService.preview(req.body.token));
+}));
+router.use(requireAuth);
+router.get('/me/home',ah(async(req,res)=>res.json(serialize(await PersonalService.home(requestActor(req))))));
+router.put('/me/profile',validateBody(profileSchema),ah(async(req,res)=>res.json(serialize(await PersonalService.saveProfile(requestActor(req),req.body)))));
+router.put('/me/directory',validateBody(directorySchema),ah(async(req,res)=>res.json(await PersonalService.directorySettings(requestActor(req),req.body))));
+router.post('/me/consents',validateBody(consentSchema),ah(async(req,res)=>res.status(201).json(serialize(await PersonalService.consent(requestActor(req),req.body)))));
+router.get('/me/export',authRateLimiter,ah(async(req,res)=>res.json(serialize(await PersonalService.export(requestActor(req),req.query.after===undefined?undefined:idSchema.parse(req.query.after))))));
+router.get('/me/profile-shares',ah(async(req,res)=>res.json(serialize(await PersonalService.shares(requestActor(req))))));
+router.post('/me/profile-shares',authRateLimiter,validateBody(shareSchema),ah(async(req,res)=>res.status(201).json(serialize(await PersonalService.share(requestActor(req),req.body.expires_in_hours)))));
+router.delete('/me/profile-shares/:shareId',ah(async(req,res)=>res.json(await PersonalService.revokeShare(requestActor(req),idSchema.parse(req.params.shareId)))));
+router.get('/organizations/:orgId/directory',authRateLimiter,ah(async(req,res)=>res.json(await PersonalService.directory(requestActor(req),idSchema.parse(req.params.orgId),directoryQuery.parse(req.query)))));
+router.post('/me/recruitment-blocks',validateBody(z.object({organization_id:idSchema,reason:reasonSchema.optional()}).strict()),ah(async(req,res)=>res.status(201).json(await PersonalService.block(requestActor(req),req.body.organization_id,req.body.reason))));
+router.post('/me/deletion-request',validateBody(z.object({}).strict()),ah(async(req,res)=>res.status(202).json(serialize(await PersonalService.deletion(requestActor(req),false)))));
+router.delete('/me/deletion-request',ah(async(req,res)=>res.json(serialize(await PersonalService.deletion(requestActor(req),true)))));
+
+router.get('/me/workspaces',ah(async(req,res)=>res.json(await RecruitmentService.workspaces(requestActor(req),req.query.after===undefined?undefined:idSchema.parse(req.query.after)))));
+router.post('/me/join-requests',authRateLimiter,validateBody(z.object({organization_id:idSchema,message:z.string().trim().min(10).max(1000)}).strict()),ah(async(req,res)=>res.status(201).json(serialize(await RecruitmentService.request(requestActor(req),req.body.organization_id,req.body.message)))));
+router.get('/me/join-requests',ah(async(req,res)=>res.json(serialize(await RecruitmentService.list(requestActor(req))))));
+router.delete('/me/join-requests/:requestId',ah(async(req,res)=>res.json(await RecruitmentService.withdraw(requestActor(req),idSchema.parse(req.params.requestId)))));
+router.get('/organizations/:orgId/join-requests',ah(async(req,res)=>res.json(serialize(await RecruitmentService.list(requestActor(req),idSchema.parse(req.params.orgId))))));
+router.post('/organizations/:orgId/join-requests/:requestId/review',validateBody(z.object({decision:z.enum(['INVITE','DECLINE']),expected_version:z.number().int().positive(),reason:reasonSchema}).strict()),ah(async(req,res)=>res.json(await RecruitmentService.review(requestActor(req),idSchema.parse(req.params.orgId),idSchema.parse(req.params.requestId),req.body.decision,req.body.expected_version,req.body.reason))));
+router.put('/organizations/:orgId/recruitment',validateBody(z.object({open:z.boolean(),expected_version:z.number().int().positive(),reason:reasonSchema}).strict()),ah(async(req,res)=>res.json(await RecruitmentService.publish(requestActor(req),idSchema.parse(req.params.orgId),req.body.open,req.body.expected_version,req.body.reason))));
+router.post('/organizations/:orgId/directory/:profileId/invite',authRateLimiter,validateBody(z.object({reason:reasonSchema}).strict()),ah(async(req,res)=>res.status(201).json(await RecruitmentService.recruit(requestActor(req),idSchema.parse(req.params.orgId),idSchema.parse(req.params.profileId),req.body.reason))));
+router.post('/organizations/:orgId/profile-shares/invite',authRateLimiter,validateBody(z.object({token:z.string().regex(/^[A-Za-z0-9_-]{43}$/),reason:reasonSchema}).strict()),ah(async(req,res)=>res.status(201).json(await RecruitmentService.recruitShare(requestActor(req),idSchema.parse(req.params.orgId),req.body.token,req.body.reason))));
+export default router;

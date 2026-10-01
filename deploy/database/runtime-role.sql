@@ -28,3 +28,9 @@ GRANT UPDATE (state, completed_at, etag, version_id) ON public.stored_objects TO
 -- Expose only the schema hash, never migration SQL or the full contract.
 CREATE OR REPLACE VIEW public.resq_schema_readiness AS SELECT core_hash FROM prisma_contract.marker WHERE space = 'app';
 GRANT SELECT ON public.resq_schema_readiness TO sentinel_runtime_access;
+
+-- Stage 2: owner-only records and recruitment projections have canonical RLS policies.
+GRANT SELECT, INSERT, UPDATE ON public.volunteer_profiles, public.directory_preferences, public.profile_shares, public.recruitment_blocks, public.join_requests, public.account_deletion_requests, public.recruitment_reports TO sentinel_runtime_access;
+GRANT SELECT, INSERT ON public.consent_records, public.personal_audit TO sentinel_runtime_access;
+
+GRANT SELECT, INSERT, UPDATE ON public.domain_claims, public.support_access_grants, public.coordination_grants, public.partner_applications TO sentinel_runtime_access;

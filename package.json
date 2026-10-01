@@ -42,7 +42,8 @@
     "contracts:generate": "node --import tsx scripts/generate-openapi.mjs",
     "contracts:check": "node --import tsx scripts/generate-openapi.mjs --check",
     "worker:storage": "node dist/workers/storage.worker.js",
-    "railway:migrate": "node scripts/railway-migrate.mjs"
+    "railway:migrate": "node scripts/railway-migrate.mjs",
+    "worker:invitation-email": "node dist/workers/invitation-email.worker.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

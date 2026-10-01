@@ -63,3 +63,5 @@ These are separate service commands, not a sequential launch script. Forecast/pr
 ## Documentation-only hosting transition
 
 The obsolete hosting guides have been removed/replaced. Provider-specific source/build/configuration names may still exist; Stage 1 migrates them after equivalent Railway artifacts are verified. No cloud resource, DNS, `.env`, database or runtime implementation changed as part of this documentation task.
+
+Stage 2: [implementation ledger](docs/stage-2-implementation.md) and [manual setup](docs/stage-2-manual-setup.md).

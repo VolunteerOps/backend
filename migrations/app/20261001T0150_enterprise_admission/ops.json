@@ -1,0 +1,1253 @@
+[
+  {
+    "id": "table.coordination_grants",
+    "label": "Create table \"coordination_grants\"",
+    "summary": "Creates table \"coordination_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "coordination_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"coordination_grants\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"coordination_grants\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"coordination_grants\"",
+        "sql": "CREATE TABLE \"public\".\"coordination_grants\" (\n  \"accepted_at\" timestamp(3),\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"expires_at\" timestamp(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"lead_organization_id\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"partner_organization_id\" text NOT NULL,\n  \"resource_reference\" text NOT NULL,\n  \"revoked_at\" timestamp(3),\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"coordination_grants\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"coordination_grants\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.domain_claims",
+    "label": "Create table \"domain_claims\"",
+    "summary": "Creates table \"domain_claims\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "domain_claims"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"domain_claims\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"domain_claims\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"domain_claims\"",
+        "sql": "CREATE TABLE \"public\".\"domain_claims\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"disputed\" bool DEFAULT false NOT NULL,\n  \"domain\" text NOT NULL,\n  \"expires_at\" timestamp(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"token_hash\" text NOT NULL,\n  \"verified_until\" timestamp(3),\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"domain_claims\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"domain_claims\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.partner_applications",
+    "label": "Create table \"partner_applications\"",
+    "summary": "Creates table \"partner_applications\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "partner_applications"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"partner_applications\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"partner_applications\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"partner_applications\"",
+        "sql": "CREATE TABLE \"public\".\"partner_applications\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"domain\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"message\" text NOT NULL,\n  \"name\" text NOT NULL,\n  \"organization_id\" text,\n  \"review_reason\" text,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"partner_applications\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"partner_applications\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.support_access_grants",
+    "label": "Create table \"support_access_grants\"",
+    "summary": "Creates table \"support_access_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "support_access_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"support_access_grants\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"support_access_grants\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"support_access_grants\"",
+        "sql": "CREATE TABLE \"public\".\"support_access_grants\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"expires_at\" timestamp(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"reason\" text NOT NULL,\n  \"revoked_at\" timestamp(3),\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"support_access_grants\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"support_access_grants\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.domain_claims.domain_claims_domain_key",
+    "label": "Add unique constraint on \"domain_claims\" (domain)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "domain_claims_domain_key",
+        "table": "domain_claims"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"domain_claims_domain_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "domain_claims_domain_key",
+          "public",
+          "\"public\".\"domain_claims\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"domain_claims_domain_key\"",
+        "sql": "ALTER TABLE \"public\".\"domain_claims\" ADD CONSTRAINT \"domain_claims_domain_key\" UNIQUE (\"domain\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"domain_claims_domain_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "domain_claims_domain_key",
+          "public",
+          "\"public\".\"domain_claims\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.coordination_grants.coordination_grants_organization_id_fkey",
+    "label": "Add foreign key \"coordination_grants_organization_id_fkey\" on \"coordination_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "coordination_grants_organization_id_fkey",
+        "table": "coordination_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"coordination_grants_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "coordination_grants_organization_id_fkey",
+          "public",
+          "\"public\".\"coordination_grants\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"coordination_grants_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"coordination_grants\"\nADD CONSTRAINT \"coordination_grants_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"coordination_grants_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "coordination_grants_organization_id_fkey",
+          "public",
+          "\"public\".\"coordination_grants\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.domain_claims.domain_claims_organization_id_fkey",
+    "label": "Add foreign key \"domain_claims_organization_id_fkey\" on \"domain_claims\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "domain_claims_organization_id_fkey",
+        "table": "domain_claims"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"domain_claims_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "domain_claims_organization_id_fkey",
+          "public",
+          "\"public\".\"domain_claims\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"domain_claims_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"domain_claims\"\nADD CONSTRAINT \"domain_claims_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"domain_claims_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "domain_claims_organization_id_fkey",
+          "public",
+          "\"public\".\"domain_claims\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.partner_applications.partner_applications_organization_id_fkey",
+    "label": "Add foreign key \"partner_applications_organization_id_fkey\" on \"partner_applications\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "partner_applications_organization_id_fkey",
+        "table": "partner_applications"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"partner_applications_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "partner_applications_organization_id_fkey",
+          "public",
+          "\"public\".\"partner_applications\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"partner_applications_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"partner_applications\"\nADD CONSTRAINT \"partner_applications_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"partner_applications_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "partner_applications_organization_id_fkey",
+          "public",
+          "\"public\".\"partner_applications\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.partner_applications.partner_applications_user_id_fkey",
+    "label": "Add foreign key \"partner_applications_user_id_fkey\" on \"partner_applications\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "partner_applications_user_id_fkey",
+        "table": "partner_applications"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"partner_applications_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "partner_applications_user_id_fkey",
+          "public",
+          "\"public\".\"partner_applications\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"partner_applications_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"partner_applications\"\nADD CONSTRAINT \"partner_applications_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"partner_applications_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "partner_applications_user_id_fkey",
+          "public",
+          "\"public\".\"partner_applications\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.support_access_grants.support_access_grants_organization_id_fkey",
+    "label": "Add foreign key \"support_access_grants_organization_id_fkey\" on \"support_access_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "support_access_grants_organization_id_fkey",
+        "table": "support_access_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"support_access_grants_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "support_access_grants_organization_id_fkey",
+          "public",
+          "\"public\".\"support_access_grants\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"support_access_grants_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"support_access_grants\"\nADD CONSTRAINT \"support_access_grants_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"support_access_grants_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "support_access_grants_organization_id_fkey",
+          "public",
+          "\"public\".\"support_access_grants\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.support_access_grants.support_access_grants_user_id_fkey",
+    "label": "Add foreign key \"support_access_grants_user_id_fkey\" on \"support_access_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "support_access_grants_user_id_fkey",
+        "table": "support_access_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"support_access_grants_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "support_access_grants_user_id_fkey",
+          "public",
+          "\"public\".\"support_access_grants\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"support_access_grants_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"support_access_grants\"\nADD CONSTRAINT \"support_access_grants_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"support_access_grants_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "support_access_grants_user_id_fkey",
+          "public",
+          "\"public\".\"support_access_grants\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.coordination_grants",
+    "label": "Enable row-level security on \"coordination_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "coordination_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"coordination_grants\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "coordination_grants"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"coordination_grants\"",
+        "sql": "ALTER TABLE \"public\".\"coordination_grants\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"coordination_grants\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "coordination_grants"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.domain_claims",
+    "label": "Enable row-level security on \"domain_claims\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "domain_claims"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"domain_claims\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "domain_claims"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"domain_claims\"",
+        "sql": "ALTER TABLE \"public\".\"domain_claims\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"domain_claims\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "domain_claims"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.partner_applications",
+    "label": "Enable row-level security on \"partner_applications\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "partner_applications"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"partner_applications\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "partner_applications"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"partner_applications\"",
+        "sql": "ALTER TABLE \"public\".\"partner_applications\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"partner_applications\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "partner_applications"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.support_access_grants",
+    "label": "Enable row-level security on \"support_access_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "support_access_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"support_access_grants\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "support_access_grants"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"support_access_grants\"",
+        "sql": "ALTER TABLE \"public\".\"support_access_grants\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"support_access_grants\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "support_access_grants"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.coordination_grants.coordination_grants_insert_4bfd3efa",
+    "label": "Create RLS policy \"coordination_grants_insert_4bfd3efa\" on \"coordination_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "coordination_grants_insert_4bfd3efa",
+        "table": "coordination_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"coordination_grants_insert_4bfd3efa\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "coordination_grants",
+          "coordination_grants_insert_4bfd3efa"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"coordination_grants_insert_4bfd3efa\"",
+        "sql": "CREATE POLICY \"coordination_grants_insert_4bfd3efa\" ON \"public\".\"coordination_grants\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"coordination_grants_insert_4bfd3efa\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "coordination_grants",
+          "coordination_grants_insert_4bfd3efa"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.coordination_grants.coordination_grants_select_f229453e",
+    "label": "Create RLS policy \"coordination_grants_select_f229453e\" on \"coordination_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "coordination_grants_select_f229453e",
+        "table": "coordination_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"coordination_grants_select_f229453e\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "coordination_grants",
+          "coordination_grants_select_f229453e"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"coordination_grants_select_f229453e\"",
+        "sql": "CREATE POLICY \"coordination_grants_select_f229453e\" ON \"public\".\"coordination_grants\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (organization_id = current_setting('vops.organization_id', true) OR partner_organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"coordination_grants_select_f229453e\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "coordination_grants",
+          "coordination_grants_select_f229453e"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.coordination_grants.coordination_grants_update_0f20a84f",
+    "label": "Create RLS policy \"coordination_grants_update_0f20a84f\" on \"coordination_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "coordination_grants_update_0f20a84f",
+        "table": "coordination_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"coordination_grants_update_0f20a84f\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "coordination_grants",
+          "coordination_grants_update_0f20a84f"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"coordination_grants_update_0f20a84f\"",
+        "sql": "CREATE POLICY \"coordination_grants_update_0f20a84f\" ON \"public\".\"coordination_grants\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (organization_id = current_setting('vops.organization_id', true) OR partner_organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true') WITH CHECK (organization_id = current_setting('vops.organization_id', true) OR partner_organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"coordination_grants_update_0f20a84f\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "coordination_grants",
+          "coordination_grants_update_0f20a84f"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.domain_claims.domain_claims_insert_4bfd3efa",
+    "label": "Create RLS policy \"domain_claims_insert_4bfd3efa\" on \"domain_claims\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "domain_claims_insert_4bfd3efa",
+        "table": "domain_claims"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"domain_claims_insert_4bfd3efa\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "domain_claims",
+          "domain_claims_insert_4bfd3efa"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"domain_claims_insert_4bfd3efa\"",
+        "sql": "CREATE POLICY \"domain_claims_insert_4bfd3efa\" ON \"public\".\"domain_claims\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"domain_claims_insert_4bfd3efa\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "domain_claims",
+          "domain_claims_insert_4bfd3efa"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.domain_claims.domain_claims_select_311c9eac",
+    "label": "Create RLS policy \"domain_claims_select_311c9eac\" on \"domain_claims\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "domain_claims_select_311c9eac",
+        "table": "domain_claims"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"domain_claims_select_311c9eac\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "domain_claims",
+          "domain_claims_select_311c9eac"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"domain_claims_select_311c9eac\"",
+        "sql": "CREATE POLICY \"domain_claims_select_311c9eac\" ON \"public\".\"domain_claims\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"domain_claims_select_311c9eac\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "domain_claims",
+          "domain_claims_select_311c9eac"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.domain_claims.domain_claims_update_b70a713e",
+    "label": "Create RLS policy \"domain_claims_update_b70a713e\" on \"domain_claims\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "domain_claims_update_b70a713e",
+        "table": "domain_claims"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"domain_claims_update_b70a713e\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "domain_claims",
+          "domain_claims_update_b70a713e"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"domain_claims_update_b70a713e\"",
+        "sql": "CREATE POLICY \"domain_claims_update_b70a713e\" ON \"public\".\"domain_claims\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true') WITH CHECK (organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"domain_claims_update_b70a713e\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "domain_claims",
+          "domain_claims_update_b70a713e"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.partner_applications.partner_applications_insert_7bfc6356",
+    "label": "Create RLS policy \"partner_applications_insert_7bfc6356\" on \"partner_applications\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "partner_applications_insert_7bfc6356",
+        "table": "partner_applications"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"partner_applications_insert_7bfc6356\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "partner_applications",
+          "partner_applications_insert_7bfc6356"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"partner_applications_insert_7bfc6356\"",
+        "sql": "CREATE POLICY \"partner_applications_insert_7bfc6356\" ON \"public\".\"partner_applications\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id = nullif(current_setting('vops.user_id', true), '')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"partner_applications_insert_7bfc6356\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "partner_applications",
+          "partner_applications_insert_7bfc6356"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.partner_applications.partner_applications_select_576a0082",
+    "label": "Create RLS policy \"partner_applications_select_576a0082\" on \"partner_applications\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "partner_applications_select_576a0082",
+        "table": "partner_applications"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"partner_applications_select_576a0082\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "partner_applications",
+          "partner_applications_select_576a0082"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"partner_applications_select_576a0082\"",
+        "sql": "CREATE POLICY \"partner_applications_select_576a0082\" ON \"public\".\"partner_applications\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"partner_applications_select_576a0082\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "partner_applications",
+          "partner_applications_select_576a0082"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.partner_applications.partner_applications_update_98dabbde",
+    "label": "Create RLS policy \"partner_applications_update_98dabbde\" on \"partner_applications\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "partner_applications_update_98dabbde",
+        "table": "partner_applications"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"partner_applications_update_98dabbde\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "partner_applications",
+          "partner_applications_update_98dabbde"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"partner_applications_update_98dabbde\"",
+        "sql": "CREATE POLICY \"partner_applications_update_98dabbde\" ON \"public\".\"partner_applications\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (current_setting('vops.platform', true) = 'true') WITH CHECK (current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"partner_applications_update_98dabbde\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "partner_applications",
+          "partner_applications_update_98dabbde"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.platform_grants.platform_manage_insert_e5ceb5b3",
+    "label": "Create RLS policy \"platform_manage_insert_e5ceb5b3\" on \"platform_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "platform_manage_insert_e5ceb5b3",
+        "table": "platform_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"platform_manage_insert_e5ceb5b3\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_manage_insert_e5ceb5b3"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"platform_manage_insert_e5ceb5b3\"",
+        "sql": "CREATE POLICY \"platform_manage_insert_e5ceb5b3\" ON \"public\".\"platform_grants\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"platform_manage_insert_e5ceb5b3\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_manage_insert_e5ceb5b3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.platform_grants.platform_manage_read_7c7a5a76",
+    "label": "Create RLS policy \"platform_manage_read_7c7a5a76\" on \"platform_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "platform_manage_read_7c7a5a76",
+        "table": "platform_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"platform_manage_read_7c7a5a76\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_manage_read_7c7a5a76"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"platform_manage_read_7c7a5a76\"",
+        "sql": "CREATE POLICY \"platform_manage_read_7c7a5a76\" ON \"public\".\"platform_grants\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"platform_manage_read_7c7a5a76\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_manage_read_7c7a5a76"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.platform_grants.platform_manage_update_98dabbde",
+    "label": "Create RLS policy \"platform_manage_update_98dabbde\" on \"platform_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "platform_manage_update_98dabbde",
+        "table": "platform_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"platform_manage_update_98dabbde\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_manage_update_98dabbde"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"platform_manage_update_98dabbde\"",
+        "sql": "CREATE POLICY \"platform_manage_update_98dabbde\" ON \"public\".\"platform_grants\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (current_setting('vops.platform', true) = 'true') WITH CHECK (current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"platform_manage_update_98dabbde\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "platform_grants",
+          "platform_manage_update_98dabbde"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.support_access_grants.support_access_grants_insert_e5ceb5b3",
+    "label": "Create RLS policy \"support_access_grants_insert_e5ceb5b3\" on \"support_access_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "support_access_grants_insert_e5ceb5b3",
+        "table": "support_access_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"support_access_grants_insert_e5ceb5b3\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "support_access_grants",
+          "support_access_grants_insert_e5ceb5b3"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"support_access_grants_insert_e5ceb5b3\"",
+        "sql": "CREATE POLICY \"support_access_grants_insert_e5ceb5b3\" ON \"public\".\"support_access_grants\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"support_access_grants_insert_e5ceb5b3\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "support_access_grants",
+          "support_access_grants_insert_e5ceb5b3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.support_access_grants.support_access_grants_select_311c9eac",
+    "label": "Create RLS policy \"support_access_grants_select_311c9eac\" on \"support_access_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "support_access_grants_select_311c9eac",
+        "table": "support_access_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"support_access_grants_select_311c9eac\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "support_access_grants",
+          "support_access_grants_select_311c9eac"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"support_access_grants_select_311c9eac\"",
+        "sql": "CREATE POLICY \"support_access_grants_select_311c9eac\" ON \"public\".\"support_access_grants\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"support_access_grants_select_311c9eac\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "support_access_grants",
+          "support_access_grants_select_311c9eac"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.support_access_grants.support_access_grants_update_b70a713e",
+    "label": "Create RLS policy \"support_access_grants_update_b70a713e\" on \"support_access_grants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "support_access_grants_update_b70a713e",
+        "table": "support_access_grants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"support_access_grants_update_b70a713e\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "support_access_grants",
+          "support_access_grants_update_b70a713e"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"support_access_grants_update_b70a713e\"",
+        "sql": "CREATE POLICY \"support_access_grants_update_b70a713e\" ON \"public\".\"support_access_grants\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true') WITH CHECK (organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"support_access_grants_update_b70a713e\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "support_access_grants",
+          "support_access_grants_update_b70a713e"
+        ]
+      }
+    ]
+  }
+]

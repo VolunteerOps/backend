@@ -2,6 +2,386 @@
 // Contract inferred from the live database schema. Edit as needed, then run `prisma contract emit`.
 
 namespace public {
+model ResponderReservation {
+ userId Int @id @map("user_id")
+ organizationId String @map("organization_id")
+ resourceReference String @map("resource_reference")
+ expiresAt Timestamp(3) @map("expires_at")
+ user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+ @@map("responder_reservations")
+ @@rls
+}
+policy_select responder_reservation_read {
+ target = ResponderReservation
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR organization_id = current_setting('vops.organization_id', true)"
+}
+
+policy_select platform_manage_read { target = PlatformGrant
+ using = "current_setting('vops.platform', true) = 'true'"
+}
+policy_insert platform_manage_insert { target = PlatformGrant
+ withCheck = "current_setting('vops.platform', true) = 'true'"
+}
+policy_update platform_manage_update { target = PlatformGrant
+ using = "current_setting('vops.platform', true) = 'true'"
+ withCheck = "current_setting('vops.platform', true) = 'true'"
+}
+
+
+model DomainClaim {
+id String @id
+organizationId String @map("organization_id")
+domain String @unique
+tokenHash String @map("token_hash")
+expiresAt Timestamp(3) @map("expires_at")
+verifiedUntil Timestamp(3)? @map("verified_until")
+disputed Boolean @default(false)
+createdAt Timestamp(3) @default(now()) @map("created_at")
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@map("domain_claims")
+@@rls
+}
+policy_select domain_claims_select {
+ target = DomainClaim
+ using = "organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true'"
+}
+policy_insert domain_claims_insert {
+ target = DomainClaim
+ withCheck = "organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true'"
+}
+policy_update domain_claims_update {
+ target = DomainClaim
+ using = "organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true'"
+ withCheck = "organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true'"
+}
+
+model SupportAccessGrant {
+id String @id
+organizationId String @map("organization_id")
+userId Int @map("user_id")
+reason String
+expiresAt Timestamp(3) @map("expires_at")
+revokedAt Timestamp(3)? @map("revoked_at")
+createdAt Timestamp(3) @default(now()) @map("created_at")
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@map("support_access_grants")
+@@rls
+}
+policy_select support_access_grants_select {
+ target = SupportAccessGrant
+ using = "organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true'"
+}
+policy_insert support_access_grants_insert {
+ target = SupportAccessGrant
+ withCheck = "current_setting('vops.platform', true) = 'true'"
+}
+policy_update support_access_grants_update {
+ target = SupportAccessGrant
+ using = "organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true'"
+ withCheck = "organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true'"
+}
+
+model CoordinationGrant {
+id String @id
+organizationId String @map("organization_id")
+partnerOrganizationId String @map("partner_organization_id")
+leadOrganizationId String @map("lead_organization_id")
+resourceReference String @map("resource_reference")
+expiresAt Timestamp(3) @map("expires_at")
+acceptedAt Timestamp(3)? @map("accepted_at")
+revokedAt Timestamp(3)? @map("revoked_at")
+createdAt Timestamp(3) @default(now()) @map("created_at")
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@map("coordination_grants")
+@@rls
+}
+policy_select coordination_grants_select {
+ target = CoordinationGrant
+ using = "organization_id = current_setting('vops.organization_id', true) OR partner_organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true'"
+}
+policy_insert coordination_grants_insert {
+ target = CoordinationGrant
+ withCheck = "organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true'"
+}
+policy_update coordination_grants_update {
+ target = CoordinationGrant
+ using = "organization_id = current_setting('vops.organization_id', true) OR partner_organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true'"
+ withCheck = "organization_id = current_setting('vops.organization_id', true) OR partner_organization_id = current_setting('vops.organization_id', true) OR current_setting('vops.platform', true) = 'true'"
+}
+
+model PartnerApplication {
+id String @id
+userId Int @map("user_id")
+name String
+domain String
+message String
+status String @default("PENDING")
+reviewReason String? @map("review_reason")
+organizationId String? @map("organization_id")
+createdAt Timestamp(3) @default(now()) @map("created_at")
+organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@map("partner_applications")
+@@rls
+}
+policy_select partner_applications_select {
+ target = PartnerApplication
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR current_setting('vops.platform', true) = 'true'"
+}
+policy_insert partner_applications_insert {
+ target = PartnerApplication
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_update partner_applications_update {
+ target = PartnerApplication
+ using = "current_setting('vops.platform', true) = 'true'"
+ withCheck = "current_setting('vops.platform', true) = 'true'"
+}
+
+policy_update organization_recruitment {
+ target = Organization
+ using = "id = current_setting('vops.organization_id', true) AND current_setting('vops.organization_settings', true) = 'true'"
+ withCheck = "id = current_setting('vops.organization_id', true) AND current_setting('vops.organization_settings', true) = 'true'"
+}
+
+
+model VolunteerProfile {
+userId Int @id @map("user_id")
+publicId String @unique @map("public_id")
+displayName String @map("display_name")
+biography String @default("")
+region String @default("")
+skills String[] @default([])
+availability String @default("UNSPECIFIED")
+privateDetails Jsonb @map("private_details")
+version Int @default(1)
+updatedAt Timestamp(3) @default(now()) @map("updated_at")
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@map("volunteer_profiles")
+@@rls
+}
+policy_select volunteer_profiles_select {
+ target = VolunteerProfile
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_insert volunteer_profiles_insert {
+ target = VolunteerProfile
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_update volunteer_profiles_update {
+ target = VolunteerProfile
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+
+model DirectoryPreferences {
+userId Int @id @map("user_id")
+publicId String @unique @map("public_id")
+displayName String @map("display_name")
+biography String @default("")
+region String @default("")
+skills String[] @default([])
+availability String @default("UNSPECIFIED")
+discoverable Boolean @default(false)
+publicPreview Boolean @default(false) @map("public_preview")
+showAvailability Boolean @default(false) @map("show_availability")
+version Int @default(1)
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@index([discoverable, region, publicId], map: "directory_region_cursor_idx")
+@@map("directory_preferences")
+@@rls
+}
+policy_select directory_preferences_select {
+ target = DirectoryPreferences
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (discoverable AND current_setting('vops.directory', true) = 'true' AND NOT EXISTS (SELECT 1 FROM public.recruitment_blocks b WHERE b.user_id = directory_preferences.user_id AND b.organization_id = current_setting('vops.organization_id', true))) OR (public_preview AND EXISTS (SELECT 1 FROM public.profile_shares s WHERE s.user_id = directory_preferences.user_id AND s.token_hash = current_setting('vops.share_hash', true) AND s.revoked_at IS NULL AND s.expires_at > now()))"
+}
+policy_insert directory_preferences_insert {
+ target = DirectoryPreferences
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_update directory_preferences_update {
+ target = DirectoryPreferences
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+
+model ProfileShare {
+id String @id
+userId Int @map("user_id")
+tokenHash String @unique @map("token_hash")
+expiresAt Timestamp(3) @map("expires_at")
+revokedAt Timestamp(3)? @map("revoked_at")
+createdAt Timestamp(3) @default(now()) @map("created_at")
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@index([userId])
+@@map("profile_shares")
+@@rls
+}
+policy_select profile_shares_select {
+ target = ProfileShare
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (token_hash = current_setting('vops.share_hash', true) AND revoked_at IS NULL AND expires_at > now())"
+}
+policy_insert profile_shares_insert {
+ target = ProfileShare
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_update profile_shares_update {
+ target = ProfileShare
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+
+model RecruitmentBlock {
+id String @id
+userId Int @map("user_id")
+organizationId String @map("organization_id")
+createdAt Timestamp(3) @default(now()) @map("created_at")
+@@unique([userId, organizationId])
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@index([userId])
+@@map("recruitment_blocks")
+@@rls
+}
+policy_select recruitment_blocks_select {
+ target = RecruitmentBlock
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR organization_id = current_setting('vops.organization_id', true)"
+}
+policy_insert recruitment_blocks_insert {
+ target = RecruitmentBlock
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_update recruitment_blocks_update {
+ target = RecruitmentBlock
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+
+model ConsentRecord {
+id String @id
+userId Int @map("user_id")
+purpose String
+policyVersion String @map("policy_version")
+granted Boolean
+createdAt Timestamp(3) @default(now()) @map("created_at")
+@@index([userId, createdAt])
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@index([userId])
+@@map("consent_records")
+@@rls
+}
+policy_select consent_records_select {
+ target = ConsentRecord
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_insert consent_records_insert {
+ target = ConsentRecord
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+
+model AccountDeletionRequest {
+userId Int @id @map("user_id")
+id String @unique
+status String @default("REQUESTED")
+requestedAt Timestamp(3) @default(now()) @map("requested_at")
+cancelledAt Timestamp(3)? @map("cancelled_at")
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@map("account_deletion_requests")
+@@rls
+}
+policy_select account_deletion_requests_select {
+ target = AccountDeletionRequest
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_insert account_deletion_requests_insert {
+ target = AccountDeletionRequest
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_update account_deletion_requests_update {
+ target = AccountDeletionRequest
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+
+model RecruitmentReport {
+id String @id
+userId Int @map("user_id")
+organizationId String @map("organization_id")
+reason String
+status String @default("PENDING")
+createdAt Timestamp(3) @default(now()) @map("created_at")
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@index([userId])
+@@map("recruitment_reports")
+@@rls
+}
+policy_select recruitment_reports_select {
+ target = RecruitmentReport
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR current_setting('vops.platform', true) = 'true'"
+}
+policy_insert recruitment_reports_insert {
+ target = RecruitmentReport
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_update recruitment_reports_update {
+ target = RecruitmentReport
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+
+model PersonalAudit {
+id String @id
+userId Int @map("user_id")
+action String
+actorUserId Int @map("actor_user_id")
+createdAt Timestamp(3) @default(now()) @map("created_at")
+@@index([userId, createdAt])
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@index([userId])
+@@map("personal_audit")
+@@rls
+}
+policy_select personal_audit_select {
+ target = PersonalAudit
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_insert personal_audit_insert {
+ target = PersonalAudit
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+
+model JoinRequest {
+id String @id
+userId Int @map("user_id")
+organizationId String @map("organization_id")
+message String
+status String @default("PENDING")
+version Int @default(1)
+createdAt Timestamp(3) @default(now()) @map("created_at")
+@@unique([userId, organizationId])
+user Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+@@index([userId])
+@@map("join_requests")
+@@rls
+}
+policy_select join_requests_select {
+ target = JoinRequest
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true')"
+}
+policy_insert join_requests_insert {
+ target = JoinRequest
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+}
+policy_update join_requests_update {
+ target = JoinRequest
+ using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true')"
+ withCheck = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR (organization_id = current_setting('vops.organization_id', true) AND current_setting('vops.roster', true) = 'true')"
+}
+
 
 model StoredObject {
   id String @id
@@ -419,6 +799,7 @@ policy_insert receipt_insert {
 
 
   model Organization {
+    recruitmentOpen Boolean @default(false) @map("recruitment_open")
     id String @id
     slug String @unique
     displayName String @map("display_name")
@@ -468,6 +849,11 @@ policy_insert receipt_insert {
   }
 
   model OrganizationInvitation {
+    declinedAt Timestamp(3)? @map("declined_at")
+    deliveryStatus String @default("NOT_CONFIGURED") @map("delivery_status")
+    issuerMembershipId String? @map("issuer_membership_id")
+    issuerMembershipVersion Int? @map("issuer_membership_version")
+    recipientUserId Int? @map("recipient_user_id")
     id String @id
     organizationId String @map("organization_id")
     recipientEmail String @map("recipient_email")
@@ -483,6 +869,7 @@ policy_insert receipt_insert {
     organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
     issuer Users @relation(fields: [issuerUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
     @@index([organizationId])
+    @@index([recipientEmail, createdAt], map: "invitation_recipient_date_idx")
     @@map("organization_invitations")
     @@rls
     @@check(expression: "role IN ('ORG_ADMIN', 'COORDINATOR', 'TEAM_LEAD', 'VOLUNTEER')", name: "invitation_role")
@@ -504,12 +891,12 @@ policy_insert receipt_insert {
   }
   policy_select platform_self {
     target = PlatformGrant
-    using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer"
+    using = "user_id = nullif(current_setting('vops.user_id', true), '')::integer OR user_id = nullif(current_setting('vops.invitation_issuer', true), '')::integer"
   }
 
   policy_select organization_read {
     target = Organization
-    using = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR id = nullif(current_setting('vops.organization_id', true), '') OR EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.organization_id = organizations.id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer)"
+    using = "EXISTS (SELECT 1 FROM public.organization_invitations i WHERE i.organization_id = organizations.id AND i.recipient_email = current_setting('vops.email', true) AND i.revoked_at IS NULL AND i.expires_at > now()) OR (current_setting('vops.public_workspaces', true) = 'true' AND recruitment_open AND status = 'ACTIVE' AND enrollment_ready) OR (current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR id = nullif(current_setting('vops.organization_id', true), '') OR EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.organization_id = organizations.id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer)"
   }
 
   policy_insert organization_provision {
@@ -541,7 +928,7 @@ policy_insert receipt_insert {
 
   policy_select invitation_read {
     target = OrganizationInvitation
-    using = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR (token_hash = nullif(current_setting('vops.invitation_hash', true), '') AND recipient_email = current_setting('vops.email', true))"
+    using = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR recipient_email = current_setting('vops.email', true)"
   }
 
   policy_insert invitation_issue {
@@ -551,8 +938,8 @@ policy_insert receipt_insert {
 
   policy_update invitation_consume {
     target = OrganizationInvitation
-    using = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR (token_hash = nullif(current_setting('vops.invitation_hash', true), '') AND recipient_email = current_setting('vops.email', true))"
-    withCheck = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR (token_hash = nullif(current_setting('vops.invitation_hash', true), '') AND recipient_email = current_setting('vops.email', true))"
+    using = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR recipient_email = current_setting('vops.email', true)"
+    withCheck = "(current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR (organization_id = nullif(current_setting('vops.organization_id', true), '') AND current_setting('vops.roster', true) = 'true') OR recipient_email = current_setting('vops.email', true)"
   }
 
   policy_select audit_read {

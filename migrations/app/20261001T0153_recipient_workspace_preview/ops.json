@@ -1,0 +1,88 @@
+[
+  {
+    "id": "rlsPolicy.public.organizations.organization_read_60a464d6",
+    "label": "Create RLS policy \"organization_read_60a464d6\" on \"organizations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "organization_read_60a464d6",
+        "table": "organizations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"organization_read_60a464d6\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_read_60a464d6"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"organization_read_60a464d6\"",
+        "sql": "CREATE POLICY \"organization_read_60a464d6\" ON \"public\".\"organizations\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (EXISTS (SELECT 1 FROM public.organization_invitations i WHERE i.organization_id = organizations.id AND i.recipient_email = current_setting('vops.email', true) AND i.revoked_at IS NULL AND i.expires_at > now()) OR (current_setting('vops.public_workspaces', true) = 'true' AND recruitment_open AND status = 'ACTIVE' AND enrollment_ready) OR (current_setting('vops.platform', true) = 'true' AND EXISTS (SELECT 1 FROM public.platform_grants g WHERE g.user_id = nullif(current_setting('vops.user_id', true), '')::integer AND g.active AND g.role = 'TECH_ADMIN')) OR id = nullif(current_setting('vops.organization_id', true), '') OR EXISTS (SELECT 1 FROM public.organization_memberships m WHERE m.organization_id = organizations.id AND m.user_id = nullif(current_setting('vops.user_id', true), '')::integer))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"organization_read_60a464d6\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_read_60a464d6"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.organizations.organization_read_9ed60339.drop",
+    "label": "Drop RLS policy \"organization_read_9ed60339\" on \"organizations\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "organization_read_9ed60339",
+        "table": "organizations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"organization_read_9ed60339\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_read_9ed60339"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop RLS policy \"organization_read_9ed60339\"",
+        "sql": "DROP POLICY \"organization_read_9ed60339\" ON \"public\".\"organizations\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"organization_read_9ed60339\" is absent",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "organizations",
+          "organization_read_9ed60339"
+        ]
+      }
+    ]
+  }
+]

@@ -21,7 +21,7 @@ test('bootstrap never attaches an email-matched legacy account', async t => {
   await assert.rejects(AuthService.bootstrap(identity, 'Responder', database), { code: 'IDENTITY_MIGRATION_REQUIRED' });
 });
 
-test('repeat bootstrap keeps the immutable numeric user mapping and ignores changed email', async t => {
+test('verified email changes require recent authentication without remapping the user', async t => {
   const user = { id: 42, email: 'original@example.org', isActive: true };
   const transaction = {
     $queryRaw: async () => [],
@@ -31,7 +31,7 @@ test('repeat bootstrap keeps the immutable numeric user mapping and ignores chan
     } },
   };
   const database = { $transaction: async (fn: (tx: unknown) => unknown) => fn(transaction) } as unknown as NonNullable<Parameters<typeof AuthService.bootstrap>[2]>;
-  assert.equal(await AuthService.bootstrap(identity, 'Different Name', database), user);
+  await assert.rejects(AuthService.bootstrap(identity, 'Different Name', database),{code:'RECENT_AUTH_REQUIRED'});
 });
 
 test('bootstrap creates only an unassigned volunteer and writes the audit in the transaction', async t => {

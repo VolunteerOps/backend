@@ -18,28 +18,31 @@ export function retryDelayMs(attempts: number) {
 
 /** A single SQL statement claims each job; no external work holds a transaction. */
 export class PostgresJobStore implements JobStore {
-  constructor(private readonly pool: Pick<Pool, 'query'>) {}
+  constructor(private readonly pool: Pick<Pool, 'query'>,
+    private readonly relation: 'durable_jobs' | 'public.resq_invitation_jobs' = 'durable_jobs') {
+    if (!['durable_jobs', 'public.resq_invitation_jobs'].includes(relation)) throw new Error('UNSUPPORTED_JOB_RELATION');
+  }
 
   async claim(queue: string, owner: string): Promise<ClaimedJob | null> {
     // Bound maintenance work, including workers that died on their final attempt.
     await this.pool.query(`WITH expired AS (
-      SELECT id FROM durable_jobs WHERE queue = $1 AND state IN ('PENDING', 'RUNNING')
+      SELECT id FROM ${this.relation} WHERE queue = $1 AND state IN ('PENDING', 'RUNNING')
         AND (state = 'PENDING' OR lease_until <= (clock_timestamp() AT TIME ZONE 'UTC'))
         AND (deadline <= (clock_timestamp() AT TIME ZONE 'UTC') OR attempts >= max_attempts)
       ORDER BY available_at, id FOR UPDATE SKIP LOCKED LIMIT 100
-    ) UPDATE durable_jobs j SET state = CASE WHEN j.deadline <= (clock_timestamp() AT TIME ZONE 'UTC') THEN 'EXPIRED' ELSE 'DEAD' END,
+    ) UPDATE ${this.relation} j SET state = CASE WHEN j.deadline <= (clock_timestamp() AT TIME ZONE 'UTC') THEN 'EXPIRED' ELSE 'DEAD' END,
       lease_owner = NULL, lease_until = NULL, completed_at = (clock_timestamp() AT TIME ZONE 'UTC')
       FROM expired WHERE j.id = expired.id`, [queue]);
     const result = await this.pool.query<ClaimedJob>(`WITH candidate AS (
-      SELECT candidate_job.id FROM durable_jobs candidate_job WHERE queue = $1
+      SELECT candidate_job.id FROM ${this.relation} candidate_job WHERE queue = $1
         AND (state = 'PENDING' OR (state = 'RUNNING' AND lease_until <= (clock_timestamp() AT TIME ZONE 'UTC')))
         AND available_at <= (clock_timestamp() AT TIME ZONE 'UTC') AND attempts < max_attempts
         AND (deadline IS NULL OR deadline > (clock_timestamp() AT TIME ZONE 'UTC'))
-      ORDER BY COALESCE((SELECT max(served.last_claimed_at) FROM durable_jobs served
+      ORDER BY COALESCE((SELECT max(served.last_claimed_at) FROM ${this.relation} served
         WHERE served.queue = candidate_job.queue AND served.organization_id IS NOT DISTINCT FROM candidate_job.organization_id), '-infinity'::timestamp),
         priority - floor(extract(epoch FROM ((clock_timestamp() AT TIME ZONE 'UTC') - available_at)) / 30), available_at, id
       FOR UPDATE OF candidate_job SKIP LOCKED LIMIT 1
-    ) UPDATE durable_jobs j SET state = 'RUNNING', attempts = j.attempts + 1,
+    ) UPDATE ${this.relation} j SET state = 'RUNNING', attempts = j.attempts + 1,
       fence = j.fence + 1, lease_owner = $2, last_claimed_at = (clock_timestamp() AT TIME ZONE 'UTC'),
       lease_until = (clock_timestamp() AT TIME ZONE 'UTC') + interval '60 seconds'
       FROM candidate WHERE j.id = candidate.id
@@ -48,7 +51,7 @@ export class PostgresJobStore implements JobStore {
   }
 
   async complete(job: ClaimedJob) {
-    const result = await this.pool.query(`UPDATE durable_jobs SET state = 'COMPLETED',
+    const result = await this.pool.query(`UPDATE ${this.relation} SET state = 'COMPLETED',
       completed_at = (clock_timestamp() AT TIME ZONE 'UTC'), lease_owner = NULL, lease_until = NULL, last_error = NULL
       WHERE id = $1 AND fence = $2 AND lease_owner = $3 AND state = 'RUNNING'
         AND lease_until > (clock_timestamp() AT TIME ZONE 'UTC') AND (deadline IS NULL OR deadline > (clock_timestamp() AT TIME ZONE 'UTC'))`,
@@ -59,7 +62,7 @@ export class PostgresJobStore implements JobStore {
   async fail(job: ClaimedJob, code: string, permanent = false) {
     // Error codes only: provider messages can contain credentials or personal data.
     if (!/^[A-Z0-9_]{1,64}$/.test(code)) code = 'JOB_FAILED';
-    const result = await this.pool.query(`UPDATE durable_jobs SET
+    const result = await this.pool.query(`UPDATE ${this.relation} SET
       state = CASE WHEN deadline <= (clock_timestamp() AT TIME ZONE 'UTC') THEN 'EXPIRED'
         WHEN $5 OR attempts >= max_attempts THEN 'DEAD' ELSE 'PENDING' END,
       available_at = (clock_timestamp() AT TIME ZONE 'UTC') + ($4 * interval '1 millisecond'),

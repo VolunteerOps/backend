@@ -1,0 +1,207 @@
+[
+  {
+    "id": "table.responder_reservations",
+    "label": "Create table \"responder_reservations\"",
+    "summary": "Creates table \"responder_reservations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "responder_reservations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"responder_reservations\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"responder_reservations\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"responder_reservations\"",
+        "sql": "CREATE TABLE \"public\".\"responder_reservations\" (\n  \"expires_at\" timestamp(3) NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"resource_reference\" text NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"user_id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"responder_reservations\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"responder_reservations\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.responder_reservations.responder_reservations_user_id_fkey",
+    "label": "Add foreign key \"responder_reservations_user_id_fkey\" on \"responder_reservations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "responder_reservations_user_id_fkey",
+        "table": "responder_reservations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"responder_reservations_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "responder_reservations_user_id_fkey",
+          "public",
+          "\"public\".\"responder_reservations\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"responder_reservations_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"responder_reservations\"\nADD CONSTRAINT \"responder_reservations_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"responder_reservations_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "responder_reservations_user_id_fkey",
+          "public",
+          "\"public\".\"responder_reservations\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.responder_reservations.responder_reservations_organization_id_fkey",
+    "label": "Add foreign key \"responder_reservations_organization_id_fkey\" on \"responder_reservations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "responder_reservations_organization_id_fkey",
+        "table": "responder_reservations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"responder_reservations_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "responder_reservations_organization_id_fkey",
+          "public",
+          "\"public\".\"responder_reservations\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"responder_reservations_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"responder_reservations\"\nADD CONSTRAINT \"responder_reservations_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"responder_reservations_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "responder_reservations_organization_id_fkey",
+          "public",
+          "\"public\".\"responder_reservations\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.responder_reservations",
+    "label": "Enable row-level security on \"responder_reservations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "responder_reservations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"responder_reservations\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "responder_reservations"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"responder_reservations\"",
+        "sql": "ALTER TABLE \"public\".\"responder_reservations\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"responder_reservations\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "responder_reservations"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.responder_reservations.responder_reservation_read_3e238f38",
+    "label": "Create RLS policy \"responder_reservation_read_3e238f38\" on \"responder_reservations\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "responder_reservation_read_3e238f38",
+        "table": "responder_reservations"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"responder_reservation_read_3e238f38\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "responder_reservations",
+          "responder_reservation_read_3e238f38"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"responder_reservation_read_3e238f38\"",
+        "sql": "CREATE POLICY \"responder_reservation_read_3e238f38\" ON \"public\".\"responder_reservations\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id = nullif(current_setting('vops.user_id', true), '')::integer OR organization_id = current_setting('vops.organization_id', true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"responder_reservation_read_3e238f38\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "responder_reservations",
+          "responder_reservation_read_3e238f38"
+        ]
+      }
+    ]
+  }
+]
