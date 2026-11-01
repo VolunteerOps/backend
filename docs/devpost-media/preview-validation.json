@@ -1,0 +1,57 @@
+{
+  "createdAt": "2026-10-01T18:37:56.327Z",
+  "count": 3,
+  "ratio": "3:2",
+  "maxBytes": 1566321,
+  "uniqueImages": 3,
+  "images": [
+    {
+      "group": "website",
+      "index": 1,
+      "raw": "website-home.png",
+      "title": "Bring help\ncloser.",
+      "body": "A shared starting point for people who want to help.",
+      "kicker": "THE RESQ WEBSITE",
+      "source": "https://resq-web-staging.up.railway.app/",
+      "provenance": "Fresh public staging website capture",
+      "sample": false,
+      "file": "upload/website/01-home.png",
+      "bytes": 1566321,
+      "width": 1800,
+      "height": 1200,
+      "sha256": "7bd70404870cae1e05eefbf855f40a7d9008968d15500e5bb9b41cb713ccb1ec"
+    },
+    {
+      "group": "volunteer",
+      "index": 1,
+      "raw": "volunteer-01-today.png",
+      "title": "A clearer start\nto your day.",
+      "body": "Your next assignment and contribution, in one place.",
+      "kicker": "TODAY",
+      "source": "../volunteer/assets/screenshots/raw/01-today.png",
+      "provenance": "Existing native Android screenshot supplied in the volunteer repository; sample data and original branding",
+      "sample": true,
+      "file": "upload/volunteer/01-today.png",
+      "bytes": 1533989,
+      "width": 1800,
+      "height": 1200,
+      "sha256": "b8cebca3aca29b3593ee195c5e540c20c67d123cfe3cc786d9733b9f86101db8"
+    },
+    {
+      "group": "admin",
+      "index": 1,
+      "raw": "admin-01-overview.png",
+      "title": "One view.\nA clearer response.",
+      "body": "Review the people, priorities and work that need attention.",
+      "kicker": "OPERATIONS OVERVIEW",
+      "source": "http://127.0.0.1:18764/admin-preview/?embed=1",
+      "provenance": "Fresh local Compose web screenshot of the existing isolated coordinator sample bundle; all external requests blocked; original in-app branding",
+      "sample": true,
+      "file": "upload/admin/01-overview.png",
+      "bytes": 1113059,
+      "width": 1800,
+      "height": 1200,
+      "sha256": "d08e12bdabc558aeaf810df75a19076201da846b470c1c8442986ea3ffba5eb1"
+    }
+  ]
+}

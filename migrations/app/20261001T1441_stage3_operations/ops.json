@@ -1,0 +1,320 @@
+[
+  {
+    "id": "table.operation_receipts",
+    "label": "Create table \"operation_receipts\"",
+    "summary": "Creates table \"operation_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "operation_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"operation_receipts\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"operation_receipts\"",
+        "sql": "CREATE TABLE \"public\".\"operation_receipts\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"fingerprint\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"key\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"region_id\" text NOT NULL,\n  \"result\" json NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"operation_receipts\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.operation_records",
+    "label": "Create table \"operation_records\"",
+    "summary": "Creates table \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"operation_records\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"operation_records\"",
+        "sql": "CREATE TABLE \"public\".\"operation_records\" (\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"kind\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"owner_id\" int4 NOT NULL,\n  \"parent_id\" text,\n  \"payload\" json NOT NULL,\n  \"region_id\" text NOT NULL,\n  \"sequence\" SERIAL NOT NULL,\n  \"updated_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"version\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"operation_records\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.operation_receipts.operation_receipts_user_id_key_key",
+    "label": "Add unique constraint on \"operation_receipts\" (user_id, key)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "operation_receipts_user_id_key_key",
+        "table": "operation_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"operation_receipts_user_id_key_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_receipts_user_id_key_key",
+          "public",
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"operation_receipts_user_id_key_key\"",
+        "sql": "ALTER TABLE \"public\".\"operation_receipts\" ADD CONSTRAINT \"operation_receipts_user_id_key_key\" UNIQUE (\"user_id\", \"key\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"operation_receipts_user_id_key_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_receipts_user_id_key_key",
+          "public",
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.operation_records.operation_records_sequence_key",
+    "label": "Add unique constraint on \"operation_records\" (sequence)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "operation_records_sequence_key",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"operation_records_sequence_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_records_sequence_key",
+          "public",
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"operation_records_sequence_key\"",
+        "sql": "ALTER TABLE \"public\".\"operation_records\" ADD CONSTRAINT \"operation_records_sequence_key\" UNIQUE (\"sequence\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"operation_records_sequence_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_records_sequence_key",
+          "public",
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.operation_records.ops_parent_kind",
+    "label": "Create index \"ops_parent_kind\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ops_parent_kind",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ops_parent_kind\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ops_parent_kind\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ops_parent_kind\"",
+        "sql": "CREATE INDEX \"ops_parent_kind\" ON \"public\".\"operation_records\" (\"organization_id\", \"parent_id\", \"kind\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ops_parent_kind\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ops_parent_kind\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.operation_records.ops_scope_sequence",
+    "label": "Create index \"ops_scope_sequence\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ops_scope_sequence",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ops_scope_sequence\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ops_scope_sequence\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ops_scope_sequence\"",
+        "sql": "CREATE INDEX \"ops_scope_sequence\" ON \"public\".\"operation_records\" (\"organization_id\", \"region_id\", \"kind\", \"sequence\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ops_scope_sequence\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ops_scope_sequence\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.operation_receipts",
+    "label": "Enable row-level security on \"operation_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "operation_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"operation_receipts\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "operation_receipts"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"operation_receipts\"",
+        "sql": "ALTER TABLE \"public\".\"operation_receipts\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"operation_receipts\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "operation_receipts"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.operation_records",
+    "label": "Enable row-level security on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"operation_records\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"operation_records\"",
+        "sql": "ALTER TABLE \"public\".\"operation_records\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"operation_records\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records"
+        ]
+      }
+    ]
+  }
+]

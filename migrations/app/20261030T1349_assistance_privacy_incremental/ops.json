@@ -1,0 +1,45 @@
+[
+  {
+    "id": "rlsPolicy.public.operation_records.assistance_private_d841f1b3",
+    "label": "Create RLS policy \"assistance_private_d841f1b3\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "assistance_private_d841f1b3",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"assistance_private_d841f1b3\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "assistance_private_d841f1b3"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"assistance_private_d841f1b3\"",
+        "sql": "CREATE POLICY \"assistance_private_d841f1b3\" ON \"public\".\"operation_records\" AS RESTRICTIVE FOR SELECT TO PUBLIC USING (kind NOT IN ('ASSISTANCE_CASE','ASSISTANCE_EVENT') OR owner_id=nullif(current_setting('vops.user_id',true),'')::integer OR EXISTS(SELECT 1 FROM public.organization_memberships m WHERE m.organization_id=operation_records.organization_id AND m.user_id=nullif(current_setting('vops.user_id',true),'')::integer AND m.status='ACTIVE' AND m.role IN ('ORG_ADMIN','COORDINATOR')))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"assistance_private_d841f1b3\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "assistance_private_d841f1b3"
+        ]
+      }
+    ]
+  }
+]

@@ -1,3 +1,6 @@
+import {regionalReadiness} from './readiness.service.js';
+import {PlanningService,weatherRequest} from './planning.service.js';
+import {resourcePlanRequest,planApproval,planRejection,planEdit} from './planning-contract.js';
 import { Router } from 'express';
 import { z } from 'zod';
 import { askSentinel, agentQuestionSchema } from './sentinel.agent.js';
@@ -38,5 +41,25 @@ router.post('/regions/:regionId/agent/chat', authRateLimiter, validateBody(agent
 }));
 router.get('/regions/:regionId/hazards', ah(async (req, res) => {
   res.json(serialize(await SentinelService.hazards(requestActor(req), uuid.parse(req.params.orgId), uuid.parse(req.params.regionId))));
+}));
+router.get('/regions/:regionId/planning/:kind', ah(async (req,res)=>{
+ const kind=z.enum(['resources','weather']).parse(req.params.kind);
+ res.json(serialize(await PlanningService.list(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),kind==='resources'?'RESOURCE_PLAN':'WEATHER_ANALYSIS',z.coerce.number().int().nonnegative().default(0).parse(req.query.after))));
+}));
+router.post('/regions/:regionId/planning/resources', authRateLimiter, validateBody(resourcePlanRequest), ah(async(req,res)=>{
+ res.json(serialize(await PlanningService.resourcePlan(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),uuid.parse(req.headers['idempotency-key']),req.body)));
+}));
+router.post('/regions/:regionId/planning/weather', authRateLimiter, validateBody(weatherRequest), ah(async(req,res)=>{
+ res.json(serialize(await PlanningService.weather(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),uuid.parse(req.headers['idempotency-key']),req.body)));
+}));
+router.post('/regions/:regionId/planning/resources/:proposalId/approve', authRateLimiter, validateBody(planApproval), ah(async(req,res)=>{
+ res.json(serialize(await PlanningService.approve(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),uuid.parse(req.params.proposalId),uuid.parse(req.headers['idempotency-key']),req.body)));
+}));
+router.post('/regions/:regionId/planning/resources/:proposalId/reject', authRateLimiter, validateBody(planRejection), ah(async(req,res)=>{
+ res.json(serialize(await PlanningService.reject(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),uuid.parse(req.params.proposalId),uuid.parse(req.headers['idempotency-key']),req.body)));
+}));
+router.get('/regions/:regionId/readiness', ah(async(req,res)=>{res.json(serialize(await regionalReadiness(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId))));}));
+router.post('/regions/:regionId/planning/resources/:proposalId/edit',authRateLimiter,validateBody(planEdit),ah(async(req,res)=>{
+ res.json(serialize(await PlanningService.edit(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),uuid.parse(req.params.proposalId),uuid.parse(req.headers['idempotency-key']),req.body)));
 }));
 export default router;

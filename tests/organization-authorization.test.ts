@@ -23,10 +23,21 @@ test('suspended and unverified organizations reject otherwise valid members', ()
 test('social login cannot satisfy an SSO-only policy', () => {
   assert.throws(() => authorizeOrganization(organization, member, 5, 'org-a', { ...identity, signInProvider: 'google.com' }, 'organization.read', now), { code: 'SSO_REQUIRED' });
 });
-test('privileged actions require recent TOTP evidence', () => {
+test('optional strict policy requires recent TOTP evidence', () => {
+  process.env.AUTH_REQUIRE_MFA = 'true';
+  try {
   for (const secondFactor of [null, 'phone'] as const) assert.throws(() => requireRecentMfa({ ...identity, secondFactor }, now), { code: 'MFA_REQUIRED' });
   assert.throws(() => requireRecentMfa({ ...identity, authTime: now / 1000 - 301 }, now), { code: 'RECENT_AUTH_REQUIRED' });
   assert.throws(() => requireRecentMfa({ ...identity, authTime: now / 1000 + 1 }, now), { code: 'RECENT_AUTH_REQUIRED' });
+  } finally { delete process.env.AUTH_REQUIRE_MFA; }
+});
+
+test('password-only default keeps recent-auth, membership and provider boundaries', () => {
+  const password = {...identity, signInProvider: 'password', secondFactor: null};
+  const org = {...organization, allowedProviders: ['password'], requireMfa: true};
+  assert.equal(authorizeOrganization(org, member, 5, 'org-a', password, 'members.invite', now), 'ORG_ADMIN');
+  assert.throws(() => requireRecentMfa({...password, authTime: now/1000-301}, now), {code:'RECENT_AUTH_REQUIRED'});
+  assert.throws(() => authorizeOrganization(org, null, 5, 'org-a', password, 'members.invite', now), {code:'MEMBERSHIP_REQUIRED'});
 });
 test('legacy global roles and prototype keys are not organization roles', () => {
   for (const role of ['SUPER_ADMIN', 'ADMIN', 'TECH_ADMIN', '__proto__', 'constructor']) {
@@ -51,4 +62,12 @@ test('strict schemas reject privilege injection and bound tokens and provider id
   assert.equal(invitationSchema.safeParse({ recipient_email: 'u@example.org', role: 'TECH_ADMIN', reason: 'Reviewed admission' }).success, false);
   assert.equal(acceptInvitationSchema.safeParse({ token: 'a'.repeat(43), role: 'ORG_ADMIN' }).success, false);
   assert.equal(acceptInvitationSchema.safeParse({ token: 'a'.repeat(43) }).success, true);
+});
+
+test('password sessions keep operational reads but sensitive administration needs fresh authentication', () => {
+  const password = {...identity, signInProvider:'password', secondFactor:null, authTime:now/1000-1800};
+  const org = {...organization, allowedProviders:['password']};
+  assert.equal(authorizeOrganization(org,member,5,'org-a',password,'organization.read',now),'ORG_ADMIN');
+  assert.equal(authorizeOrganization(org,member,5,'org-a',password,'members.read',now),'ORG_ADMIN');
+  assert.throws(()=>authorizeOrganization(org,member,5,'org-a',password,'members.manage',now),{code:'RECENT_AUTH_REQUIRED'});
 });

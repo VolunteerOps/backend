@@ -1,0 +1,469 @@
+[
+  {
+    "id": "foreignKey.operation_receipts.operation_receipts_organization_id_region_id_fkey",
+    "label": "Add foreign key \"operation_receipts_organization_id_region_id_fkey\" on \"operation_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "operation_receipts_organization_id_region_id_fkey",
+        "table": "operation_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"operation_receipts_organization_id_region_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_receipts_organization_id_region_id_fkey",
+          "public",
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"operation_receipts_organization_id_region_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"operation_receipts\"\nADD CONSTRAINT \"operation_receipts_organization_id_region_id_fkey\"\nFOREIGN KEY (\"organization_id\", \"region_id\")\nREFERENCES \"public\".\"organization_units\" (\"organization_id\", \"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"operation_receipts_organization_id_region_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_receipts_organization_id_region_id_fkey",
+          "public",
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.operation_receipts.operation_receipts_organization_id_fkey",
+    "label": "Add foreign key \"operation_receipts_organization_id_fkey\" on \"operation_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "operation_receipts_organization_id_fkey",
+        "table": "operation_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"operation_receipts_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_receipts_organization_id_fkey",
+          "public",
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"operation_receipts_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"operation_receipts\"\nADD CONSTRAINT \"operation_receipts_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"operation_receipts_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_receipts_organization_id_fkey",
+          "public",
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.operation_receipts.operation_receipts_user_id_fkey",
+    "label": "Add foreign key \"operation_receipts_user_id_fkey\" on \"operation_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "operation_receipts_user_id_fkey",
+        "table": "operation_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"operation_receipts_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_receipts_user_id_fkey",
+          "public",
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"operation_receipts_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"operation_receipts\"\nADD CONSTRAINT \"operation_receipts_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"operation_receipts_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_receipts_user_id_fkey",
+          "public",
+          "\"public\".\"operation_receipts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.operation_records.operation_records_organization_id_region_id_fkey",
+    "label": "Add foreign key \"operation_records_organization_id_region_id_fkey\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "operation_records_organization_id_region_id_fkey",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"operation_records_organization_id_region_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_records_organization_id_region_id_fkey",
+          "public",
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"operation_records_organization_id_region_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"operation_records\"\nADD CONSTRAINT \"operation_records_organization_id_region_id_fkey\"\nFOREIGN KEY (\"organization_id\", \"region_id\")\nREFERENCES \"public\".\"organization_units\" (\"organization_id\", \"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"operation_records_organization_id_region_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_records_organization_id_region_id_fkey",
+          "public",
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.operation_records.operation_records_organization_id_fkey",
+    "label": "Add foreign key \"operation_records_organization_id_fkey\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "operation_records_organization_id_fkey",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"operation_records_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_records_organization_id_fkey",
+          "public",
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"operation_records_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"operation_records\"\nADD CONSTRAINT \"operation_records_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"operation_records_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_records_organization_id_fkey",
+          "public",
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.operation_records.operation_records_owner_id_fkey",
+    "label": "Add foreign key \"operation_records_owner_id_fkey\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "operation_records_owner_id_fkey",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"operation_records_owner_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_records_owner_id_fkey",
+          "public",
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"operation_records_owner_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"operation_records\"\nADD CONSTRAINT \"operation_records_owner_id_fkey\"\nFOREIGN KEY (\"owner_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"operation_records_owner_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "operation_records_owner_id_fkey",
+          "public",
+          "\"public\".\"operation_records\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.operation_receipts.ops_receipt_insert_41861ccb",
+    "label": "Create RLS policy \"ops_receipt_insert_41861ccb\" on \"operation_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "ops_receipt_insert_41861ccb",
+        "table": "operation_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"ops_receipt_insert_41861ccb\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_receipts",
+          "ops_receipt_insert_41861ccb"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"ops_receipt_insert_41861ccb\"",
+        "sql": "CREATE POLICY \"ops_receipt_insert_41861ccb\" ON \"public\".\"operation_receipts\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id=nullif(current_setting('vops.user_id',true),'')::integer AND organization_id=current_setting('vops.organization_id',true) AND region_id=current_setting('vops.region_id',true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"ops_receipt_insert_41861ccb\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_receipts",
+          "ops_receipt_insert_41861ccb"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.operation_receipts.ops_receipt_owner_eb9ee7c4",
+    "label": "Create RLS policy \"ops_receipt_owner_eb9ee7c4\" on \"operation_receipts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "ops_receipt_owner_eb9ee7c4",
+        "table": "operation_receipts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"ops_receipt_owner_eb9ee7c4\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_receipts",
+          "ops_receipt_owner_eb9ee7c4"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"ops_receipt_owner_eb9ee7c4\"",
+        "sql": "CREATE POLICY \"ops_receipt_owner_eb9ee7c4\" ON \"public\".\"operation_receipts\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id=nullif(current_setting('vops.user_id',true),'')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"ops_receipt_owner_eb9ee7c4\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_receipts",
+          "ops_receipt_owner_eb9ee7c4"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.operation_records.operations_insert_37f73d5f",
+    "label": "Create RLS policy \"operations_insert_37f73d5f\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "operations_insert_37f73d5f",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"operations_insert_37f73d5f\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_insert_37f73d5f"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"operations_insert_37f73d5f\"",
+        "sql": "CREATE POLICY \"operations_insert_37f73d5f\" ON \"public\".\"operation_records\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (organization_id=current_setting('vops.organization_id',true) AND region_id=current_setting('vops.region_id',true) AND current_setting('vops.operations',true)='true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"operations_insert_37f73d5f\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_insert_37f73d5f"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.operation_records.operations_scope_ef3bd367",
+    "label": "Create RLS policy \"operations_scope_ef3bd367\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "operations_scope_ef3bd367",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"operations_scope_ef3bd367\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_scope_ef3bd367"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"operations_scope_ef3bd367\"",
+        "sql": "CREATE POLICY \"operations_scope_ef3bd367\" ON \"public\".\"operation_records\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (organization_id = current_setting('vops.organization_id',true) AND region_id = current_setting('vops.region_id',true) AND (kind NOT IN ('APPLICATION','ASSIGNMENT','HOURS','SUPPORT') OR owner_id = nullif(current_setting('vops.user_id',true),'')::integer OR EXISTS(SELECT 1 FROM public.organization_memberships m WHERE m.organization_id=operation_records.organization_id AND m.user_id=nullif(current_setting('vops.user_id',true),'')::integer AND m.status='ACTIVE' AND m.role IN ('ORG_ADMIN','COORDINATOR'))))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"operations_scope_ef3bd367\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_scope_ef3bd367"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.operation_records.operations_update_0e7cfbda",
+    "label": "Create RLS policy \"operations_update_0e7cfbda\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "operations_update_0e7cfbda",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"operations_update_0e7cfbda\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_update_0e7cfbda"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"operations_update_0e7cfbda\"",
+        "sql": "CREATE POLICY \"operations_update_0e7cfbda\" ON \"public\".\"operation_records\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (organization_id=current_setting('vops.organization_id',true) AND region_id=current_setting('vops.region_id',true) AND current_setting('vops.operations',true)='true') WITH CHECK (organization_id=current_setting('vops.organization_id',true) AND region_id=current_setting('vops.region_id',true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"operations_update_0e7cfbda\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_update_0e7cfbda"
+        ]
+      }
+    ]
+  }
+]

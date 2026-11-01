@@ -1,0 +1,416 @@
+[
+  {
+    "id": "table.pro_sponsorships",
+    "label": "Create table \"pro_sponsorships\"",
+    "summary": "Creates table \"pro_sponsorships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"pro_sponsorships\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"pro_sponsorships\"",
+        "sql": "CREATE TABLE \"public\".\"pro_sponsorships\" (\n  \"active\" bool DEFAULT true NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"organization_id\" text NOT NULL,\n  \"sponsor_id\" int4 NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  \"version\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"pro_sponsorships\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.pro_sponsorships.pro_sponsorship_recipient",
+    "label": "Add unique constraint on \"pro_sponsorships\" (organization_id, user_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "pro_sponsorship_recipient",
+        "table": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"pro_sponsorship_recipient\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "pro_sponsorship_recipient",
+          "public",
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"pro_sponsorship_recipient\"",
+        "sql": "ALTER TABLE \"public\".\"pro_sponsorships\" ADD CONSTRAINT \"pro_sponsorship_recipient\" UNIQUE (\"organization_id\", \"user_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"pro_sponsorship_recipient\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "pro_sponsorship_recipient",
+          "public",
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.pro_sponsorships.pro_sponsor_active",
+    "label": "Create index \"pro_sponsor_active\" on \"pro_sponsorships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "pro_sponsor_active",
+        "table": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"pro_sponsor_active\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"pro_sponsor_active\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"pro_sponsor_active\"",
+        "sql": "CREATE INDEX \"pro_sponsor_active\" ON \"public\".\"pro_sponsorships\" (\"sponsor_id\", \"active\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"pro_sponsor_active\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"pro_sponsor_active\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.pro_sponsorships.pro_sponsorships_organization_id_fkey",
+    "label": "Add foreign key \"pro_sponsorships_organization_id_fkey\" on \"pro_sponsorships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "pro_sponsorships_organization_id_fkey",
+        "table": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"pro_sponsorships_organization_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "pro_sponsorships_organization_id_fkey",
+          "public",
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"pro_sponsorships_organization_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"pro_sponsorships\"\nADD CONSTRAINT \"pro_sponsorships_organization_id_fkey\"\nFOREIGN KEY (\"organization_id\")\nREFERENCES \"public\".\"organizations\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"pro_sponsorships_organization_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "pro_sponsorships_organization_id_fkey",
+          "public",
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.pro_sponsorships.pro_sponsorships_sponsor_id_fkey",
+    "label": "Add foreign key \"pro_sponsorships_sponsor_id_fkey\" on \"pro_sponsorships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "pro_sponsorships_sponsor_id_fkey",
+        "table": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"pro_sponsorships_sponsor_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "pro_sponsorships_sponsor_id_fkey",
+          "public",
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"pro_sponsorships_sponsor_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"pro_sponsorships\"\nADD CONSTRAINT \"pro_sponsorships_sponsor_id_fkey\"\nFOREIGN KEY (\"sponsor_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"pro_sponsorships_sponsor_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "pro_sponsorships_sponsor_id_fkey",
+          "public",
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.pro_sponsorships.pro_sponsorships_user_id_fkey",
+    "label": "Add foreign key \"pro_sponsorships_user_id_fkey\" on \"pro_sponsorships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "pro_sponsorships_user_id_fkey",
+        "table": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"pro_sponsorships_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "pro_sponsorships_user_id_fkey",
+          "public",
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"pro_sponsorships_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"pro_sponsorships\"\nADD CONSTRAINT \"pro_sponsorships_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"pro_sponsorships_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "pro_sponsorships_user_id_fkey",
+          "public",
+          "\"public\".\"pro_sponsorships\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.pro_sponsorships",
+    "label": "Enable row-level security on \"pro_sponsorships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"pro_sponsorships\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "pro_sponsorships"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"pro_sponsorships\"",
+        "sql": "ALTER TABLE \"public\".\"pro_sponsorships\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"pro_sponsorships\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "pro_sponsorships"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.pro_sponsorships.pro_sponsorship_create_a7128f45",
+    "label": "Create RLS policy \"pro_sponsorship_create_a7128f45\" on \"pro_sponsorships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "pro_sponsorship_create_a7128f45",
+        "table": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"pro_sponsorship_create_a7128f45\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "pro_sponsorships",
+          "pro_sponsorship_create_a7128f45"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"pro_sponsorship_create_a7128f45\"",
+        "sql": "CREATE POLICY \"pro_sponsorship_create_a7128f45\" ON \"public\".\"pro_sponsorships\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (sponsor_id=nullif(current_setting('vops.user_id',true),'')::integer AND organization_id=current_setting('vops.organization_id',true) AND current_setting('vops.roster',true)='true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"pro_sponsorship_create_a7128f45\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "pro_sponsorships",
+          "pro_sponsorship_create_a7128f45"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.pro_sponsorships.pro_sponsorship_manage_7f85aec2",
+    "label": "Create RLS policy \"pro_sponsorship_manage_7f85aec2\" on \"pro_sponsorships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "pro_sponsorship_manage_7f85aec2",
+        "table": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"pro_sponsorship_manage_7f85aec2\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "pro_sponsorships",
+          "pro_sponsorship_manage_7f85aec2"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"pro_sponsorship_manage_7f85aec2\"",
+        "sql": "CREATE POLICY \"pro_sponsorship_manage_7f85aec2\" ON \"public\".\"pro_sponsorships\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (sponsor_id=nullif(current_setting('vops.user_id',true),'')::integer AND organization_id=current_setting('vops.organization_id',true) AND current_setting('vops.roster',true)='true') WITH CHECK (sponsor_id=nullif(current_setting('vops.user_id',true),'')::integer AND organization_id=current_setting('vops.organization_id',true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"pro_sponsorship_manage_7f85aec2\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "pro_sponsorships",
+          "pro_sponsorship_manage_7f85aec2"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.pro_sponsorships.pro_sponsorship_read_32edc8d1",
+    "label": "Create RLS policy \"pro_sponsorship_read_32edc8d1\" on \"pro_sponsorships\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "pro_sponsorship_read_32edc8d1",
+        "table": "pro_sponsorships"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"pro_sponsorship_read_32edc8d1\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "pro_sponsorships",
+          "pro_sponsorship_read_32edc8d1"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"pro_sponsorship_read_32edc8d1\"",
+        "sql": "CREATE POLICY \"pro_sponsorship_read_32edc8d1\" ON \"public\".\"pro_sponsorships\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (sponsor_id=nullif(current_setting('vops.user_id',true),'')::integer OR user_id=nullif(current_setting('vops.user_id',true),'')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"pro_sponsorship_read_32edc8d1\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "pro_sponsorships",
+          "pro_sponsorship_read_32edc8d1"
+        ]
+      }
+    ]
+  }
+]

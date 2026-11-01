@@ -1,4 +1,6 @@
-﻿# ResQ documentation
+ÃƒÂ¯Ã‚Â»Ã‚Â¿# ResQ documentation
+
+Stage 3: [implementation and evidence](stage-3-implementation.md); [provider setup and acceptance](stage-3-manual-setup.md); [RevenueCat configuration and store setup](stage-3-revenuecat-setup.md).
 
 Stage 1 implementation: [evidence and status](stage-1-implementation.md) ? [manual setup and credential rotation](stage-1-manual-setup.md).
 
@@ -38,3 +40,9 @@ Latest user decisions and this roadmap govern delivery, hosting and product poli
 The old Render/Prisma Console hosting guides and outdated database-hosting rewrite documents have been removed; useful data-preservation/build facts were migrated. Existing provider-specific scripts/configuration and live services were not deleted. Stage 1 replaces their runtime deployment wiring and Stage 7 performs the reviewed cutover. Prisma ORM documentation remains relevant.
 
 Stage 2: [implementation ledger](stage-2-implementation.md) and [manual setup](stage-2-manual-setup.md).
+
+Stage 4 progress: [implementation and remaining acceptance](stage-4-implementation.md).
+
+Stage 4 provider steps: [manual setup and acceptance](stage-4-manual-setup.md).
+
+Stage 3 acceptance: [requirement-by-requirement ledger](stage-3-acceptance.md).

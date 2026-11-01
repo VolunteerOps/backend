@@ -1,0 +1,24 @@
+﻿{
+    "projectId":  "73690bd6-2d68-4ac7-9330-b5da3ebed8f0",
+    "environmentId":  "9de4cdd7-abad-4a36-ae1e-7577c06dc2d7",
+    "environment":  "staging",
+    "pausedDate":  "2026-10-13",
+    "cronSchedules":  [
+                          {
+                              "service":  "resq-monitor",
+                              "serviceId":  "cdb6ea78-bb62-4531-b55f-22eaa40bb79f",
+                              "schedule":  "*/5 * * * *"
+                          },
+                          {
+                              "service":  "resq-retention",
+                              "serviceId":  "184ac69a-7716-4f2c-bd00-760f4a474a0c",
+                              "schedule":  "*/5 * * * *"
+                          },
+                          {
+                              "service":  "resq-backup",
+                              "serviceId":  "bd5f5977-a60d-4f7b-b71d-5a55f6d61fd8",
+                              "schedule":  "0 2 * * *"
+                          }
+                      ],
+    "resumeNote":  "Restore these cron schedules before redeploying the scheduled services. Start PostgreSQL before dependent services."
+}

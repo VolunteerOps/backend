@@ -17,7 +17,8 @@ export interface MembershipPolicy {
 }
 
 export function requireRecentMfa(identity: VerifiedFirebaseIdentity, now = Date.now()) {
-  if (identity.secondFactor !== 'totp') throw ApiError.forbidden('TOTP step-up is required', 'MFA_REQUIRED');
+  // Password-only is the product default. Operators may explicitly restore TOTP policy.
+  if (process.env.AUTH_REQUIRE_MFA === 'true' && identity.secondFactor !== 'totp') throw ApiError.forbidden('TOTP step-up is required', 'MFA_REQUIRED');
   if (!Number.isInteger(identity.authTime) || identity.authTime * 1000 > now || now - identity.authTime * 1000 > 300_000) {
     throw ApiError.unauthorized('Sign in again before this action', 'RECENT_AUTH_REQUIRED');
   }
@@ -27,8 +28,8 @@ export function checkAssurance(org: OrganizationPolicy, identity: VerifiedFireba
   if (!org.allowedProviders.includes(identity.signInProvider)) {
     throw ApiError.forbidden('Use this organization’s approved sign-in method', 'SSO_REQUIRED');
   }
-  if (privileged) requireRecentMfa(identity, now);
-  else if (org.requireMfa && identity.secondFactor !== 'totp') {
+  if (privileged && process.env.AUTH_REQUIRE_MFA === 'true') requireRecentMfa(identity, now);
+  else if (process.env.AUTH_REQUIRE_MFA === 'true' && org.requireMfa && identity.secondFactor !== 'totp') {
     throw ApiError.forbidden('TOTP step-up is required', 'MFA_REQUIRED');
   }
 }
@@ -45,6 +46,9 @@ export function authorizeOrganization(org: OrganizationPolicy, member: Membershi
     throw ApiError.forbidden('This membership does not permit the action', 'CAPABILITY_REQUIRED');
   }
   checkAssurance(org, identity, member.role !== 'VOLUNTEER', now);
+  // Reading operational state should not expire every five minutes. Require fresh
+  // password authentication only when changing admission, membership or policy.
+  if (['members.invite', 'members.manage', 'sentinel.configure'].includes(capability)) requireRecentMfa(identity, now);
   // Current administration endpoints cover an entire organization. A region-limited
   // grant cannot authorize a whole roster until region-filtered administration exists.
   if (capability !== 'organization.read' && member.regionIds.length > 0) {

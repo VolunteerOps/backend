@@ -1,3 +1,4 @@
+import { publicFirebaseConfiguration } from '../../core/public-firebase.js';
 ﻿import { Router } from 'express';
 import type { Response } from 'express';
 import { z } from 'zod';
@@ -29,11 +30,11 @@ function clearCookies(res: Response) {
   }
 }
 
-router.get('/config',(_req,res)=>{
+router.get('/config',(req,res)=>{
  res.setHeader('Cache-Control','no-store');
- const key=process.env.FIREBASE_WEB_API_KEY;
- const configured=Boolean(process.env.FIREBASE_PROJECT_ID && key && /^[A-Za-z0-9_-]{20,200}$/.test(key));
- res.json({status:configured?'CONFIGURED_UNVERIFIED':'NOT_CONFIGURED',api_key:configured?key:null,project_id:configured?process.env.FIREBASE_PROJECT_ID:null});
+ if(req.query.app!==undefined&&!['volunteer','ops'].includes(String(req.query.app))){res.status(400).json({error:'INVALID_APP'});return;}
+ const firebase=publicFirebaseConfiguration(process.env,req.query.app==='ops'?'ops':'volunteer');
+ res.json({status:firebase?'CONFIGURED_UNVERIFIED':'NOT_CONFIGURED',api_key:firebase?.apiKey??null,project_id:firebase?.projectId??null,firebase});
 });
 router.post('/firebase/bootstrap', authRateLimiter,
   validateBody(z.object({ full_name: z.string().trim().min(2).max(120) }).strict()),

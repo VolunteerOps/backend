@@ -55,6 +55,11 @@ enum ContactStatus {
 }
 
 model User {
+ usageLedger UsageLedger[]
+  sponsoredPro ProSponsorship[] @relation("ProSponsor")
+  receivedPro ProSponsorship[] @relation("ProRecipient")
+  operationRecords OperationRecord[]
+  operationReceipts OperationReceipt[]
  responderReservation ResponderReservation?
  stage2PartnerApplication PartnerApplication[]
  stage2SupportAccessGrant SupportAccessGrant[]
@@ -94,6 +99,9 @@ model User {
 
 
 model Organization {
+  proSponsorships ProSponsorship[]
+  operationRecords OperationRecord[]
+  operationReceipts OperationReceipt[]
  responderReservations ResponderReservation[]
  stage2PartnerApplication PartnerApplication[]
  stage2CoordinationGrant CoordinationGrant[]
@@ -681,6 +689,8 @@ model IngressReceipt {
 }
 
 model OrganizationUnit {
+  operationRecords OperationRecord[]
+  operationReceipts OperationReceipt[]
   storedObjects StoredObject[]
  forecastBounds Json? @map("forecast_bounds")
  forecastPolicy Json? @map("forecast_policy")
@@ -952,4 +962,77 @@ model ResponderReservation {
  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
  @@map("responder_reservations")
+}
+
+
+  model OperationRecord {
+    id String @id
+    sequence Int @default(autoincrement()) @unique
+    organizationId String @map("organization_id")
+    regionId String @map("region_id")
+    kind String
+    ownerId Int @map("owner_id")
+    parentId String? @map("parent_id")
+    payload Json
+    version Int @default(1)
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @default(now()) @map("updated_at")
+    @@index([organizationId, regionId, kind, sequence], map: "ops_scope_sequence")
+    @@index([organizationId, parentId, kind], map: "ops_parent_kind")
+    @@map("operation_records")
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+    region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+    owner User @relation(fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  }
+  model OperationReceipt {
+    id String @id
+    userId Int @map("user_id")
+    organizationId String @map("organization_id")
+    regionId String @map("region_id")
+    key String
+    fingerprint String
+    result Json
+    createdAt DateTime @default(now()) @map("created_at")
+    @@unique([userId, key])
+    @@map("operation_receipts")
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+    region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade)
+    owner User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  }
+
+
+ model ProSponsorship {
+  id String @id
+  organizationId String @map("organization_id")
+  sponsorId Int @map("sponsor_id")
+  userId Int @map("user_id")
+  active Boolean @default(true)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Restrict,onUpdate:Cascade)
+  sponsor User @relation("ProSponsor",fields:[sponsorId],references:[id],onDelete:Restrict,onUpdate:Cascade)
+  recipient User @relation("ProRecipient",fields:[userId],references:[id],onDelete:Restrict,onUpdate:Cascade)
+  @@unique([organizationId,userId],map:"pro_sponsorship_recipient")
+  @@index([sponsorId,active],map:"pro_sponsor_active")
+  @@map("pro_sponsorships")
+ }
+
+model UsageLedger {
+ id String @id
+ userId Int @map("user_id")
+ requestKey String @map("request_key")
+ fingerprint String
+ bucket String
+ period String
+ units Int
+ state String @default("RESERVED")
+ metadata Json
+ createdAt DateTime @default(now()) @map("created_at")
+ finalizedAt DateTime? @map("finalized_at")
+ user User @relation(fields:[userId],references:[id],onDelete:Restrict,onUpdate:Cascade)
+ @@unique([userId,requestKey],map:"usage_request_key")
+ @@index([userId,bucket,period,state],map:"usage_personal_bucket")
+ @@map("usage_ledger")
 }

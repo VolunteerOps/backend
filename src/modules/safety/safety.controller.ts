@@ -1,0 +1,17 @@
+import {Router} from 'express';
+import {z} from 'zod';
+import {requireAuth} from '../../middleware/auth.middleware.js';
+import {authRateLimiter} from '../../middleware/rateLimiter.js';
+import {ah} from '../../middleware/asyncHandler.js';
+import {validateBody} from '../../middleware/validator.js';
+import {requestActor} from '../organizations/context.js';
+import {serialize} from '../../lib/serialize.js';
+import {caseIntake,caseDecision,caseStatuses} from './safety.schema.js';
+import {SafetyService} from './safety.service.js';
+const router=Router({mergeParams:true}),uuid=z.string().uuid();
+router.use(requireAuth,(_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();});
+router.get('/cases',ah(async(req,res)=>{res.json(serialize(await SafetyService.list(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),z.coerce.number().int().nonnegative().default(0).parse(req.query.after),z.enum(caseStatuses).optional().parse(req.query.status))));}));
+router.get('/cases/:caseId',ah(async(req,res)=>{res.json(serialize(await SafetyService.timeline(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),uuid.parse(req.params.caseId),z.coerce.number().int().nonnegative().default(0).parse(req.query.after))));}));
+router.post('/cases',authRateLimiter,validateBody(caseIntake),ah(async(req,res)=>{res.json(serialize(await SafetyService.intake(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),uuid.parse(req.headers['idempotency-key']),req.body)));}));
+router.post('/cases/:caseId/decisions',authRateLimiter,validateBody(caseDecision),ah(async(req,res)=>{res.json(serialize(await SafetyService.decide(requestActor(req),uuid.parse(req.params.orgId),uuid.parse(req.params.regionId),uuid.parse(req.params.caseId),uuid.parse(req.headers['idempotency-key']),req.body)));}));
+export default router;

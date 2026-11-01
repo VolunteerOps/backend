@@ -1460,4 +1460,135 @@ policy_insert receipt_insert {
     RESTRICTED = "RESTRICTED"
     INACTIVE = "INACTIVE"
   }
+  model OperationRecord {
+    id String @id
+    sequence Int @default(autoincrement()) @unique
+    organizationId String @map("organization_id")
+    regionId String @map("region_id")
+    kind String
+    ownerId Int @map("owner_id")
+    parentId String? @map("parent_id")
+    payload Json
+    version Int @default(1)
+    createdAt Timestamp(3) @default(now()) @map("created_at")
+    updatedAt Timestamp(3) @default(now()) @map("updated_at")
+    @@index([organizationId, regionId, kind, sequence], map: "ops_scope_sequence")
+    @@index([organizationId, parentId, kind], map: "ops_parent_kind")
+    @@map("operation_records")
+    @@rls
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    owner Users @relation(fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+
+  }
+  model OperationReceipt {
+    id String @id
+    userId Int @map("user_id")
+    organizationId String @map("organization_id")
+    regionId String @map("region_id")
+    key String
+    fingerprint String
+    result Json
+    createdAt Timestamp(3) @default(now()) @map("created_at")
+    @@unique([userId, key])
+    @@map("operation_receipts")
+    @@rls
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    region OrganizationUnit @relation(fields: [organizationId, regionId], references: [organizationId, id], onDelete: Restrict, onUpdate: Cascade, index: false)
+    owner Users @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade, index: false)
+
+  }
+
+  policy_select operations_scope {
+    target = OperationRecord
+    using = "organization_id = current_setting('vops.organization_id',true) AND region_id = current_setting('vops.region_id',true) AND (kind NOT IN ('APPLICATION','ASSIGNMENT','HOURS','SUPPORT','ENROLLMENT','CREDENTIAL','COURSE_ASSESSMENT') OR (kind IN ('COURSE_ASSESSMENT','ENROLLMENT') AND current_setting('vops.training',true)='true') OR owner_id = nullif(current_setting('vops.user_id',true),'')::integer OR EXISTS(SELECT 1 FROM public.organization_memberships m WHERE m.organization_id=operation_records.organization_id AND m.user_id=nullif(current_setting('vops.user_id',true),'')::integer AND m.status='ACTIVE' AND m.role IN ('ORG_ADMIN','COORDINATOR')))"
+  }
+  policy_select planning_private {
+    target = OperationRecord
+    using = "kind NOT IN ('RESOURCE_PLAN','WEATHER_ANALYSIS') OR EXISTS(SELECT 1 FROM public.organization_memberships m WHERE m.organization_id=operation_records.organization_id AND m.user_id=nullif(current_setting('vops.user_id',true),'')::integer AND m.status='ACTIVE' AND m.role IN ('ORG_ADMIN','COORDINATOR'))"
+    permissive = false
+  }
+  policy_select assistance_private {
+    target = OperationRecord
+    using = "kind NOT IN ('ASSISTANCE_CASE','ASSISTANCE_EVENT') OR owner_id=nullif(current_setting('vops.user_id',true),'')::integer OR EXISTS(SELECT 1 FROM public.organization_memberships m WHERE m.organization_id=operation_records.organization_id AND m.user_id=nullif(current_setting('vops.user_id',true),'')::integer AND m.status='ACTIVE' AND m.role IN ('ORG_ADMIN','COORDINATOR'))"
+    permissive = false
+  }
+  policy_insert operations_insert {
+    target = OperationRecord
+    withCheck = "organization_id=current_setting('vops.organization_id',true) AND region_id=current_setting('vops.region_id',true) AND current_setting('vops.operations',true)='true'"
+  }
+  policy_update operations_update {
+    target = OperationRecord
+    using = "organization_id=current_setting('vops.organization_id',true) AND region_id=current_setting('vops.region_id',true) AND current_setting('vops.operations',true)='true'"
+    withCheck = "organization_id=current_setting('vops.organization_id',true) AND region_id=current_setting('vops.region_id',true)"
+  }
+  policy_select ops_receipt_owner {
+    target = OperationReceipt
+    using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+  }
+  policy_insert ops_receipt_insert {
+    target = OperationReceipt
+    withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer AND organization_id=current_setting('vops.organization_id',true) AND region_id=current_setting('vops.region_id',true)"
+  }
+
+ model ProSponsorship {
+  id String @id
+  organizationId String @map("organization_id")
+  sponsorId Int @map("sponsor_id")
+  userId Int @map("user_id")
+  active Boolean @default(true)
+  version Int @default(1)
+  createdAt Timestamp(3) @default(now()) @map("created_at")
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Restrict,onUpdate:Cascade,index:false)
+  sponsor Users @relation(fields:[sponsorId],references:[id],onDelete:Restrict,onUpdate:Cascade,index:false)
+  recipient Users @relation(fields:[userId],references:[id],onDelete:Restrict,onUpdate:Cascade,index:false)
+  @@unique([organizationId,userId],map:"pro_sponsorship_recipient")
+  @@index([sponsorId,active],map:"pro_sponsor_active")
+  @@map("pro_sponsorships")
+  @@rls
+ }
+ policy_select pro_sponsorship_read {
+  target = ProSponsorship
+  using = "sponsor_id=nullif(current_setting('vops.user_id',true),'')::integer OR user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+ }
+ policy_insert pro_sponsorship_create {
+  target = ProSponsorship
+  withCheck = "sponsor_id=nullif(current_setting('vops.user_id',true),'')::integer AND organization_id=current_setting('vops.organization_id',true) AND current_setting('vops.roster',true)='true'"
+ }
+ policy_update pro_sponsorship_manage {
+  target = ProSponsorship
+  using = "sponsor_id=nullif(current_setting('vops.user_id',true),'')::integer AND organization_id=current_setting('vops.organization_id',true) AND current_setting('vops.roster',true)='true'"
+  withCheck = "sponsor_id=nullif(current_setting('vops.user_id',true),'')::integer AND organization_id=current_setting('vops.organization_id',true)"
+ }
+
+
+model UsageLedger {
+ id String @id
+ userId Int @map("user_id")
+ requestKey String @map("request_key")
+ fingerprint String
+ bucket String
+ period String
+ units Int
+ state String @default("RESERVED")
+ metadata Json
+ createdAt Timestamp(3) @default(now()) @map("created_at")
+ finalizedAt Timestamp(3)? @map("finalized_at")
+ user Users @relation(fields:[userId],references:[id],onDelete:Restrict,onUpdate:Cascade,index:false)
+ @@unique([userId,requestKey],map:"usage_request_key")
+ @@index([userId,bucket,period,state],map:"usage_personal_bucket")
+ @@rls
+ @@map("usage_ledger")
+}
+
+policy_select usage_owner_read { target = UsageLedger
+ using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
+policy_insert usage_server_reserve { target = UsageLedger
+ withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer AND current_setting('vops.usage',true)='true'"
+}
+policy_update usage_server_finalize { target = UsageLedger
+ using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer AND current_setting('vops.usage',true)='true'"
+ withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
 }

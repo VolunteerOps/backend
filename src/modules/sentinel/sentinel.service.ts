@@ -22,17 +22,18 @@ export const refreshSchema = z.object({
     }
   } catch { context.addIssue({ code: 'custom', message: 'Forecast initialization must be on a UTC hour' }); }
 });
-export function configuredForecastProvider() {
+export function configuredForecastSettings() {
   if (!process.env.WEATHERNEXT_PROJECT_ID || !process.env.WEATHERNEXT_DATASET_ID ||
       !process.env.WEATHERNEXT_MAX_BYTES_BILLED || process.env.WEATHERNEXT_ACCESS_ENABLED !== 'true') {
     throw new ApiError(503, 'WEATHERNEXT_NOT_CONFIGURED', 'WeatherNext project, dataset, access and query budget must be configured');
   }
-  return new WeatherNext3BigQuery({
-    projectId: process.env.WEATHERNEXT_PROJECT_ID, datasetId: process.env.WEATHERNEXT_DATASET_ID,
+  return {
+    projectId: process.env.WEATHERNEXT_PROJECT_ID, billingProjectId: process.env.WEATHERNEXT_BILLING_PROJECT_ID, datasetId: process.env.WEATHERNEXT_DATASET_ID,
     location: process.env.WEATHERNEXT_LOCATION || 'US',
     maximumBytesBilled: Number(process.env.WEATHERNEXT_MAX_BYTES_BILLED), maxRows: 10000,
-  });
+  };
 }
+export function configuredForecastProvider(){return new WeatherNext3BigQuery(configuredForecastSettings());}
 export const SentinelService = {
   async hazards(actor: Actor, organizationId: string, regionId: string) {
     return withRegion(actor, organizationId, regionId, false, async tx => {

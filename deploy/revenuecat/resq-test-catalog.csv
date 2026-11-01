@@ -1,0 +1,19 @@
+row_type,store,store_identifier,product_type,display_name,title,duration,amount,currency
+product,test_store,resq_pro_monthly_v1,subscription,ResQ Pro Monthly,ResQ Pro Monthly,P1M,,
+price,test_store,resq_pro_monthly_v1,,,,,4.99,USD
+price,test_store,resq_pro_monthly_v1,,,,,650,KES
+product,test_store,resq_pro_yearly_v1,subscription,ResQ Pro Yearly,ResQ Pro Yearly,P1Y,,
+price,test_store,resq_pro_yearly_v1,,,,,39.99,USD
+price,test_store,resq_pro_yearly_v1,,,,,5200,KES
+product,test_store,resq_pro_lifetime_v1,non_consumable,ResQ Pro Lifetime,ResQ Pro Lifetime,,,
+price,test_store,resq_pro_lifetime_v1,,,,,149.99,USD
+price,test_store,resq_pro_lifetime_v1,,,,,19500,KES
+product,test_store,resqops_pro_monthly_v1,subscription,ResQOps Pro Monthly,ResQOps Pro Monthly,P1M,,
+price,test_store,resqops_pro_monthly_v1,,,,,19.99,USD
+price,test_store,resqops_pro_monthly_v1,,,,,2600,KES
+product,test_store,resqops_pro_yearly_v1,subscription,ResQOps Pro Yearly,ResQOps Pro Yearly,P1Y,,
+price,test_store,resqops_pro_yearly_v1,,,,,159.99,USD
+price,test_store,resqops_pro_yearly_v1,,,,,20800,KES
+product,test_store,resqops_pro_lifetime_v1,non_consumable,ResQOps Pro Lifetime,ResQOps Pro Lifetime,,,
+price,test_store,resqops_pro_lifetime_v1,,,,,599.99,USD
+price,test_store,resqops_pro_lifetime_v1,,,,,78000,KES

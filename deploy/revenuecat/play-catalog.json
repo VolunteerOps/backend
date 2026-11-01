@@ -1,0 +1,56 @@
+[
+  {
+    "app": "app59122274d8",
+    "offering": "sale",
+    "entitlement": "resq_pro",
+    "period": "monthly",
+    "product_id": "prod78b65c9745",
+    "store_identifier": "resq_pro:monthly",
+    "package_id": "pkge4efdc0ff0d"
+  },
+  {
+    "app": "app59122274d8",
+    "offering": "sale",
+    "entitlement": "resq_pro",
+    "period": "yearly",
+    "product_id": "prod6ba02b91e7",
+    "store_identifier": "resq_pro:yearly",
+    "package_id": "pkge67de225b25"
+  },
+  {
+    "app": "app59122274d8",
+    "offering": "sale",
+    "entitlement": "resq_pro",
+    "period": "lifetime",
+    "product_id": "prod75d633a79e",
+    "store_identifier": "resq_pro_lifetime",
+    "package_id": "pkge0e22fb160b"
+  },
+  {
+    "app": "appca41ece37e",
+    "offering": "default",
+    "entitlement": "resqops_pro",
+    "period": "monthly",
+    "product_id": "prod0ce42a32b9",
+    "store_identifier": "resqops_pro:monthly",
+    "package_id": "pkge384db7ae35"
+  },
+  {
+    "app": "appca41ece37e",
+    "offering": "default",
+    "entitlement": "resqops_pro",
+    "period": "yearly",
+    "product_id": "prod027b836cab",
+    "store_identifier": "resqops_pro:yearly",
+    "package_id": "pkgecc9b12ae18"
+  },
+  {
+    "app": "appca41ece37e",
+    "offering": "default",
+    "entitlement": "resqops_pro",
+    "period": "lifetime",
+    "product_id": "prode56f04dd3a",
+    "store_identifier": "resqops_pro_lifetime",
+    "package_id": "pkge5918194c1e"
+  }
+]

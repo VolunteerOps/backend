@@ -1,0 +1,88 @@
+[
+  {
+    "id": "rlsPolicy.public.operation_records.operations_scope_85399603",
+    "label": "Create RLS policy \"operations_scope_85399603\" on \"operation_records\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "operations_scope_85399603",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"operations_scope_85399603\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_scope_85399603"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"operations_scope_85399603\"",
+        "sql": "CREATE POLICY \"operations_scope_85399603\" ON \"public\".\"operation_records\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (organization_id = current_setting('vops.organization_id',true) AND region_id = current_setting('vops.region_id',true) AND (kind NOT IN ('APPLICATION','ASSIGNMENT','HOURS','SUPPORT','ENROLLMENT','CREDENTIAL','COURSE_ASSESSMENT') OR (kind IN ('COURSE_ASSESSMENT','ENROLLMENT') AND current_setting('vops.training',true)='true') OR owner_id = nullif(current_setting('vops.user_id',true),'')::integer OR EXISTS(SELECT 1 FROM public.organization_memberships m WHERE m.organization_id=operation_records.organization_id AND m.user_id=nullif(current_setting('vops.user_id',true),'')::integer AND m.status='ACTIVE' AND m.role IN ('ORG_ADMIN','COORDINATOR'))))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"operations_scope_85399603\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_scope_85399603"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.operation_records.operations_scope_d804864b.drop",
+    "label": "Drop RLS policy \"operations_scope_d804864b\" on \"operation_records\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "operations_scope_d804864b",
+        "table": "operation_records"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"operations_scope_d804864b\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_scope_d804864b"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop RLS policy \"operations_scope_d804864b\"",
+        "sql": "DROP POLICY \"operations_scope_d804864b\" ON \"public\".\"operation_records\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"operations_scope_d804864b\" is absent",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "operation_records",
+          "operations_scope_d804864b"
+        ]
+      }
+    ]
+  }
+]

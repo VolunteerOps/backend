@@ -14,6 +14,9 @@ import { createDatabaseReadinessHandler } from './middleware/readiness.middlewar
 
 // Domain Module Routers
 import enterpriseRouter from './modules/enterprise/enterprise.controller.js';
+import billingRouter from './modules/billing/billing.controller.js';
+import safetyRouter from './modules/safety/safety.controller.js';
+import operationsRouter from './modules/operations/operations.controller.js';
 import personalRouter from './modules/personal/personal.controller.js';
 import authRouter from './modules/auth/auth.controller.js';
 import organizationsRouter from './modules/organizations/organizations.controller.js';
@@ -87,7 +90,7 @@ const apiDiscoveryHandler = (_req: express.Request, res: express.Response) => {
     version: '2.0.0',
     status: 'AVAILABLE',
     readiness: '/api/ready',
-    operational_routes: 'TENANT_MIGRATION_REQUIRED',
+    operational_routes: 'SCOPED_MISSION_WORKFLOW', legacy_operational_routes: 'TENANT_MIGRATION_REQUIRED',
     description: 'RESTful API for the VolunteerOps disaster response and operational field management platform',
     timestamp: new Date().toISOString(),
     endpoints: {
@@ -139,7 +142,7 @@ app.get('/api/ready', createDatabaseReadinessHandler(async () => {
 
 app.get('/api/features', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.json({ scope: 'configuration', operational_routes: 'TENANT_MIGRATION_REQUIRED',
+  res.json({ scope: 'configuration', operational_routes: 'SCOPED_MISSION_WORKFLOW', legacy_operational_routes: 'TENANT_MIGRATION_REQUIRED',
     identity: process.env.FIREBASE_PROJECT_ID && process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'CONFIGURED_UNVERIFIED' : 'NOT_CONFIGURED',
     storage: config.S3_BUCKET ? 'CONFIGURED_UNVERIFIED' : 'NOT_CONFIGURED',
     weather: process.env.WEATHERNEXT_ACCESS_ENABLED === 'true' ? 'CONFIGURED_UNVERIFIED' : 'DISABLED',
@@ -148,6 +151,9 @@ app.get('/api/features', (_req, res) => {
 
 // REST Domain Routes
 app.use('/api/auth', authRouter);
+app.use('/api', billingRouter);
+app.use('/api/organizations/:orgId/regions/:regionId/operations', operationsRouter);
+app.use('/api/organizations/:orgId/regions/:regionId/safety', safetyRouter);
 app.use('/api/platform', platformRouter);
 app.use('/api', organizationsRouter);
 app.use('/api/organizations/:orgId/sentinel', sentinelRouter);

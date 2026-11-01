@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { boundsWkt, forecastHorizon, normalizeForecastRow, statistics } from '../src/modules/sentinel/providers/weathernext3.contract.js';
+import { boundsWkt, gridCellIntersectsBounds, forecastHorizon, normalizeForecastRow, statistics } from '../src/modules/sentinel/providers/weathernext3.contract.js';
 import type { BigQuery } from '@google-cloud/bigquery';
 import { WeatherNext3BigQuery, buildForecastQuery } from '../src/modules/sentinel/providers/weathernext3.bigquery.js';
 import { assessForecast } from '../src/modules/sentinel/forecast-assessment.js';
@@ -26,6 +26,7 @@ test('BigQuery source is partitioned, parameterized and bounded by billing and r
   const query = buildForecastQuery({ projectId: 'sentinel-test', datasetId: 'weather', location: 'US',
     maximumBytesBilled: 100000000, maxRows: 1000 }, { initTime: init, fromHour: 1, toHour: 24, bounds });
   assert.match(query.query, /t.init_time = @init_time/);
+  assert.match(query.query, /ST_INTERSECTS\(t.geography_polygon,/);
   assert.match(query.query, /weathernext_3_0_0_0p1deg/);
   assert.doesNotMatch(query.query, /SELECT \*/);
   assert.equal(query.params.row_limit, 1001);
@@ -90,4 +91,15 @@ test('BigQuery query execution rejects overflow and cancels failed or aborted pr
  await assert.rejects(provider.fetch(request,controller.signal));assert.equal(created,before);
  results=[[row(),row()],null];
  await assert.rejects(provider.fetch(request,new AbortController().signal),/DUPLICATE_FORECAST_CELL/);
+});
+
+test('polygon-intersection results retain overlapping cell centres for small and dateline regions',()=>{
+ const narrow={west:36.79,east:36.81,south:-1.31,north:-1.29};
+ assert.equal(gridCellIntersectsBounds(36.85,-1.25,narrow,0.1),true);
+ assert.equal(gridCellIntersectsBounds(36.85,-1.25,narrow,0),false);
+ assert.equal(gridCellIntersectsBounds(36.9,-1.25,narrow,0.1),false);
+ assert.equal(gridCellIntersectsBounds(-179.99,1,{west:179.99,east:180,south:0,north:2},0.1),true);
+ assert.equal(gridCellIntersectsBounds(179.99,1,{west:-180,east:-179.99,south:0,north:2},0.1),true);
+ assert.equal(gridCellIntersectsBounds(0,1,{west:179,east:-179,south:0,north:2},0.1),false);
+ assert.equal(normalizeForecastRow({...row(),longitude:36.85,latitude:-1.25},init,narrow,0.1).longitude,36.85);
 });

@@ -2,13 +2,12 @@ import { Router, static as serveStatic } from 'express';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
+import { publicFirebaseConfiguration } from '../../core/public-firebase.js';
 import { config } from '../../core/config.js';
 
-export function publicPortalConfiguration(env: NodeJS.ProcessEnv = process.env) {
+export function publicPortalConfiguration(env: NodeJS.ProcessEnv = process.env, app: 'volunteer' | 'ops' = 'volunteer') {
   const mapboxToken = env.MAPBOX_ACCESS_TOKEN?.trim();
-  const firebase = env.FIREBASE_WEB_API_KEY && env.FIREBASE_WEB_AUTH_DOMAIN && env.FIREBASE_PROJECT_ID && env.FIREBASE_WEB_APP_ID
-    ? { apiKey: env.FIREBASE_WEB_API_KEY, authDomain: env.FIREBASE_WEB_AUTH_DOMAIN,
-      projectId: env.FIREBASE_PROJECT_ID, appId: env.FIREBASE_WEB_APP_ID } : null;
+  const firebase = publicFirebaseConfiguration(env, app);
   return { firebase, mapbox_access_token: mapboxToken?.startsWith('pk.') ? mapboxToken : null,
     enterprise_providers: (env.FIREBASE_ENTERPRISE_PROVIDERS || '').split(',').map(p => p.trim())
       .filter(p => /^(saml|oidc)\.[a-zA-Z0-9_-]{1,100}$/.test(p)).slice(0, 20),
@@ -37,7 +36,13 @@ router.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
 });
-router.get('/config', (_req, res) => res.json(publicPortalConfiguration()));
+router.get('/map-widget-config', (_req,res)=>res.json({token:publicPortalConfiguration().mapbox_access_token,origins:config.CORS_ORIGIN.filter(origin=>/^https?:\/\/[a-zA-Z0-9.:-]+$/.test(origin))}));
+router.get('/config', (req, res) => {
+  if (req.query.app !== undefined && !['volunteer', 'ops'].includes(String(req.query.app))) {
+    res.status(400).json({ error: 'INVALID_APP' }); return;
+  }
+  res.json(publicPortalConfiguration(process.env, req.query.app === 'ops' ? 'ops' : 'volunteer'));
+});
 router.use(serveStatic(root, { index: 'index.html', dotfiles: 'deny', etag: false, fallthrough: true }));
 router.get('/', (_req, res) => {
   if (!existsSync(resolve(root, 'index.html'))) {

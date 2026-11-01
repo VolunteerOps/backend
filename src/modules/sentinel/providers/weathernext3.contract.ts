@@ -30,6 +30,14 @@ export function withinBounds(longitude: number, latitude: number, b: Bounds) {
   return latitude >= b.south && latitude <= b.north &&
     (b.west < b.east ? longitude >= b.west && longitude <= b.east : longitude >= b.west || longitude <= b.east);
 }
+/** SQL selects intersecting grid polygons; preserve their centres even at region edges. */
+export function gridCellIntersectsBounds(longitude:number,latitude:number,b:Bounds,resolution:0|0.05|0.1=0){
+ if(!Number.isFinite(longitude)||!Number.isFinite(latitude)||longitude < -180||longitude > 180||latitude < -90||latitude > 90)return false;
+ const half=resolution/2+1e-9;
+ if(latitude+half<b.south||latitude-half>b.north)return false;
+ const east=b.west<b.east?b.east:b.east+360;
+ return [-360,0,360].some(shift=>longitude+shift+half>=b.west&&longitude+shift-half<=east);
+}
 export function forecastHorizon(initTime: string) {
   const date = new Date(z.string().datetime().parse(initTime));
   if (date.getUTCMinutes() || date.getUTCSeconds() || date.getUTCMilliseconds()) throw new Error('INIT_MUST_BE_ON_HOUR');
@@ -48,9 +56,9 @@ function numeric(value: unknown): number | null {
   if (!Number.isFinite(number)) throw new Error('INVALID_FORECAST_NUMBER');
   return number;
 }
-export function normalizeForecastRow(row: Record<string, unknown>, expectedInit: string, bounds: Bounds): ForecastCell {
+export function normalizeForecastRow(row: Record<string, unknown>, expectedInit: string, bounds: Bounds, resolution:0|0.1=0): ForecastCell {
   const longitude = numeric(row.longitude), latitude = numeric(row.latitude);
-  if (longitude === null || latitude === null || !withinBounds(longitude, latitude, bounds)) throw new Error('FORECAST_OUTSIDE_REGION');
+  if (longitude === null || latitude === null || !gridCellIntersectsBounds(longitude, latitude, bounds, resolution)) throw new Error('FORECAST_OUTSIDE_REGION');
   const initTime = timestamp(row.init_time), validTime = timestamp(row.valid_time);
   const leadHours = numeric(row.lead_hours);
   if (initTime !== new Date(expectedInit).toISOString() || leadHours === null || !Number.isInteger(leadHours) ||

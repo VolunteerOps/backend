@@ -1,0 +1,332 @@
+[
+  {
+    "id": "table.usage_ledger",
+    "label": "Create table \"usage_ledger\"",
+    "summary": "Creates table \"usage_ledger\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "usage_ledger"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"usage_ledger\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"usage_ledger\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"usage_ledger\"",
+        "sql": "CREATE TABLE \"public\".\"usage_ledger\" (\n  \"bucket\" text NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"finalized_at\" timestamp(3),\n  \"fingerprint\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"metadata\" json NOT NULL,\n  \"period\" text NOT NULL,\n  \"request_key\" text NOT NULL,\n  \"state\" text DEFAULT 'RESERVED' NOT NULL,\n  \"units\" int4 NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"usage_ledger\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"usage_ledger\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.usage_ledger.usage_request_key",
+    "label": "Add unique constraint on \"usage_ledger\" (user_id, request_key)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "usage_request_key",
+        "table": "usage_ledger"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"usage_request_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "usage_request_key",
+          "public",
+          "\"public\".\"usage_ledger\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"usage_request_key\"",
+        "sql": "ALTER TABLE \"public\".\"usage_ledger\" ADD CONSTRAINT \"usage_request_key\" UNIQUE (\"user_id\", \"request_key\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"usage_request_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "usage_request_key",
+          "public",
+          "\"public\".\"usage_ledger\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.usage_ledger.usage_personal_bucket",
+    "label": "Create index \"usage_personal_bucket\" on \"usage_ledger\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "usage_personal_bucket",
+        "table": "usage_ledger"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"usage_personal_bucket\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"usage_personal_bucket\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"usage_personal_bucket\"",
+        "sql": "CREATE INDEX \"usage_personal_bucket\" ON \"public\".\"usage_ledger\" (\"user_id\", \"bucket\", \"period\", \"state\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"usage_personal_bucket\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"usage_personal_bucket\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.usage_ledger.usage_ledger_user_id_fkey",
+    "label": "Add foreign key \"usage_ledger_user_id_fkey\" on \"usage_ledger\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "usage_ledger_user_id_fkey",
+        "table": "usage_ledger"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"usage_ledger_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "usage_ledger_user_id_fkey",
+          "public",
+          "\"public\".\"usage_ledger\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"usage_ledger_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"usage_ledger\"\nADD CONSTRAINT \"usage_ledger_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"usage_ledger_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "usage_ledger_user_id_fkey",
+          "public",
+          "\"public\".\"usage_ledger\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.usage_ledger",
+    "label": "Enable row-level security on \"usage_ledger\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "usage_ledger"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"usage_ledger\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "usage_ledger"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"usage_ledger\"",
+        "sql": "ALTER TABLE \"public\".\"usage_ledger\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"usage_ledger\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "usage_ledger"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.usage_ledger.usage_owner_read_eb9ee7c4",
+    "label": "Create RLS policy \"usage_owner_read_eb9ee7c4\" on \"usage_ledger\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "usage_owner_read_eb9ee7c4",
+        "table": "usage_ledger"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"usage_owner_read_eb9ee7c4\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "usage_ledger",
+          "usage_owner_read_eb9ee7c4"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"usage_owner_read_eb9ee7c4\"",
+        "sql": "CREATE POLICY \"usage_owner_read_eb9ee7c4\" ON \"public\".\"usage_ledger\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id=nullif(current_setting('vops.user_id',true),'')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"usage_owner_read_eb9ee7c4\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "usage_ledger",
+          "usage_owner_read_eb9ee7c4"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.usage_ledger.usage_server_finalize_fe0b29dd",
+    "label": "Create RLS policy \"usage_server_finalize_fe0b29dd\" on \"usage_ledger\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "usage_server_finalize_fe0b29dd",
+        "table": "usage_ledger"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"usage_server_finalize_fe0b29dd\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "usage_ledger",
+          "usage_server_finalize_fe0b29dd"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"usage_server_finalize_fe0b29dd\"",
+        "sql": "CREATE POLICY \"usage_server_finalize_fe0b29dd\" ON \"public\".\"usage_ledger\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (user_id=nullif(current_setting('vops.user_id',true),'')::integer AND current_setting('vops.usage',true)='true') WITH CHECK (user_id=nullif(current_setting('vops.user_id',true),'')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"usage_server_finalize_fe0b29dd\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "usage_ledger",
+          "usage_server_finalize_fe0b29dd"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.usage_ledger.usage_server_reserve_444cf8b5",
+    "label": "Create RLS policy \"usage_server_reserve_444cf8b5\" on \"usage_ledger\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "usage_server_reserve_444cf8b5",
+        "table": "usage_ledger"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"usage_server_reserve_444cf8b5\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "usage_ledger",
+          "usage_server_reserve_444cf8b5"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"usage_server_reserve_444cf8b5\"",
+        "sql": "CREATE POLICY \"usage_server_reserve_444cf8b5\" ON \"public\".\"usage_ledger\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id=nullif(current_setting('vops.user_id',true),'')::integer AND current_setting('vops.usage',true)='true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"usage_server_reserve_444cf8b5\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "usage_ledger",
+          "usage_server_reserve_444cf8b5"
+        ]
+      }
+    ]
+  }
+]
