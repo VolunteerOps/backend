@@ -6,6 +6,6 @@ test('draft keys allow cross-device form and chat keys but reject paths and over
  assert.equal(draftKey.parse('mission-chat:org-1:region-2'),'mission-chat:org-1:region-2');
  assert.equal(draftKey.parse('form:/missions:Create:mission'),'form:/missions:Create:mission');
  assert.throws(()=>draftKey.parse('has space'));
- assert.equal(draftPut.parse({payload:{values:{question:'Draft'}}}).payload.values.question,'Draft');
+ assert.deepEqual(draftPut.parse({payload:{values:{question:'Draft'}}}).payload,{values:{question:'Draft'}});
  assert.throws(()=>draftPut.parse({payload:{blob:'x'.repeat(70_000)}}));
 });

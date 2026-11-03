@@ -8,6 +8,8 @@ const ownerUrl=process.env.SENTINEL_TEST_DATABASE_URL;
 test('proposal atomicity, approval replay, demotion privacy and assistance ownership', {skip:!ownerUrl},async()=>{
  const url=new URL(ownerUrl!);assert.ok(['127.0.0.1','localhost'].includes(url.hostname));assert.match(url.pathname,/test/);
  const owner=new Pool({connectionString:ownerUrl});const suffix=randomUUID().replaceAll('-','');const login='ops_test_'+suffix;const password=randomUUID();
+ // Run independently on a freshly migrated database, without another test's setup.
+ await owner.query(readFileSync('deploy/database/runtime-role.sql','utf8'));
  await owner.query(`CREATE ROLE "${login}" LOGIN PASSWORD '${password}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS`);
  await owner.query(`GRANT sentinel_runtime_access TO "${login}"`);
  await owner.query(readFileSync('deploy/database/responder-lock.sql','utf8'));

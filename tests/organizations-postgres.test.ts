@@ -71,7 +71,18 @@ test('real PostgreSQL organization lifecycle, RLS, enrollment races and isolatio
     } finally { operator.release(); }
     await owner.query(`UPDATE users SET role = 'SUPER_ADMIN' WHERE id = $1`, [stranger.userId]);
     await assert.rejects(PlatformService.list(stranger), { code: 'PLATFORM_GRANT_REQUIRED' });
-    await assert.rejects(PlatformService.list({ ...tech, identity: { ...tech.identity, secondFactor: null } }), { code: 'MFA_REQUIRED' });
+    const passwordOnly = { ...tech, identity: { ...tech.identity, secondFactor: null } };
+    const previousMfaPolicy = process.env.AUTH_REQUIRE_MFA;
+    try {
+      delete process.env.AUTH_REQUIRE_MFA;
+      await assert.doesNotReject(PlatformService.list(passwordOnly));
+      process.env.AUTH_REQUIRE_MFA = 'true';
+      await assert.rejects(PlatformService.list(passwordOnly), { code: 'MFA_REQUIRED' });
+      await assert.doesNotReject(PlatformService.list(tech));
+    } finally {
+      if (previousMfaPolicy === undefined) delete process.env.AUTH_REQUIRE_MFA;
+      else process.env.AUTH_REQUIRE_MFA = previousMfaPolicy;
+    }
     async function workspace(slug: string, admin: Actor) {
       let org = await PlatformService.provision(tech, { slug: `${slug}-${suffix}`, display_name: slug,
         allowed_providers: ['password'], require_mfa: false, reason: 'Approved test partnership' });
