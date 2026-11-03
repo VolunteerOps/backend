@@ -28,7 +28,9 @@ export function activeEntitlement(subscriber:any,identifier:string,now=Date.now(
 }
 export async function subscriptionStatus(actor:Actor){return subscriptionStatusForUid(actor.identity.uid);}
 export async function subscriptionStatusForUid(uid:string,app:'volunteer'|'ops'|'all'='all'){
- const keys={volunteer:process.env.REVENUECAT_SECRET_API_KEY,ops:process.env.REVENUECAT_OPS_SECRET_API_KEY||process.env.REVENUECAT_SECRET_API_KEY};
+ // v1 customer reads accept the app's public SDK key. Keep this verification on the
+ // server and bind it to the authenticated Firebase UID, never a client-supplied ID.
+ const keys={volunteer:process.env.REVENUECAT_SECRET_API_KEY||process.env.REVENUECAT_API_KEY,ops:process.env.REVENUECAT_OPS_SECRET_API_KEY||process.env.REVENUECAT_SECRET_API_KEY||process.env.REVENUECAT_OPS_API_KEY};
  const cache=new Map<string,Promise<unknown>>();
  async function read(key:string|undefined){
   if(!key)return null;

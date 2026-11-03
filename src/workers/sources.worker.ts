@@ -7,12 +7,29 @@ import { prisma } from '../core/prisma.js';
 import { executeJob, PostgresJobStore, type JobHandler } from '../core/jobs.js';
 import { workerHealth } from '../core/worker-health.js';
 import { fetchUsgs } from '../modules/sentinel/providers/usgs.js';
+import { fetchIncidentFeeds } from '../modules/sentinel/providers/incident-feeds.js';
+import { insertFeedIncidents } from '../modules/sentinel/incidents.service.js';
+import { boundsSchema } from '../modules/sentinel/providers/weathernext3.contract.js';
 
 if (process.env.SENTINEL_USGS_ENABLED !== 'true') throw new Error('USGS_WORKER_DISABLED');
 const pool = new Pool({ ...databasePoolConfig(config), max: 1 }), store = new PostgresJobStore(pool);
 const health = workerHealth(3002), owner = randomUUID(), shutdown = new AbortController();
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => shutdown.abort());
-const handlers = new Map<string, JobHandler>([['USGS_PULL', async (_payload, signal, job) => {
+const incidentHandler: JobHandler = async (_payload, signal) => {
+  if (process.env.INCIDENT_FEEDS_ENABLED !== 'true') return;
+  const { incidents } = await fetchIncidentFeeds(signal);
+  if (!incidents.length) return;
+  const units = await prisma.organizationUnit.findMany({ where: { active: true }, take: 100 });
+  for (const unit of units) {
+    const bounds = boundsSchema.safeParse(unit.forecastBounds);
+    if (!bounds.success) continue;
+    await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT set_config('vops.operations','true',true), set_config('vops.region_id', ${unit.id}, true), set_config('vops.all_regions','',true)`;
+      await insertFeedIncidents(tx as never, unit.organizationId, unit.id, incidents, bounds.data);
+    }, { timeout: 15000 }).catch(() => {});
+  }
+};
+const handlers = new Map<string, JobHandler>([['INCIDENT_PULL', incidentHandler], ['USGS_PULL', async (_payload, signal, job) => {
   const revisions = await fetchUsgs(signal);
   await prisma.$transaction(async tx => {
     const lease = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM durable_jobs WHERE id = ${job.id}
@@ -35,6 +52,10 @@ try {
       await pool.query(`INSERT INTO durable_jobs(id,queue,kind,business_key,payload,deadline)
         VALUES ($1,'public-feed','USGS_PULL','usgs:' || floor(extract(epoch FROM now()) / 60)::text,
           '{}'::jsonb,(clock_timestamp() AT TIME ZONE 'UTC') + interval '2 minutes')
+        ON CONFLICT (business_key) DO NOTHING`, [randomUUID()]);
+      if (process.env.INCIDENT_FEEDS_ENABLED === 'true') await pool.query(`INSERT INTO durable_jobs(id,queue,kind,business_key,payload,deadline)
+        VALUES ($1,'public-feed','INCIDENT_PULL','incidents:' || floor(extract(epoch FROM now()) / 900)::text,
+          '{}'::jsonb,(clock_timestamp() AT TIME ZONE 'UTC') + interval '20 minutes')
         ON CONFLICT (business_key) DO NOTHING`, [randomUUID()]);
       const job = await store.claim('public-feed', owner);
       if (job) await executeJob(store, job, handlers);

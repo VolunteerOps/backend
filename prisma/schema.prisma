@@ -65,6 +65,7 @@ model User {
  stage2SupportAccessGrant SupportAccessGrant[]
   stage2VolunteerProfile VolunteerProfile?
   stage2DirectoryPreferences DirectoryPreferences?
+ drafts UserDraft[]
   stage2ProfileShare ProfileShare[]
   stage2RecruitmentBlock RecruitmentBlock[]
   stage2ConsentRecord ConsentRecord[]
@@ -1035,4 +1036,17 @@ model UsageLedger {
  @@unique([userId,requestKey],map:"usage_request_key")
  @@index([userId,bucket,period,state],map:"usage_personal_bucket")
  @@map("usage_ledger")
+}
+model UserDraft {
+  userId    Int      @map("user_id")
+  key       String   @db.VarChar(300)
+  payload   Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, key])
+  @@index([userId, updatedAt], map: "user_drafts_user_updated_idx")
+  @@map("user_drafts")
 }

@@ -10,6 +10,7 @@ import { executeJob, PermanentJobError, PostgresJobStore, type JobHandler } from
 import { workerHealth } from '../core/worker-health.js';
 import { configuredForecastProvider, refreshSchema, saveForecastBatch } from '../modules/sentinel/sentinel.service.js';
 import { boundsSchema } from '../modules/sentinel/providers/weathernext3.contract.js';
+import { generateWatchBrief } from '../modules/sentinel/specialised.service.js';
 import { withRegion } from '../modules/sentinel/sentinel.context.js';
 const payloadSchema = z.object({
   organizationId: z.string().uuid(), regionId: z.string().uuid(), bounds: boundsSchema,
@@ -19,6 +20,18 @@ const payloadSchema = z.object({
     expiresAt: z.number().int(), signInProvider: z.string(), secondFactor: z.enum(['totp', 'phone']).nullable(),
   }).strict() }).strict(),
 }).strict();
+const watchPayloadSchema = z.object({
+  organizationId: z.string().uuid(), regionId: z.string().uuid(),
+  actor: z.object({ userId: z.number().int().positive(), identity: z.object({
+    projectId: z.string(), uid: z.string(), email: z.string().email(), authTime: z.number().int(),
+    expiresAt: z.number().int(), signInProvider: z.string(), secondFactor: z.enum(['totp', 'phone']).nullable(),
+  }).strict() }).strict(),
+}).strict();
+const watchHandler: JobHandler = async (payload, _signal, job) => {
+  const parsed = watchPayloadSchema.safeParse(payload);
+  if (!parsed.success) throw new PermanentJobError();
+  await generateWatchBrief(parsed.data.actor as never, parsed.data.organizationId, parsed.data.regionId, job.id);
+};
 const provider = configuredForecastProvider();
 const pool = new Pool(databasePoolConfig(config)), store = new PostgresJobStore(pool);
 const health = workerHealth(3002), owner = randomUUID(), shutdown = new AbortController();
@@ -42,7 +55,7 @@ try {
   while (!shutdown.signal.aborted) {
     try {
       const job = await store.claim('forecast', owner);
-      if (job) await executeJob(store, job, new Map([['WEATHERNEXT_REFRESH', handler]]));
+      if (job) await executeJob(store, job, new Map<string, JobHandler>([['WEATHERNEXT_REFRESH', handler], ['WATCH_BRIEF', watchHandler]]));
       health.progress();
       if (!job) await delay(1000, undefined, { signal: shutdown.signal });
     } catch {

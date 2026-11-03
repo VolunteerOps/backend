@@ -11,7 +11,7 @@ test('provider retries resume the same deterministic job instead of scanning twi
  const client={createQueryJob:async(options:any)=>{assert.equal(options.jobId,id);throw Object.assign(new Error('already exists'),{code:409});},job:(jobId:string)=>{resumed=jobId;return existing;}} as unknown as BigQuery;
  assert.equal(await createOrResumeWeatherQuery(client,query,'resq-test'),existing);
  assert.equal(resumed,id);
- await assert.rejects(createOrResumeWeatherQuery({createQueryJob:async()=>{throw Object.assign(new Error('denied'),{code:403});}} as unknown as BigQuery,query,'resq-test'),/denied/);
+ await assert.rejects(createOrResumeWeatherQuery({createQueryJob:async()=>{throw Object.assign(new Error('denied'),{code:403});}} as unknown as BigQuery,query,'resq-test'),{code:'WEATHER_ACCESS_DENIED'});
 });
 
 test('billing-cap rejection becomes a safe actionable error without provider query details',async()=>{
@@ -22,4 +22,13 @@ test('billing-cap rejection becomes a safe actionable error without provider que
   assert.doesNotMatch(String(error),/sensitive query details/);
   return true;
  });
+});
+
+test('a new request can recover a failed billing job without replaying a successful scan',async()=>{
+ const query={query:'SELECT 1',location:'US',maximumBytesBilled:'2000000000000'};let attempts:string[]=[];
+ const base=weatherQueryJobId(query,'resq-test');const retry={id:'recovered'};
+ const client={createQueryJob:async(options:any)=>{attempts.push(options.jobId);if(options.jobId===base)throw Object.assign(Error('exists'),{code:409});return [retry];},job:()=>({getMetadata:async()=>[{status:{state:'DONE',errorResult:{reason:'quotaExceeded'}}}]})} as unknown as BigQuery;
+ assert.equal(await createOrResumeWeatherQuery(client,query,'resq-test'),retry);assert.equal(attempts.length,2);assert.match(attempts[1]!,/_recovery_/);
+ attempts=[];const successful={getMetadata:async()=>[{status:{state:'DONE'}}]};(client as any).job=()=>successful;
+ assert.equal(await createOrResumeWeatherQuery(client,query,'resq-test'),successful);assert.equal(attempts.length,1);
 });

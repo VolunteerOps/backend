@@ -30,6 +30,9 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
         path: e.path.join('.'),
         message: e.message,
         code: e.code,
+        ...('minimum' in e ? { minimum:e.minimum,type:e.type } : {}),
+        ...('maximum' in e ? { maximum:e.maximum,type:e.type } : {}),
+        ...('expected' in e ? { expected:e.expected } : {}),
       })),
     });
     return;

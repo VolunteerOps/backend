@@ -12,15 +12,16 @@ export const regionConfigSchema = z.object({
   name: z.string().trim().min(2).max(120), bounds: boundsSchema, policy: forecastPolicySchema,
   reason: z.string().trim().min(10).max(500),
 }).strict();
+export const latestRefreshSchema=z.object({hours:z.number().int().min(1).max(48).default(24)}).strict();
 export const refreshSchema = z.object({
   init_time: z.string().datetime(), from_hour: z.number().int().min(1).max(360),
   to_hour: z.number().int().min(1).max(360),
 }).strict().superRefine((value, context) => {
   try {
     if (value.to_hour < value.from_hour || value.to_hour - value.from_hour > 47 || value.to_hour > forecastHorizon(value.init_time)) {
-      context.addIssue({ code: 'custom', message: 'Select a valid forecast window of at most 48 hours' });
+      context.addIssue({ code: 'custom', path:['to_hour'], message: 'Choose an end hour after the start hour, covering no more than 48 hours and staying within the published forecast period.' });
     }
-  } catch { context.addIssue({ code: 'custom', message: 'Forecast initialization must be on a UTC hour' }); }
+  } catch { context.addIssue({ code: 'custom', path:['init_time'], message: 'The minutes must be 00, for example 18:00 rather than 18:35. Use the latest forecast option to select a published forecast automatically.' }); }
 });
 export function configuredForecastSettings() {
   if (!process.env.WEATHERNEXT_PROJECT_ID || !process.env.WEATHERNEXT_DATASET_ID ||
@@ -79,16 +80,27 @@ export const SentinelService = {
       return region;
     });
   },
-  async refresh(actor: Actor, organizationId: string, regionId: string, input: z.infer<typeof refreshSchema>) {
+  async refreshLatest(actor:Actor,organizationId:string,regionId:string,hours:number) {
+    const snapshot=await withRegion(actor,organizationId,regionId,true,async tx=>{
+      const row=await tx.organizationUnit.findUniqueOrThrow({where:{id:regionId}});
+      return {bounds:boundsSchema.parse(row.forecastBounds),policy:forecastPolicySchema.parse(row.forecastPolicy)};
+    });
+    // No database transaction is held open during the provider lookup. Recheck authority and policy afterwards.
+    const request=await configuredForecastProvider().latestRequest(snapshot.bounds,hours,snapshot.policy.maximum_run_age_hours,AbortSignal.timeout(40000));
+    const job=await SentinelService.refresh(actor,organizationId,regionId,{init_time:request.initTime,from_hour:request.fromHour,to_hour:request.toHour},snapshot);
+    return {...job,init_time:request.initTime,from_hour:request.fromHour,to_hour:request.toHour};
+  },
+  async refresh(actor: Actor, organizationId: string, regionId: string, input: z.infer<typeof refreshSchema>, selected?:{bounds:z.infer<typeof boundsSchema>;policy:z.infer<typeof forecastPolicySchema>}) {
     configuredForecastProvider();
     const data = refreshSchema.parse(input);
     if (Date.parse(data.init_time) > Date.now() || Date.now() - Date.parse(data.init_time) > 48 * 3600000) {
-      throw ApiError.badRequest('Refresh requires a recent, already-issued forecast initialization');
+      throw new ApiError(400,Date.parse(data.init_time)>Date.now()?'FORECAST_CYCLE_FUTURE':'STALE_FORECAST_RUN','Choose the latest forecast option, or a recently published forecast.');
     }
     return withRegion(actor, organizationId, regionId, true, async tx => {
       const region = await tx.organizationUnit.findUniqueOrThrow({ where: { id: regionId } });
       const bounds = boundsSchema.parse(region.forecastBounds);
       const policy = forecastPolicySchema.parse(region.forecastPolicy);
+      if(selected&&(JSON.stringify(bounds)!==JSON.stringify(selected.bounds)||policy.version!==selected.policy.version))throw new ApiError(409,'VERSION_CONFLICT','The region changed while finding a forecast.');
       if (Date.now() - Date.parse(data.init_time) >= policy.maximum_run_age_hours * 3600000) {
         throw new ApiError(400, 'STALE_FORECAST_RUN', 'The selected run is older than this region permits');
       }
@@ -96,7 +108,7 @@ export const SentinelService = {
       const existing = await tx.durableJob.findUnique({ where: { businessKey } });
       if (existing) return { job_id: existing.id, state: existing.state };
       const job = await tx.durableJob.create({ data: { id: randomUUID(), organizationId, priority: 2, queue: 'forecast', kind: 'WEATHERNEXT_REFRESH',
-        businessKey, deadline: new Date(Date.now() + 120000), maxAttempts: 2,
+        businessKey, deadline: new Date(Date.now() + 180000), maxAttempts: 2,
         payload: JSON.parse(JSON.stringify({ actor, organizationId, regionId, bounds, policyVersion: policy.version, request: data })) } });
       await tx.organizationAudit.createMany({ data: { id: randomUUID(), organizationId, actorUserId: actor.userId,
         action: 'FORECAST_REFRESH_REQUESTED', reason: 'Coordinator requested bounded forecast refresh', metadata: { region_id: regionId, job_id: job.id } } });
@@ -146,7 +158,7 @@ export const SentinelService = {
       if (Date.parse(request.init_time) > Date.now() || Date.now() - Date.parse(request.init_time) >= policy.maximum_run_age_hours * 3600000) throw new ApiError(400, 'STALE_FORECAST_RUN', 'Request a newer initialization instead of retrying expired evidence');
       const changed = await tx.durableJob.updateMany({ where: { id: jobId, state: { in: ['DEAD', 'EXPIRED'] }, fence: job.fence }, data: {
         state: 'PENDING', attempts: 0, fence: { increment: 1 }, leaseOwner: null, leaseUntil: null,
-        availableAt: new Date(), deadline: new Date(Date.now() + 120000), completedAt: null, lastError: null,
+        availableAt: new Date(), deadline: new Date(Date.now() + 180000), completedAt: null, lastError: null,
         payload: JSON.parse(JSON.stringify({ actor, organizationId, regionId, bounds, policyVersion: policy.version, request })),
       } });
       if (changed.count !== 1) throw ApiError.conflict('Job state changed; reload before retrying', 'STALE_VERSION');

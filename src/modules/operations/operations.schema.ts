@@ -6,7 +6,7 @@ export const missionSchema = z.object({
  starts_at:z.string().datetime(), ends_at:z.string().datetime(), capacity:z.number().int().min(1).max(1000),
  longitude:z.number().min(-180).max(180), latitude:z.number().min(-90).max(90),
  meeting_point:z.string().trim().min(3).max(500), required_skills:z.array(z.string().min(2).max(60)).max(30).default([]),
-}).strict().refine(x=>Date.parse(x.ends_at)>Date.parse(x.starts_at)&&Date.parse(x.ends_at)-Date.parse(x.starts_at)<=24*3600000,'Mission duration must be positive and at most 24 hours');
+}).strict().refine(x=>Date.parse(x.ends_at)>Date.parse(x.starts_at),'Mission duration must be positive; use the length the coordinator stipulates');
 export const kinds = ['MISSION','APPLICATION','ASSIGNMENT','REPORT','MESSAGE','HOURS','SUPPORT','EVENT','INVENTORY','STOCK_LEDGER','RESOURCE_RESERVATION','COURSE','ENROLLMENT','CREDENTIAL','DISPATCH_CONTROL','BULLETIN'] as const;
 export const listSchema = z.object({kind:z.enum(kinds).default('MISSION'),after:z.coerce.number().int().nonnegative().default(0),parent_id:scopeId.optional(),status:z.string().regex(/^[A-Z_]{2,40}$/).optional(),q:z.string().trim().min(2).max(100).optional()}).strict();
 const version=z.number().int().positive();

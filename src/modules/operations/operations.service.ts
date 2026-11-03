@@ -192,7 +192,7 @@ export async function executeOperationalCommand(tx:TenantTransaction,actor:Actor
       if(!qualification)throw ApiError.conflict('A required qualification is missing, revoked or expired','QUALIFICATION_REQUIRED');
      }
      const duration=Math.ceil((Date.parse(payload.ends_at)-Date.now())/60000);
-     if(duration<1||duration>1440)throw ApiError.conflict('Assignments can be confirmed within 24 hours of mission end','ASSIGNMENT_WINDOW');
+     if(duration<1)throw ApiError.conflict('This mission has already ended','ASSIGNMENT_WINDOW');
      const reservation=await tx.$queryRaw<Array<{available:boolean}>>`SELECT public.resq_responder_reserve(${parsed.user_id}::integer,${row.id},${duration}::integer,false) AS available`;
      if(!reservation[0]?.available)throw ApiError.conflict('Responder has a conflicting assignment','RESPONDER_UNAVAILABLE');
      for(const supply of parsed.supplies){

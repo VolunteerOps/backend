@@ -29,11 +29,11 @@ async function expireAbandoned(tx:TenantTransaction,row:{id:string;payload:unkno
  return tx.operationRecord.update({where:{id:row.id},data:{version:{increment:1},updatedAt:new Date(),payload:json({...payload(row.payload),status:'FAILED',error_code:'ANALYSIS_INTERRUPTED',message:'This analysis did not finish within its processing window. Review provider status before creating a new request.'})}});
 }
 // Explicit request shape; extra caller-controlled scope and model fields are rejected.
-export const weatherRequest=z.object({question:z.string().trim().min(3).max(2000),init_time:z.string().datetime(),from:z.string().datetime(),to:z.string().datetime(),include_station_detail:z.boolean().default(false)}).strict();
+export const weatherRequest=z.object({question:z.string().trim().min(3).max(2000),init_time:z.string().datetime(),from:z.string().datetime(),to:z.string().datetime(),include_station_detail:z.boolean().default(false),mode:z.enum(['PLAN_FIRST','EXECUTE']).default('EXECUTE')}).strict();
 async function coordinator(tx:TenantTransaction,actor:Actor,org:string){
  const member=await tx.organizationMembership.findUniqueOrThrow({where:{organizationId_userId:{organizationId:org,userId:actor.userId}}});requireCoordinator(member.role);
 }
-async function runStored(actor:Actor,org:string,region:string,key:string,type:'RESOURCE_PLAN'|'WEATHER_ANALYSIS',input:unknown,compute:()=>Promise<Record<string,unknown>>) {
+export async function runStored(actor:Actor,org:string,region:string,key:string,type:'RESOURCE_PLAN'|'WEATHER_ANALYSIS'|'SPECIALISED',input:unknown,compute:()=>Promise<Record<string,unknown>>) {
  const {role}=await authorizeCapability(actor,org,region,'agent.chat');requireCoordinator(role);configuredMetaKey();
  const fingerprint=createHash('sha256').update(JSON.stringify([type,input])).digest('hex');
  const prior=await withRegion(actor,org,region,false,async tx=>{
@@ -52,7 +52,7 @@ async function runStored(actor:Actor,org:string,region:string,key:string,type:'R
  if(prior)return prior;
  let usageId:string|undefined;
  try {
-  const usage=await reserveUsage(actor,{key,bucket:'agent.chat',limit:featureCatalog.assistant.ops_daily_attempts,fingerprint:JSON.stringify([org,region,type,input])});usageId=usage.entry.id;
+  const usage=await reserveUsage(actor,{key,bucket:'agent.chat',limit:featureCatalog.assistant.ops_daily_attempts,fingerprint:createHash('sha256').update(JSON.stringify([org,region,type,input])).digest('hex')});usageId=usage.entry.id;
   const result=await compute();
   return await withRegion(actor,org,region,false,async tx=>{
    await coordinator(tx,actor,org);await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
@@ -92,8 +92,8 @@ export const PlanningService={
     return assessmentEvidence(assessment,unit);
    }):null;
    const check=()=>withRegion(actor,org,region,false,tx=>coordinator(tx,actor,org));
-   const result=await runMetaAgent({model:metaModels.planning,question:request.question,output:resourcePlanOutput,signal:AbortSignal.timeout(60000),
-    instruction:'You prepare a resource allocation proposal for a humanitarian coordinator. Read mission requirements, candidate qualifications, stock and commitments using all four tools. Choose only eligible candidate IDs and known resource IDs. Account for location; do not assume transport or safe access. Do not exceed capacity or available stock across assignments. State shortages and decisions. No recommendation is a reservation or permission to travel.',
+   const result=await runMetaAgent({harness:{planFirst:request.mode==='PLAN_FIRST',verify:(plan)=>{try{validateResourcePlan(plan,snapshot);return [];}catch(error){return [error instanceof Error?error.message:'Plan failed validation'];}}},model:metaModels.planning,question:request.question,output:resourcePlanOutput,signal:AbortSignal.timeout(60000),
+    instruction:'You prepare a resource allocation proposal for a humanitarian coordinator. Read mission requirements, candidate qualifications, stock and commitments using all four tools. Choose only eligible candidate IDs and known resource IDs. Account for location; do not assume transport or safe access. Do not exceed capacity or available stock across assignments. State shortages and decisions. When weather evidence is linked, weigh its indicators against the regional thresholds it reports and say what preparation it changes; weather evidence never authorizes travel or deployment. No recommendation is a reservation or permission to travel.',
     requiredTools:['read_mission','read_candidates','read_stock','read_commitments',...(weatherEvidence?['read_weather_assessment']:[])],
     tools:[
      ...(weatherEvidence?[{name:'read_weather_assessment',description:'Read linked weather preparedness evidence and its limitations. Weather evidence is not a safe-route or deployment authorization.',arguments:noArguments,execute:async()=>{await check();return weatherEvidence;}}]:[]),
@@ -104,14 +104,17 @@ export const PlanningService={
     ],
    });
    validateResourcePlan(result.result,snapshot);
-   return {title:snapshot.mission.title,mission_id:request.mission_id,model:result.model,tool_calls:result.tool_calls,recommendation:result.result,snapshot,weather_evidence:weatherEvidence};
+   return {title:snapshot.mission.title,mission_id:request.mission_id,model:result.model,tool_calls:result.tool_calls,harness:result.harness,recommendation:result.result,snapshot,weather_evidence:weatherEvidence};
   });
  },
  async weather(actor:Actor,org:string,region:string,key:string,input:z.infer<typeof weatherRequest>){
   const request=weatherRequest.parse(input);
   weatherAnalysisRequest.parse({question:request.question,from:request.from,to:request.to});
   const init=Date.parse(request.init_time),from=Date.parse(request.from),to=Date.parse(request.to);
-  if(init>Date.now()||Date.now()-init>48*3600000||(from-init)%3600000||(to-init)%3600000||from<init)throw ApiError.badRequest('Use an issued UTC cycle and whole-hour window');
+  if(init>Date.now())throw ApiError.badRequest('This forecast has not been issued yet. Choose an earlier time.','FORECAST_CYCLE_FUTURE');
+  if(Date.now()-init>48*3600000)throw ApiError.badRequest('Choose a recent forecast, or use Ask Sentinel to explore earlier days.','STALE_FORECAST_RUN');
+  if(from<init)throw ApiError.badRequest('The analysis starts before this forecast was issued. Choose a later start date.','FORECAST_WINDOW_BEFORE_CYCLE');
+  if(init%3600000||(from-init)%3600000||(to-init)%3600000)throw ApiError.badRequest('Choose times on the hour, such as 09:00.','FORECAST_HOUR_REQUIRED');
   const provider=configuredForecastProvider();
   return runStored(actor,org,region,key,'WEATHER_ANALYSIS',request,async()=>{
    const settings=await withRegion(actor,org,region,false,async tx=>{await coordinator(tx,actor,org);const row=await tx.organizationUnit.findUniqueOrThrow({where:{id:region}});return{bounds:boundsSchema.parse(row.forecastBounds),policy:forecastPolicySchema.parse(row.forecastPolicy)};});
@@ -121,8 +124,8 @@ export const PlanningService={
    let reported:unknown;
    let station:Awaited<ReturnType<WeatherNextStationBigQuery['fetch']>>|undefined;
    const signal=AbortSignal.timeout(120000);
-   const result=await runMetaAgent({model:metaModels.weather,question:request.question,output:weatherNarrative,signal,
-    instruction:'Analyze weather preparedness using numerical services and the selected WeatherNext 3 forecast. Call query_weather_indicators and read_reported_hazards. Never calculate disaster probabilities, flood depth, affected populations or safe routes from language alone. Cite the exact source_id. Explain assumptions, missing inputs and limits. The tool computes rainfall from hourly means, and heat/wind durations from medians; do not call accumulated rainfall a percentile. Reported earthquakes do not corroborate a flood prediction. No warning or deployment is issued.',
+   const result=await runMetaAgent({harness:{planFirst:request.mode==='PLAN_FIRST'},model:metaModels.weather,question:request.question,output:weatherNarrative,signal,
+    instruction:'Analyze weather preparedness using numerical services and the selected WeatherNext 3 forecast. Call query_weather_indicators and read_reported_hazards. Never calculate disaster probabilities, flood depth, affected populations or safe routes from language alone. Cite the exact source_id. Explain assumptions, missing inputs and limits. The tool computes rainfall from hourly means, and heat/wind durations from medians; do not call accumulated rainfall a percentile. Compare every indicator with the regional thresholds returned by the tool and name each threshold met or not met. State explicitly that rainfall evidence alone does not produce a local flood-impact estimate when the listed local inputs are missing. Reported earthquakes do not corroborate a flood prediction. No warning or deployment is issued.',
     requiredTools:['query_weather_indicators','read_reported_hazards',...(request.include_station_detail?['query_station_temperature']:[])],tools:[
      ...(request.include_station_detail?[{name:'query_station_temperature',description:'Read independent 0.05 degree station-head temperature and dew-point statistics in Celsius. No rain or wind is available from this table.',arguments:noArguments,execute:async()=>{
       await withRegion(actor,org,region,false,tx=>coordinator(tx,actor,org));
@@ -137,7 +140,7 @@ export const PlanningService={
      {name:'read_reported_hazards',description:'Read recent reported earthquake evidence and its authority limitations. This is not hydrological corroboration.',arguments:noArguments,execute:async()=>{reported=await SentinelService.hazards(actor,org,region);return reported;}},
     ]});
    if(!source||!result.result.source_ids.includes(String(source.source_id))||result.result.source_ids.some(id=>id!==source!.source_id&&id!==station?.source_id)||(station&&!result.result.source_ids.includes(station.source_id)))throw new Error('ASSESSMENT_SOURCE_MISMATCH');
-   return {title:'Weather preparedness assessment',model:result.model,tool_calls:result.tool_calls,narrative:result.result,source,evidence,station_detail:station??null,reported_hazards:reported,validation:'UNVALIDATED_WEATHER_INDICATORS',flood_impact_estimate:null};
+   return {title:'Weather preparedness assessment',model:result.model,tool_calls:result.tool_calls,harness:result.harness,narrative:result.result,source,evidence,station_detail:station??null,reported_hazards:reported,validation:'UNVALIDATED_WEATHER_INDICATORS',flood_impact_estimate:null};
   });
  },
  async edit(actor:Actor,org:string,region:string,id:string,key:string,input:z.infer<typeof planEdit>){
@@ -181,6 +184,7 @@ export const PlanningService={
    const row=await tx.operationRecord.findFirst({where:{id,organizationId:org,regionId:region,kind:'RESOURCE_PLAN'}});
    if(!row)throw ApiError.notFound('Resource proposal');
    const p=payload(row.payload);
+   if(p.request?.mode==='PLAN_FIRST')throw ApiError.conflict('This was a plan-first run. Create an execution proposal before approving allocations','PLAN_ONLY');
    const approvalFingerprint=createHash('sha256').update(JSON.stringify(request)).digest('hex');
    if(p.status==='APPROVED'&&p.approval_key===key&&p.approved_by===actor.userId){if(p.approval_fingerprint!==approvalFingerprint)throw ApiError.conflict('Approval key reused with a different request','IDEMPOTENCY_CONFLICT');return row;}
    if(row.version!==request.expected_version)throw ApiError.conflict('Proposal changed. Review it again','VERSION_CONFLICT');

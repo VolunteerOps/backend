@@ -21,6 +21,7 @@ import personalRouter from './modules/personal/personal.controller.js';
 import authRouter from './modules/auth/auth.controller.js';
 import organizationsRouter from './modules/organizations/organizations.controller.js';
 import sentinelRouter from './modules/sentinel/sentinel.controller.js';
+import draftsRouter from './modules/drafts/drafts.controller.js';
 import portalRouter from './modules/sentinel/portal.controller.js';
 import platformRouter from './modules/platform/platform.controller.js';
 import usersRouter from './modules/users/users.controller.js';
@@ -152,6 +153,7 @@ app.get('/api/features', (_req, res) => {
 // REST Domain Routes
 app.use('/api/auth', authRouter);
 app.use('/api', billingRouter);
+app.use('/api', draftsRouter);
 app.use('/api/organizations/:orgId/regions/:regionId/operations', operationsRouter);
 app.use('/api/organizations/:orgId/regions/:regionId/safety', safetyRouter);
 app.use('/api/platform', platformRouter);

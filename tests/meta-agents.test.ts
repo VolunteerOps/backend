@@ -11,13 +11,17 @@ function cell(hour:number,rain:number|null=4):ForecastCell{return{longitude:36,l
 test('weather calculations use contiguous complete windows and break duration at gaps',()=>{
  const full=analyzeWeather([cell(1),cell(2),cell(3)],policy,'2026-10-30T00:00:00Z','2026-10-30T03:00:00Z');
  assert.equal(full.points[0]!.expected_rainfall_mm,12);assert.equal(full.points[0]!.longest_median_heat_exceedance_hours,3);assert.equal(full.flood_impact_estimate,null);
+ assert.deepEqual(full.thresholds,{heat_c:35,wind_mps:12,hourly_rain_mm:10});
+ assert.equal(full.points[0]!.hours_with_mean_rain_at_or_above_threshold,0);
+ const heavy=analyzeWeather([cell(1,12),cell(2,12)],policy,'2026-10-30T00:00:00Z','2026-10-30T02:00:00Z');
+ assert.equal(heavy.points[0]!.expected_rainfall_mm,24);assert.equal(heavy.points[0]!.hours_with_mean_rain_at_or_above_threshold,2);
  const gap=analyzeWeather([cell(1),cell(3)],policy,'2026-10-30T00:00:00Z','2026-10-30T03:00:00Z');
  assert.equal(gap.points[0]!.expected_rainfall_mm,null);assert.equal(gap.points[0]!.longest_median_wind_exceedance_hours,1);
  const missing=analyzeWeather([cell(1,null),cell(2)],policy,'2026-10-30T00:00:00Z','2026-10-30T02:00:00Z');
  assert.equal(missing.points[0]!.expected_rainfall_mm,null);
  assert.throws(()=>analyzeWeather([cell(1),cell(1)],policy,'2026-10-30T00:00:00Z','2026-10-30T02:00:00Z'),/DUPLICATE/);
 });
-const snapshot:PlanningSnapshot={mission:{id:'mission',version:1,title:'Relief',status:'STAGED',capacity:2,assigned_count:0,required_skills:[],starts_at:'',ends_at:'',meeting_point:'Hall'},candidates:[{user_id:1,application_id:'a',application_version:1,eligible:true,missing_skills:[],visible_commitments:0,scope_active:true},{user_id:2,application_id:'b',application_version:1,eligible:false,missing_skills:['first-aid'],visible_commitments:0,scope_active:true}],resources:[{id:'stock',version:1,title:'Water',location:'Depot',unit:'pack',available:2}],limitations:[]};
+const snapshot:PlanningSnapshot={mission:{id:'mission',version:1,title:'Relief',status:'STAGED',capacity:2,assigned_count:0,required_skills:[],starts_at:'',ends_at:'',meeting_point:'Hall'},candidates:[{user_id:1,application_id:'a',application_version:1,eligible:true,missing_skills:[],skills:[],visible_commitments:0,scope_active:true,recent_shift_hours_7d:0,rest_hours_before_mission:null,fatigue_eligible:true},{user_id:2,application_id:'b',application_version:1,eligible:false,missing_skills:['first-aid'],skills:[],visible_commitments:0,scope_active:true,recent_shift_hours_7d:0,rest_hours_before_mission:null,fatigue_eligible:true}],resources:[{id:'stock',version:1,title:'Water',location:'Depot',unit:'pack',available:2}],limitations:[]};
 test('resource proposals reject invented or ineligible responders, stock excess and duplicate assignments',()=>{
  const row={user_id:1,reason:'Eligible',supplies:[{resource_id:'stock',quantity:2,reason:'Supplies'}]};
  const plan={summary:'Proposal',allocations:[row],shortages:[],decisions:[]};
@@ -55,6 +59,79 @@ test('Meta production proposal schema uses numeric JSON Schema bounds',async()=>
  }) as typeof fetch});
 });
 
+test('harness records plan, notes and steps, and repairs a malformed reply',async()=>{
+ let calls=0;
+ const fetcher=(async()=>{calls++;
+  if(calls===1)return response({role:'assistant',tool_calls:[
+   {id:'p1',type:'function',function:{name:'update_plan',arguments:JSON.stringify({steps:[{title:'Read evidence',status:'in_progress'}]})}},
+   {id:'e1',type:'function',function:{name:'read_evidence',arguments:'{}'}},
+   {id:'n1',type:'function',function:{name:'record_note',arguments:JSON.stringify({note:'Source run-1 checked'})}},
+  ]});
+  if(calls===2)return response({role:'assistant',content:'{"wrong":true}'});
+  return response({role:'assistant',content:'{"summary":"Evidence reviewed"}'});
+ }) as typeof fetch;
+ const result=await runMetaAgent({model:'muse-spark-1.3',instruction:'Plan',question:'Review',tools:[tool],requiredTools:['read_evidence'],output:answer,signal:AbortSignal.timeout(5000),fetcher,key:'fixture',harness:{planFirst:true}});
+ assert.equal(result.result.summary,'Evidence reviewed');
+ assert.deepEqual(result.tool_calls,['read_evidence']);
+ assert.equal(result.harness.plan[0]!.title,'Read evidence');
+ assert.deepEqual(result.harness.notes,['Source run-1 checked']);
+ assert.deepEqual(result.harness.steps.map(s=>s.tool),['update_plan','record_note','read_evidence']);
+ assert.ok(result.harness.steps.every(s=>s.ok));
+});
+test('harness verifier sends an unsupported draft back for one revision',async()=>{
+ let calls=0,verifyCalls=0;
+ const fetcher=(async()=>response({role:'assistant',tool_calls:[] ,content:JSON.stringify({summary:calls++===0?'Draft one':'Draft two'})})) as typeof fetch;
+ // First turn must call the evidence tool; emulate with a tool round then two drafts.
+ let stage=0;
+ const staged=(async()=>{stage++;
+  if(stage===1)return response({role:'assistant',tool_calls:[{id:'e1',type:'function',function:{name:'read_evidence',arguments:'{}'}}]});
+  return response({role:'assistant',content:JSON.stringify({summary:stage===2?'Unsupported draft':'Revised draft'})});
+ }) as typeof fetch;
+ void fetcher;
+ const result=await runMetaAgent({model:'muse-spark-1.3',instruction:'Plan',question:'Review',tools:[tool],requiredTools:['read_evidence'],output:answer,signal:AbortSignal.timeout(5000),fetcher:staged,key:'fixture',
+  harness:{verify:(draft)=>{verifyCalls++;return draft.summary==='Unsupported draft'?['Claim is not in the evidence']:[];}}});
+ assert.equal(result.result.summary,'Revised draft');
+ assert.equal(verifyCalls,1);
+});
+test('identical evidence calls are deduplicated and tools in one round run in parallel',async()=>{
+ let executions=0,active=0,maxConcurrent=0;
+ const track=async()=>{executions++;active++;maxConcurrent=Math.max(maxConcurrent,active);await new Promise(r=>setTimeout(r,40));active--;return {source_id:'run-1'};};
+ const slow={...tool,execute:track};
+ const other={...tool,name:'read_other',execute:track};
+ let calls=0;
+ const fetcher=(async()=>{calls++;
+  if(calls===1)return response({role:'assistant',tool_calls:[{id:'a',type:'function',function:{name:'read_evidence',arguments:'{}'}},{id:'b',type:'function',function:{name:'read_other',arguments:'{}'}}]});
+  if(calls===2)return response({role:'assistant',tool_calls:[{id:'c',type:'function',function:{name:'read_evidence',arguments:'{}'}}]});
+  return response({role:'assistant',content:'{"summary":"Done"}'});
+ }) as typeof fetch;
+ const result=await runMetaAgent({model:'muse-spark-1.3',instruction:'Plan',question:'Review',tools:[slow,other],requiredTools:['read_evidence'],output:answer,signal:AbortSignal.timeout(5000),fetcher,key:'fixture',harness:{}});
+ assert.equal(result.result.summary,'Done');
+ assert.equal(executions,2); // two distinct tools once each; the repeated read_evidence call was deduplicated
+ assert.equal(maxConcurrent,2);
+});
+test('a timed-out model attempt is retried once instead of failing the turn',async()=>{
+ let attempts=0;
+ const fetcher=(async()=>{attempts++;
+  if(attempts===1)throw new DOMException('timed out','TimeoutError');
+  if(attempts===2)return response({role:'assistant',tool_calls:[{id:'e',type:'function',function:{name:'read_evidence',arguments:'{}'}}]});
+  return response({role:'assistant',content:'{"summary":"Recovered"}'});
+ }) as typeof fetch;
+ const result=await runMetaAgent({model:'muse-wonder-1.0',instruction:'Analyze',question:'Review',tools:[tool],requiredTools:['read_evidence'],output:answer,signal:AbortSignal.timeout(10000),fetcher,key:'fixture'});
+ assert.equal(result.result.summary,'Recovered');
+ assert.equal(attempts,3);
+});
+test('streamed runs assemble tool calls and forward answer tokens as events',async()=>{
+ const sse=(chunks:object[])=>new Response(new ReadableStream({start(controller){const encoder=new TextEncoder();for(const chunk of chunks)controller.enqueue(encoder.encode('data: '+JSON.stringify(chunk)+'\n\n'));controller.enqueue(encoder.encode('data: [DONE]\n\n'));controller.close();}}),{status:200,headers:{'Content-Type':'text/event-stream'}});
+ let calls=0;const tokens:string[]=[];const toolsSeen:string[]=[];
+ const fetcher=(async()=>{calls++;
+  if(calls===1)return sse([{choices:[{delta:{tool_calls:[{index:0,id:'e1',type:'function',function:{name:'read_evi',arguments:''}}]}}]},{choices:[{delta:{tool_calls:[{index:0,function:{name:'dence',arguments:'{}'}}]}}]}]);
+  return sse([{choices:[{delta:{content:'{"summary":"Stream'}}]},{choices:[{delta:{content:'ed answer"}'}}]}]);
+ }) as typeof fetch;
+ const result=await runMetaAgent({model:'muse-wonder-1.0',instruction:'Analyze',question:'Review',tools:[tool],requiredTools:['read_evidence'],output:answer,signal:AbortSignal.timeout(5000),fetcher,key:'fixture',stream:true,onEvent:event=>{if(event.type==='token')tokens.push(event.text);if(event.type==='tool_start')toolsSeen.push(event.tool);}});
+ assert.equal(result.result.summary,'Streamed answer');
+ assert.equal(tokens.join(''),'{"summary":"Streamed answer"}');
+ assert.deepEqual(toolsSeen,['read_evidence']);
+});
 test('linked weather planning can consume all five required tools in one bounded provider turn',async()=>{
  const names=['read_mission','read_candidates','read_stock','read_commitments','read_weather_assessment'];
  const executed:string[]=[];let calls=0;

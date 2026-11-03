@@ -26,7 +26,7 @@ export function analyzeWeather(cells:ForecastCell[],policy:ForecastPolicy,from:s
   if(grouped.size>1000)throw new Error('ANALYSIS_REQUIRES_SMALLER_REGION');
   const points=[...grouped.values()].map(rows=>{
     rows.sort((a,b)=>a.leadHours-b.leadHours);
-    let rain=0,rainMissing=0,heatRun=0,windRun=0,maxHeat=0,maxWind=0,prior=NaN;
+    let rain=0,rainMissing=0,rainThresholdHours=0,heatRun=0,windRun=0,maxHeat=0,maxWind=0,prior=NaN;
     let maxRain:number|null=null,maxTemperature:number|null=null,maxWindSpeed:number|null=null;
     const unique=new Set<number>();
     for(const row of rows){
@@ -34,7 +34,7 @@ export function analyzeWeather(cells:ForecastCell[],policy:ForecastPolicy,from:s
       if(row.leadHours!==prior+1){heatRun=0;windRun=0;}prior=row.leadHours;
       const p=row.values.total_precipitation_1hr.mean;
       const heat=row.values.temperature_2m.p50,wind=row.values.wind_speed_10m.p50;
-      if(p===null)rainMissing++;else{rain+=p;maxRain=Math.max(maxRain??p,p);}
+      if(p===null)rainMissing++;else{rain+=p;maxRain=Math.max(maxRain??p,p);if(p>=policy.hourly_rain_mm)rainThresholdHours++;}
       heatRun=heat!==null&&heat>=policy.heat_c?heatRun+1:0;
       windRun=wind!==null&&wind>=policy.wind_mps?windRun+1:0;
       maxHeat=Math.max(maxHeat,heatRun);maxWind=Math.max(maxWind,windRun);
@@ -45,10 +45,13 @@ export function analyzeWeather(cells:ForecastCell[],policy:ForecastPolicy,from:s
     const complete=rows.length===expected&&rainMissing===0&&rows.length>0&&Date.parse(rows[0]!.validTime)===start+3600000&&Date.parse(rows.at(-1)!.validTime)===end;
     return {longitude:rows[0]!.longitude,latitude:rows[0]!.latitude,hours_present:rows.length,expected_hours:expected,
       expected_rainfall_mm:complete?Math.round(rain*100)/100:null,rainfall_coverage_complete:complete,
-      maximum_hourly_mean_rain_mm:maxRain,maximum_median_temperature_c:maxTemperature,maximum_median_wind_mps:maxWindSpeed,
+      maximum_hourly_mean_rain_mm:maxRain,hours_with_mean_rain_at_or_above_threshold:rainThresholdHours,
+      maximum_median_temperature_c:maxTemperature,maximum_median_wind_mps:maxWindSpeed,
       longest_median_heat_exceedance_hours:maxHeat,longest_median_wind_exceedance_hours:maxWind};
   });
-  return {from,to,policy_version:policy.version,points,method:'Hourly ensemble mean rainfall is summed only for complete contiguous windows. Heat and wind durations use median threshold exceedance; gaps break runs.',
+  return {from,to,policy_version:policy.version,
+    thresholds:{heat_c:policy.heat_c,wind_mps:policy.wind_mps,hourly_rain_mm:policy.hourly_rain_mm},
+    points,method:'Hourly ensemble mean rainfall is summed only for complete contiguous windows. Heat and wind durations use median threshold exceedance; gaps break runs. Heavy-rain hours count hourly mean rainfall at or above the regional hourly rain threshold.',
     validation:'WEATHER_INDICATORS_ONLY',flood_impact_estimate:null,
     missing_inputs:['Local gauge and river levels','Catchment response, drainage and soil saturation','Validated exposure and flood-impact model'],
     limitation:'Adverse weather is not a calibrated local flood prediction. Spatial averaging and percentile accumulation are not inferred.'};

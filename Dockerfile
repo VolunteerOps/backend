@@ -1,3 +1,7 @@
+FROM python:3.13-slim-bookworm AS weather-runtime
+COPY scripts/weather-requirements.txt /tmp/weather-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/weather-requirements.txt
+
 FROM node:24.20-bookworm-slim AS builder
 
 WORKDIR /app
@@ -28,9 +32,16 @@ COPY package.json package-lock.json .npmrc ./
 COPY prisma ./prisma/
 
 RUN npm ci --omit=dev
+COPY --from=weather-runtime /usr/local /usr/local
+RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 libgomp1 && ldconfig && rm -rf /var/lib/apt/lists/*
+ENV WEATHERNEXT_PYTHON=/usr/local/bin/python3
+ENV OPENBLAS_NUM_THREADS=1
+ENV OMP_NUM_THREADS=1
+COPY scripts/weather-zarr.py ./scripts/weather-zarr.py
 
 COPY --from=builder /app/dist ./dist
 COPY scripts/start-with-google-credentials.mjs ./scripts/start-with-google-credentials.mjs
+COPY scripts/check-mission-provider.mjs ./scripts/check-mission-provider.mjs
 
 EXPOSE 3001
 
