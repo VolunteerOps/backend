@@ -38,3 +38,6 @@ GRANT SELECT, INSERT, UPDATE ON public.domain_claims, public.support_access_gran
 -- Portal experience: apply after its canonical migration.
 GRANT SELECT,INSERT,UPDATE ON public.portal_preferences,public.promo_codes TO sentinel_runtime_access;
 GRANT SELECT,INSERT ON public.portal_notification_reads,public.promo_redemptions TO sentinel_runtime_access;
+
+ALTER TABLE public.user_drafts FORCE ROW LEVEL SECURITY;
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.user_drafts TO sentinel_runtime_access;

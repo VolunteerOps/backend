@@ -8,4 +8,6 @@ test('draft keys allow cross-device form and chat keys but reject paths and over
  assert.throws(()=>draftKey.parse('has space'));
  assert.deepEqual(draftPut.parse({payload:{values:{question:'Draft'}}}).payload,{values:{question:'Draft'}});
  assert.throws(()=>draftPut.parse({payload:{blob:'x'.repeat(70_000)}}));
+ assert.throws(()=>draftPut.parse({payload:{values:{password:'private'}}}));
+ assert.throws(()=>draftPut.parse({payload:{steps:[{refresh_token:'private'}]}}));
 });

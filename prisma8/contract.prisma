@@ -1667,4 +1667,30 @@ policy_select promo_sponsored_access { target = PromoRedemption
 policy_insert promo_redemption_create { target = PromoRedemption
  withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer AND code=current_setting('vops.promo_code',true)"
 }
+model UserDraft {
+ userId Int @map("user_id")
+ key VarChar(300)
+ payload Json
+ version Int @default(1)
+ createdAt Timestamp(3) @default(now()) @map("created_at")
+ updatedAt Timestamp(3) @map("updated_at")
+ user Users @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade,index:false)
+ @@id([userId,key])
+ @@index([userId,updatedAt],map:"user_drafts_user_updated_idx")
+ @@map("user_drafts")
+ @@rls
+}
+policy_select user_drafts_read { target = UserDraft
+ using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
+policy_insert user_drafts_create { target = UserDraft
+ withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
+policy_update user_drafts_update { target = UserDraft
+ using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+ withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
+policy_delete user_drafts_delete { target = UserDraft
+ using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
 }

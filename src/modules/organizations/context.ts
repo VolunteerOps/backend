@@ -28,7 +28,7 @@ export async function withActor<T>(actor: Actor, action: (tx: TenantTransaction)
           'events', 'deployments', 'field_reports', 'communications', 'notifications', 'telemetry_pings', 'feedback',
           'volunteer_profiles', 'directory_preferences', 'profile_shares', 'recruitment_blocks', 'consent_records',
           'account_deletion_requests', 'recruitment_reports', 'personal_audit', 'join_requests', 'domain_claims',
-          'support_access_grants', 'coordination_grants', 'partner_applications', 'responder_reservations', 'operation_records', 'operation_receipts', 'pro_sponsorships', 'usage_ledger', 'portal_preferences', 'portal_notification_reads', 'promo_codes', 'promo_redemptions')
+          'support_access_grants', 'coordination_grants', 'partner_applications', 'responder_reservations', 'operation_records', 'operation_receipts', 'pro_sponsorships', 'usage_ledger', 'user_drafts', 'portal_preferences', 'portal_notification_reads', 'promo_codes', 'promo_redemptions')
           AND pg_has_role(current_user, c.relowner, 'MEMBER')) AS unsafe`;
     if (role.length !== 1 || role[0].unsafe) {
       throw new ApiError(503, 'UNSAFE_RUNTIME_ROLE', 'Tenant operations require a non-owner runtime database role');

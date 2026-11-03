@@ -126,7 +126,7 @@ export async function runMetaAgent<T extends ZodType>(options:{
      // Consume only a bounded error envelope. Never log raw provider content.
      const envelope=await boundedJson(new Response(response.body,{status:200,headers:response.headers}),16000).catch(()=>null) as {error?:{code?:unknown}}|null;
      const unavailable=response.status===404&&envelope?.error?.code==='model_not_found';
-     logger.warn('META_REQUEST_REJECTED',{model:options.model,status:response.status,model_unavailable:unavailable,retries:transientRetries});
+     logger.warn('META_REQUEST_REJECTED',{model:options.model,status:response.status,model_unavailable:unavailable,retries:transientRetries,provider_request_id:response.headers.get('x-request-id')?.slice(0,100),region:process.env.RAILWAY_REPLICA_REGION});
      if(unavailable&&transientRetries<3){
       await delay([300,900,1800][transientRetries++]!,undefined,{signal:options.signal});
       continue;

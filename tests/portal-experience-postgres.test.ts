@@ -27,6 +27,16 @@ test('portal preferences, notification isolation, campaign versions and promotio
   const {withActor}=await import('../src/modules/organizations/context.js');
   const {requirePro}=await import('../src/modules/billing/billing.service.js');
   const admin=await actor('portal-admin'),one=await actor('portal-one'),two=await actor('portal-two');
+  const {DraftsService}=await import('../src/modules/drafts/drafts.service.js');
+  const draftKey='weather-chat:private-isolation-test';
+  assert.equal(await DraftsService.get(one,draftKey),null);
+  assert.equal((await DraftsService.put(one,draftKey,{payload:{question:'Review rainfall preparedness'},base_version:0})).version,1);
+  assert.equal(await DraftsService.get(two,draftKey),null);
+  assert.deepEqual((await DraftsService.list(two)).items,[]);
+  assert.equal((await withActor(two,tx=>tx.$queryRaw<any[]>`SELECT * FROM public.user_drafts`)).length,0);
+  assert.equal((await DraftsService.remove(two,draftKey)).deleted,false);
+  assert.equal((await DraftsService.put(one,draftKey,{payload:{question:'Updated question'},base_version:0})).version,2);
+  assert.equal((await DraftsService.remove(one,draftKey)).deleted,true);
   const a=await org(admin),b=await org(two);await member(one,a.id);await member(two,a.id,'COORDINATOR');
   const pref={expected_version:0,name:'Portal Coordinator',role:'Logistics',organization:'Test',coverage:'Mombasa, Kenya',briefings:true,reminders:true,step:1,completed:false,pro_tour_completed:false};
   assert.equal((await preferences(admin)).version,0);
@@ -85,7 +95,7 @@ test('portal preferences, notification isolation, campaign versions and promotio
  }finally{
   await prisma.$disconnect();
   await owner.query('DELETE FROM pro_sponsorships WHERE organization_id=ANY($1)',[orgs]);
-  for(const table of ['portal_notification_reads','portal_preferences','promo_redemptions','personal_audit','platform_grants'])await owner.query('DELETE FROM '+table+' WHERE user_id=ANY($1::int[])',[ids]);
+  for(const table of ['user_drafts','portal_notification_reads','portal_preferences','promo_redemptions','personal_audit','platform_grants'])await owner.query('DELETE FROM '+table+' WHERE user_id=ANY($1::int[])',[ids]);
   await owner.query("DELETE FROM promo_codes WHERE code LIKE $1",['%'+suffix.toUpperCase()]);
   await owner.query('DELETE FROM organization_audit WHERE organization_id=ANY($1)',[orgs]);
   await owner.query('DELETE FROM operation_receipts WHERE organization_id=ANY($1)',[orgs]);await owner.query('DELETE FROM operation_records WHERE organization_id=ANY($1)',[orgs]);await owner.query('DELETE FROM organization_memberships WHERE organization_id=ANY($1)',[orgs]);await owner.query('DELETE FROM organization_units WHERE id=ANY($1)',[regions]);await owner.query('DELETE FROM organizations WHERE id=ANY($1)',[orgs]);await owner.query('DELETE FROM firebase_identities WHERE user_id=ANY($1)',[ids]);await owner.query('DELETE FROM users WHERE id=ANY($1)',[ids]);await owner.query(`DROP OWNED BY "${login}"`);await owner.query(`DROP ROLE "${login}"`);await owner.end();
