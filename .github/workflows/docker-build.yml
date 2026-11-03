@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-smoke:
     runs-on: ubuntu-latest
@@ -43,6 +47,7 @@ jobs:
       - name: Verify migrated contract
         run: npm exec -- prisma db verify --db "$SENTINEL_TEST_DATABASE_URL"
       - run: npm test
+      - run: node --test scripts/deploy-railway.test.mjs
       - run: npm run contracts:check
       - run: npm run test:types
       - run: npm run test:object-store
@@ -102,3 +107,32 @@ jobs:
           done
           docker logs resq-storage-check
           exit 1
+
+  deploy:
+    needs: build-and-smoke
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment:
+      name: railway-staging
+      url: https://resq-api-staging.up.railway.app/api/ready
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.20.0'
+      - run: npm install --global @railway/cli@5.62.1
+      - name: Apply and verify migrations before releasing runtime services
+        run: node scripts/deploy-railway.mjs migrate
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Deploy and verify API
+        run: node scripts/deploy-railway.mjs api
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Deploy and verify forecast worker
+        run: node scripts/deploy-railway.mjs forecast
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
