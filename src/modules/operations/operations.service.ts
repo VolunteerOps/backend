@@ -61,6 +61,12 @@ export const OperationsService={
    const allowed=new Set(targets.filter(r=>membership!=='VOLUNTEER'||!['MISSION','COURSE'].includes(r.kind)||data(r.payload).status!=='DRAFT').map(r=>r.id));
    visible=visible.filter(r=>allowed.has(data(r.payload).record_id));
   }
+  if(input.kind==='COURSE'&&visible.length){
+   await tx.$queryRaw`SELECT set_config('vops.training','true',true)`;
+   const counts=await tx.operationRecord.groupBy({by:['parentId'],where:{organizationId:org,regionId:region,kind:'ENROLLMENT',parentId:{in:visible.map(r=>r.id)}},_count:{_all:true}});
+   await tx.$queryRaw`SELECT set_config('vops.training','',true)`;
+   visible=visible.map(r=>({...r,payload:{...data(r.payload),enrolled_count:counts.find(c=>c.parentId===r.id)?._count._all??0}}));
+  }
   return {items:visible,next_cursor:items.length>100?items[99]!.sequence:null,scan_cursor:items.slice(0,100).at(-1)?.sequence??input.after};
  });},
  async command(actor:Actor,org:string,region:string,key:string,input:CommandInput){
@@ -93,6 +99,16 @@ export async function executeOperationalCommand(tx:TenantTransaction,actor:Actor
     coordinator(memberRole);result=await create('BULLETIN',{title:parsed.title,body:parsed.body,priority:parsed.priority,status:'PUBLISHED',published_by:actor.userId,published_at:new Date().toISOString(),audience:'REGION_MEMBERS'});
    }else if(parsed.action==='CREATE_COURSE'||parsed.action==='PUBLISH_COURSE'||parsed.action==='ENROLL_COURSE'||parsed.action==='SUBMIT_LESSON'||parsed.action==='REVIEW_TRAINING'||parsed.action==='REVOKE_CREDENTIAL'){
     result=await trainingCommand(parsed,{tx,actor,scope,memberRole,get,create,update});
+    }else if(parsed.action==='CREATE_CAMPAIGN'){
+    coordinator(memberRole);if(parsed.bulletin_id)await get(parsed.bulletin_id,'BULLETIN');
+    result=await create('CAMPAIGN',{title:parsed.title,description:parsed.description,owner:parsed.owner,due_at:parsed.due_at,bulletin_id:parsed.bulletin_id??null,status:'ACTIVE',tasks:parsed.tasks.map(title=>({id:randomUUID(),title,completed:false}))});
+   }else if(parsed.action==='UPDATE_CAMPAIGN_TASK'||parsed.action==='ARCHIVE_CAMPAIGN'){
+    coordinator(memberRole);const row=await get(parsed.id,'CAMPAIGN'),p=data(row.payload);
+    if(p.status==='ARCHIVED')throw ApiError.conflict('This campaign has been archived.','CAMPAIGN_ARCHIVED');
+    if(parsed.action==='ARCHIVE_CAMPAIGN')result=await update(row.id,parsed.expected_version,{...p,status:'ARCHIVED',archive_reason:parsed.reason});
+    else {if(!p.tasks.some((t:any)=>t.id===parsed.task_id))throw ApiError.notFound('Task');
+     const tasks=p.tasks.map((t:any)=>t.id===parsed.task_id?{...t,completed:parsed.completed,updated_by:actor.userId,updated_at:new Date().toISOString()}:t);
+     result=await update(row.id,parsed.expected_version,{...p,tasks,status:tasks.every((t:any)=>t.completed)?'COMPLETED':'ACTIVE'});}
    }else if(parsed.action==='CREATE_MISSION'){
     coordinator(memberRole);result=await create('MISSION',{...parsed.mission,status:'DRAFT',assigned_count:0});
    }else if(parsed.action==='CREATE_RESOURCE'){

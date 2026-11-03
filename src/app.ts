@@ -1,3 +1,4 @@
+import portalExperienceRouter from './modules/portal/portal.controller.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -153,6 +154,7 @@ app.get('/api/features', (_req, res) => {
 // REST Domain Routes
 app.use('/api/auth', authRouter);
 app.use('/api', billingRouter);
+app.use('/api', portalExperienceRouter);
 app.use('/api', draftsRouter);
 app.use('/api/organizations/:orgId/regions/:regionId/operations', operationsRouter);
 app.use('/api/organizations/:orgId/regions/:regionId/safety', safetyRouter);

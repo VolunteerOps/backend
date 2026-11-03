@@ -7,6 +7,7 @@ COPY prisma ./prisma
 COPY prisma8 ./prisma8
 COPY --chown=node:node migrations ./migrations
 COPY scripts/railway-migrate.mjs ./scripts/railway-migrate.mjs
+COPY deploy/database/portal-experience-role.sql ./deploy/database/portal-experience-role.sql
 RUN npm run prisma8:emit
 USER node
 CMD ["node", "scripts/railway-migrate.mjs"]

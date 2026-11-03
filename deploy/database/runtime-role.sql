@@ -34,3 +34,7 @@ GRANT SELECT, INSERT, UPDATE ON public.volunteer_profiles, public.directory_pref
 GRANT SELECT, INSERT ON public.consent_records, public.personal_audit TO sentinel_runtime_access;
 
 GRANT SELECT, INSERT, UPDATE ON public.domain_claims, public.support_access_grants, public.coordination_grants, public.partner_applications TO sentinel_runtime_access;
+
+-- Portal experience: apply after its canonical migration.
+GRANT SELECT,INSERT,UPDATE ON public.portal_preferences,public.promo_codes TO sentinel_runtime_access;
+GRANT SELECT,INSERT ON public.portal_notification_reads,public.promo_redemptions TO sentinel_runtime_access;

@@ -1,3 +1,4 @@
+import {promotionalAccess} from '../portal/portal.service.js';
 import {featureCatalog} from './feature-catalog.js';
 import { ApiError } from '../../core/errors.js';
 import type { Actor } from '../organizations/context.js';
@@ -26,7 +27,14 @@ export function activeEntitlement(subscriber:any,identifier:string,now=Date.now(
  const expires=Date.parse(entitlement.expires_date),grace=Date.parse(entitlement.grace_period_expires_date);
  return Number.isFinite(expires)&&Math.max(expires,Number.isFinite(grace)?grace:0)>now;
 }
-export async function subscriptionStatus(actor:Actor){return subscriptionStatusForUid(actor.identity.uid);}
+export async function subscriptionStatus(actor:Actor){
+ const expires=await promotionalAccess(actor);
+ if(expires){
+  const provider=await subscriptionStatusForUid(actor.identity.uid).catch(()=>({status:'UNAVAILABLE',resq_pro:false,resqops_pro:false}));
+  return {...provider,status:'VERIFIED',provider_status:provider.status,resqops_pro:true,promotion_expires_at:expires};
+ }
+ return subscriptionStatusForUid(actor.identity.uid);
+}
 export async function subscriptionStatusForUid(uid:string,app:'volunteer'|'ops'|'all'='all'){
  // v1 customer reads accept the app's public SDK key. Keep this verification on the
  // server and bind it to the authenticated Firebase UID, never a client-supplied ID.
@@ -47,7 +55,8 @@ export async function subscriptionStatusForUid(uid:string,app:'volunteer'|'ops'|
  const allowSandbox=process.env.REVENUECAT_ALLOW_SANDBOX==='true'&&['staging','test'].includes(process.env.RAILWAY_ENVIRONMENT_NAME||process.env.NODE_ENV||'')&&(process.env.REVENUECAT_SANDBOX_UIDS||'').split(',').map(v=>v.trim()).includes(uid);
  return {status:(app==='ops'?keys.ops:app==='volunteer'?keys.volunteer:keys.volunteer||keys.ops)?'VERIFIED':'NOT_CONFIGURED',resq_pro:activeEntitlement(volunteer,'resq_pro',Date.now(),allowSandbox),resqops_pro:activeEntitlement(ops,'resqops_pro',Date.now(),allowSandbox)};
 }
-export async function requirePro(actor:Actor,role:string,organizationId?:string){
+export async function requirePro(actor:Actor,role:string,organizationId?:string,readPromotion:typeof promotionalAccess=promotionalAccess){
+ if(role!=='VOLUNTEER'&&await readPromotion(actor))return;
  const status=await subscriptionStatusForUid(actor.identity.uid,role==='VOLUNTEER'?'volunteer':'ops');
  if(role==='VOLUNTEER'&&!status.resq_pro&&organizationId){const {sponsoredPro}=await import('./sponsorship.service.js');if(await sponsoredPro(actor,organizationId))return;}
  if(status.status!=='VERIFIED')throw new ApiError(503,'BILLING_NOT_CONFIGURED','Pro activation is awaiting billing configuration');

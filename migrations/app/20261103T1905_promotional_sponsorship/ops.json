@@ -1,0 +1,45 @@
+[
+  {
+    "id": "rlsPolicy.public.promo_redemptions.promo_sponsored_access_e06cf260",
+    "label": "Create RLS policy \"promo_sponsored_access_e06cf260\" on \"promo_redemptions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "promo_sponsored_access_e06cf260",
+        "table": "promo_redemptions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"promo_sponsored_access_e06cf260\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_redemptions",
+          "promo_sponsored_access_e06cf260"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"promo_sponsored_access_e06cf260\"",
+        "sql": "CREATE POLICY \"promo_sponsored_access_e06cf260\" ON \"public\".\"promo_redemptions\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (EXISTS (SELECT 1 FROM public.pro_sponsorships s WHERE s.sponsor_id=promo_redemptions.user_id AND s.user_id=nullif(current_setting('vops.user_id',true),'')::integer AND s.organization_id=current_setting('vops.organization_id',true) AND s.active))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"promo_sponsored_access_e06cf260\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_redemptions",
+          "promo_sponsored_access_e06cf260"
+        ]
+      }
+    ]
+  }
+]

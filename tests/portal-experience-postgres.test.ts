@@ -1,0 +1,93 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { Pool } from 'pg';
+import type { Actor } from '../src/modules/organizations/context.js';
+const ownerUrl=process.env.SENTINEL_TEST_DATABASE_URL;
+test('portal preferences, notification isolation, campaign versions and promotion redemption races', {skip:!ownerUrl},async()=>{
+ const url=new URL(ownerUrl!);assert.ok(['127.0.0.1','localhost'].includes(url.hostname));assert.match(url.pathname,/test/);
+ const owner=new Pool({connectionString:ownerUrl});const suffix=randomUUID().replaceAll('-','');const login='ops_test_'+suffix;const password=randomUUID();
+ // Run independently on a freshly migrated database, without another test's setup.
+ await owner.query(readFileSync('deploy/database/runtime-role.sql','utf8'));
+ await owner.query(`CREATE ROLE "${login}" LOGIN PASSWORD '${password}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS`);
+ await owner.query(`GRANT sentinel_runtime_access TO "${login}"`);
+ await owner.query(readFileSync('deploy/database/responder-lock.sql','utf8'));
+ await owner.query(readFileSync('deploy/database/operations-role.sql','utf8'));
+ await owner.query(readFileSync('deploy/database/billing-usage-role.sql','utf8'));
+ await owner.query(readFileSync('deploy/database/portal-experience-role.sql','utf8'));
+ url.username=login;url.password=password;process.env.DATABASE_URL=url.toString();process.env.NODE_ENV='test';
+ const {prisma}=await import('../src/core/prisma.js');const {OperationsService:service}=await import('../src/modules/operations/operations.service.js');
+ const ids:number[]=[];const orgs:string[]=[];const regions:string[]=[];
+ async function actor(name:string):Promise<Actor>{const email=name+suffix+'@example.org';const row=await owner.query('INSERT INTO users(email,full_name,updated_at) VALUES($1,$2,now()) RETURNING id',[email,name]);const userId=row.rows[0].id;ids.push(userId);await owner.query('INSERT INTO firebase_identities(project_id,uid,user_id) VALUES($1,$2,$3)',['demo-sentinel',email,userId]);return{userId,identity:{projectId:'demo-sentinel',uid:email,email,signInProvider:'password',secondFactor:'totp',authTime:Math.floor(Date.now()/1000),expiresAt:Math.floor(Date.now()/1000)+3600}};}
+ async function org(admin:Actor){const id=randomUUID(),region=randomUUID();orgs.push(id);regions.push(region);await owner.query("INSERT INTO organizations(id,slug,display_name,status,enrollment_ready,allowed_providers) VALUES($1,$1,'Operations test','ACTIVE',true,ARRAY['password'])",[id]);await owner.query("INSERT INTO organization_units(id,organization_id,name) VALUES($1,$2,'Region')",[region,id]);await member(admin,id,'ORG_ADMIN');return {id,region};}
+ async function member(a:Actor,id:string,role='VOLUNTEER'){await owner.query('INSERT INTO organization_memberships(id,organization_id,user_id,role) VALUES($1,$2,$3,$4)',[randomUUID(),id,a.userId,role]);}
+ try {
+  const {preferences,notifications,managePromo,promotion,promotionalAccess,checkoutUrl}=await import('../src/modules/portal/portal.service.js');
+  const {withActor}=await import('../src/modules/organizations/context.js');
+  const {requirePro}=await import('../src/modules/billing/billing.service.js');
+  const admin=await actor('portal-admin'),one=await actor('portal-one'),two=await actor('portal-two');
+  const a=await org(admin),b=await org(two);await member(one,a.id);await member(two,a.id,'COORDINATOR');
+  const pref={expected_version:0,name:'Portal Coordinator',role:'Logistics',organization:'Test',coverage:'Mombasa, Kenya',briefings:true,reminders:true,step:1,completed:false,pro_tour_completed:false};
+  assert.equal((await preferences(admin)).version,0);
+  assert.equal((await preferences(admin,pref)).version,1);
+  assert.equal((await preferences(one)).payload,null);
+  await assert.rejects(preferences(admin,pref),{code:'VERSION_CONFLICT'});
+  assert.equal((await withActor(one,tx=>tx.$queryRaw<any[]>`SELECT * FROM public.portal_preferences`)).length,0);
+  const create={action:'CREATE_CAMPAIGN' as const,title:'Prepare coastal supplies',description:'Review readiness and community meeting points.',owner:'Field team',due_at:new Date(Date.now()+86400000).toISOString(),tasks:['Review water stock','Confirm meeting point']};
+  await assert.rejects(service.command(one,a.id,a.region,randomUUID(),create),{code:'CAPABILITY_REQUIRED'});
+  const key=randomUUID(),campaign:any=await service.command(admin,a.id,a.region,key,create);
+  assert.equal((await service.command(admin,a.id,a.region,key,create) as any).id,campaign.id);
+  await assert.rejects(service.command(two,b.id,b.region,randomUUID(),{action:'UPDATE_CAMPAIGN_TASK',id:campaign.id,expected_version:1,task_id:campaign.payload.tasks[0].id,completed:true}),{statusCode:404});
+  const update={action:'UPDATE_CAMPAIGN_TASK' as const,id:campaign.id,expected_version:1,task_id:campaign.payload.tasks[0].id,completed:true};
+  const updates=await Promise.allSettled([admin,two].map(actor=>service.command(actor,a.id,a.region,randomUUID(),update)));
+  assert.equal(updates.filter(r=>r.status==='fulfilled').length,1);
+  assert.equal(updates.filter(r=>r.status==='rejected'&&r.reason.code==='VERSION_CONFLICT').length,1);
+  const feed:any=await notifications(admin,a.id,a.region,0);assert.equal(feed.items.length,2);
+  await notifications(admin,a.id,a.region,0,feed.items[0].id);
+  assert.equal((await notifications(admin,a.id,a.region,0) as any).items[0].read,true);
+  assert.equal((await notifications(two,a.id,a.region,0) as any).items[0].read,false);
+  await assert.rejects(notifications(two,b.id,b.region,0,feed.items[0].id),{statusCode:404});
+  await assert.rejects(notifications(one,a.id,a.region,0),{code:'CAPABILITY_REQUIRED'});
+  await preferences(admin,{...pref,expected_version:1,briefings:false});assert.equal((await notifications(admin,a.id,a.region,0) as any).items.length,0);
+  const promo={code:'TEST_'+suffix.toUpperCase(),expected_version:0,percent:100,days:7,starts_at:new Date(Date.now()-60000).toISOString(),ends_at:new Date(Date.now()+86400000).toISOString(),limit:1,enabled:true,reason:'Controlled test of a promotional grant.'};
+  await assert.rejects(managePromo(admin,promo),{code:'PLATFORM_GRANT_REQUIRED'});
+  await owner.query("INSERT INTO platform_grants(user_id,role,active) VALUES($1,'TECH_ADMIN',true)",[admin.userId]);
+  await managePromo(admin,promo);
+  assert.equal((await withActor(one,tx=>tx.$queryRaw<any[]>`SELECT * FROM public.promo_codes`)).length,0);
+  const race=await Promise.allSettled([one,two].map(actor=>promotion(actor,promo.code,true)));
+  assert.equal(race.filter(r=>r.status==='fulfilled').length,1);
+  assert.equal(race.filter(r=>r.status==='rejected'&&r.reason.code==='PROMO_UNAVAILABLE').length,1);
+  const winner=race[0].status==='fulfilled'?one:two,loser=winner===one?two:one;
+  const granted:any=await promotion(winner,promo.code,true);assert.equal(granted.activated,true);assert.equal(granted.already_redeemed,true);
+  await requirePro(winner,'COORDINATOR');assert.equal(await promotionalAccess(loser),null);
+  await managePromo(admin,{...promo,expected_version:1,enabled:false});assert.ok(await promotionalAccess(winner));
+  await owner.query("UPDATE promo_redemptions SET expires_at=now()-interval '1 minute' WHERE user_id=$1",[winner.userId]);assert.equal(await promotionalAccess(winner),null);
+  const ownPromo={...promo,code:'SEAT_'+suffix.toUpperCase()};await managePromo(admin,ownPromo);await promotion(admin,ownPromo.code,true);
+  const {recordExport}=await import('../src/modules/operations/metrics.service.js');
+  const range={from:new Date(Date.now()-3600000).toISOString(),to:new Date(Date.now()+3600000).toISOString()};
+  await owner.query("INSERT INTO operation_records(id,organization_id,region_id,kind,owner_id,payload) VALUES($1,$2,$3,'MISSION',$4,$5::json)",[randomUUID(),a.id,a.region,admin.userId,JSON.stringify({title:'=1+1',status:'COMPLETED',capacity:5})]);
+  const exported=await recordExport(admin,a.id,a.region,'MISSION',range);assert.match(exported,/record_id,created_at,title,status/);assert.ok(exported.includes("'=1+1"));
+  await assert.rejects(recordExport(one,a.id,a.region,'HOURS',range),{code:'CAPABILITY_REQUIRED'});
+  await assert.rejects(recordExport(admin,b.id,b.region,'MISSION',range),{code:'MEMBERSHIP_REQUIRED'});
+  const {manageSponsorship,sponsoredPro}=await import('../src/modules/billing/sponsorship.service.js');
+  await manageSponsorship(admin,a.id,{user_id:one.userId,active:true,expected_version:0});
+  const noPaidAccess=async()=>({resqops_pro:false});
+  assert.equal(await sponsoredPro(one,a.id,noPaidAccess),true);
+  assert.equal(await sponsoredPro(two,a.id,noPaidAccess),false);
+  await owner.query("UPDATE promo_redemptions SET expires_at=now()-interval '1 minute' WHERE user_id=$1",[admin.userId]);
+  assert.equal(await sponsoredPro(one,a.id,noPaidAccess),false);
+  const partial={...promo,code:'PART_'+suffix.toUpperCase(),percent:25};await managePromo(admin,partial);
+  await assert.rejects(promotion(one,partial.code,true),{code:'CHECKOUT_REQUIRED'});assert.equal(await promotionalAccess(one),null);
+  const restricted={...promo,code:'MAIL_'+suffix.toUpperCase(),email:admin.identity.email};await managePromo(admin,restricted);await assert.rejects(promotion(one,restricted.code),{code:'PROMO_UNAVAILABLE'});
+  delete process.env.REVENUECAT_WEB_PURCHASE_URL;assert.equal(checkoutUrl('uid'),null);
+  process.env.REVENUECAT_WEB_PURCHASE_URL='https://pay.rev.cat/example';assert.equal(checkoutUrl('user/one','SAVE25'),'https://pay.rev.cat/example/user%2Fone?discount_code=SAVE25');
+ }finally{
+  await prisma.$disconnect();
+  await owner.query('DELETE FROM pro_sponsorships WHERE organization_id=ANY($1)',[orgs]);
+  for(const table of ['portal_notification_reads','portal_preferences','promo_redemptions','personal_audit','platform_grants'])await owner.query('DELETE FROM '+table+' WHERE user_id=ANY($1::int[])',[ids]);
+  await owner.query("DELETE FROM promo_codes WHERE code LIKE $1",['%'+suffix.toUpperCase()]);
+  await owner.query('DELETE FROM organization_audit WHERE organization_id=ANY($1)',[orgs]);
+  await owner.query('DELETE FROM operation_receipts WHERE organization_id=ANY($1)',[orgs]);await owner.query('DELETE FROM operation_records WHERE organization_id=ANY($1)',[orgs]);await owner.query('DELETE FROM organization_memberships WHERE organization_id=ANY($1)',[orgs]);await owner.query('DELETE FROM organization_units WHERE id=ANY($1)',[regions]);await owner.query('DELETE FROM organizations WHERE id=ANY($1)',[orgs]);await owner.query('DELETE FROM firebase_identities WHERE user_id=ANY($1)',[ids]);await owner.query('DELETE FROM users WHERE id=ANY($1)',[ids]);await owner.query(`DROP OWNED BY "${login}"`);await owner.query(`DROP ROLE "${login}"`);await owner.end();
+ }
+});

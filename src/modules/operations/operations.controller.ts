@@ -1,5 +1,5 @@
 import {coordinationOverview} from './workspace.service.js';
-import {operationalMetrics,metricsQuery,metricsCsv} from './metrics.service.js';
+import {operationalMetrics,metricsQuery,metricsCsv,recordExport} from './metrics.service.js';
 import {ApiError} from '../../core/errors.js';
 import { encodeCursor, decodeCursor } from './stream-cursor.js';
 import { validateBody } from '../../middleware/validator.js';
@@ -20,6 +20,11 @@ router.get('/metrics',ah(async(req,res)=>res.json(await operationalMetrics(reque
 router.get('/metrics/export',ah(async(req,res)=>{
  const value=await operationalMetrics(requestActor(req),scopeId.parse(req.params.orgId),scopeId.parse(req.params.regionId),metricsQuery.parse(req.query),true);
  res.setHeader('Content-Type','text/csv; charset=utf-8');res.setHeader('Content-Disposition','attachment; filename="resq-operational-summary.csv"');res.send(metricsCsv(value));
+}));
+router.get('/exports/:kind',ah(async(req,res)=>{
+ const kind=z.enum(['MISSION','HOURS']).parse(req.params.kind);
+ const csv=await recordExport(requestActor(req),scopeId.parse(req.params.orgId),scopeId.parse(req.params.regionId),kind,metricsQuery.parse(req.query));
+ res.setHeader('Content-Type','text/csv; charset=utf-8');res.setHeader('Content-Disposition','attachment; filename="resq-'+kind.toLowerCase()+'.csv"');res.send(csv);
 }));
 router.get('/records',ah(async(req,res)=>res.json(serialize(await OperationsService.list(requestActor(req),scopeId.parse(req.params.orgId),scopeId.parse(req.params.regionId),listSchema.parse(req.query))))));
 router.get('/records/:recordId',ah(async(req,res)=>res.json(serialize(await OperationsService.detail(requestActor(req),scopeId.parse(req.params.orgId),scopeId.parse(req.params.regionId),scopeId.parse(req.params.recordId))))));

@@ -5,6 +5,7 @@ import {z} from 'zod';
 // Schema imports instantiate adapters lazily; never require a deployment secret to generate contracts.
 process.env.DATABASE_URL ??= 'postgresql://contract_reader@127.0.0.1:1/contracts?sslmode=verify-full';
 const routes=[
+ ['portal','/api'],
  ['safety','/api/organizations/:orgId/regions/:regionId/safety'],['billing','/api'],['operations','/api/organizations/:orgId/regions/:regionId/operations'],['personal','/api'],['enterprise','/api'],['auth','/api/auth'],['organizations','/api'],['platform','/api/platform'],['sentinel','/api/organizations/:orgId/sentinel'],['scoped-storage','/api/organizations/:orgId/regions/:regionId/storage'],['contact','/api/contact']
 ];
 const paths={};

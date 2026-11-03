@@ -71,6 +71,8 @@ export const PersonalService = {
    consents:consents.slice(0,1000),
    consents_next_cursor:consents.length>1000?consents[999]!.id:null,
    memberships:await tx.organizationMembership.findMany({where:{userId:actor.userId},select:{id:true,organizationId:true,role:true,status:true}}),
+   portal_preferences:await tx.$queryRaw`SELECT payload,version,updated_at FROM public.portal_preferences WHERE user_id=${actor.userId}`,
+   promotional_access:await tx.$queryRaw`SELECT code,expires_at,created_at FROM public.promo_redemptions WHERE user_id=${actor.userId}`,
    scope:'PERSONAL_PROFILE_AND_CONSENT',
   };
  }); },

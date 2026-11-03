@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -30,6 +30,7 @@ try {
       child.once('exit', code => code === 0 ? resolve() : reject(new Error('MIGRATION_STEP_FAILED')));
     });
   }
+  await client.query(readFileSync(new URL('../deploy/database/portal-experience-role.sql', import.meta.url), 'utf8'));
   console.log('MIGRATION_VERIFIED');
 } catch { console.error('MIGRATION_FAILED'); process.exitCode = 1; }
 finally { await client?.end().catch(() => {}); if (directory) rmSync(directory, { recursive: true, force: true }); }

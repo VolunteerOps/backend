@@ -1,0 +1,1035 @@
+[
+  {
+    "id": "table.portal_notification_reads",
+    "label": "Create table \"portal_notification_reads\"",
+    "summary": "Creates table \"portal_notification_reads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "portal_notification_reads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"portal_notification_reads\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"portal_notification_reads\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"portal_notification_reads\"",
+        "sql": "CREATE TABLE \"public\".\"portal_notification_reads\" (\n  \"id\" text NOT NULL,\n  \"read_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"record_id\" text NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"portal_notification_reads\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"portal_notification_reads\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.portal_preferences",
+    "label": "Create table \"portal_preferences\"",
+    "summary": "Creates table \"portal_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "portal_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"portal_preferences\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"portal_preferences\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"portal_preferences\"",
+        "sql": "CREATE TABLE \"public\".\"portal_preferences\" (\n  \"payload\" json NOT NULL,\n  \"updated_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  \"version\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"user_id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"portal_preferences\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"portal_preferences\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.promo_codes",
+    "label": "Create table \"promo_codes\"",
+    "summary": "Creates table \"promo_codes\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "promo_codes"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"promo_codes\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"promo_codes\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"promo_codes\"",
+        "sql": "CREATE TABLE \"public\".\"promo_codes\" (\n  \"code\" text NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"payload\" json NOT NULL,\n  \"version\" int4 DEFAULT 1 NOT NULL,\n  PRIMARY KEY (\"code\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"promo_codes\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"promo_codes\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.promo_redemptions",
+    "label": "Create table \"promo_redemptions\"",
+    "summary": "Creates table \"promo_redemptions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "promo_redemptions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"promo_redemptions\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"promo_redemptions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"promo_redemptions\"",
+        "sql": "CREATE TABLE \"public\".\"promo_redemptions\" (\n  \"code\" text NOT NULL,\n  \"created_at\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"expires_at\" timestamp(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"user_id\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"promo_redemptions\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"promo_redemptions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.portal_notification_reads.portal_notification_read_owner",
+    "label": "Add unique constraint on \"portal_notification_reads\" (user_id, record_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "portal_notification_read_owner",
+        "table": "portal_notification_reads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"portal_notification_read_owner\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "portal_notification_read_owner",
+          "public",
+          "\"public\".\"portal_notification_reads\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"portal_notification_read_owner\"",
+        "sql": "ALTER TABLE \"public\".\"portal_notification_reads\" ADD CONSTRAINT \"portal_notification_read_owner\" UNIQUE (\"user_id\", \"record_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"portal_notification_read_owner\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "portal_notification_read_owner",
+          "public",
+          "\"public\".\"portal_notification_reads\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.promo_redemptions.promo_redemption_once",
+    "label": "Add unique constraint on \"promo_redemptions\" (code, user_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "promo_redemption_once",
+        "table": "promo_redemptions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"promo_redemption_once\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "promo_redemption_once",
+          "public",
+          "\"public\".\"promo_redemptions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"promo_redemption_once\"",
+        "sql": "ALTER TABLE \"public\".\"promo_redemptions\" ADD CONSTRAINT \"promo_redemption_once\" UNIQUE (\"code\", \"user_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"promo_redemption_once\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "promo_redemption_once",
+          "public",
+          "\"public\".\"promo_redemptions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.promo_redemptions.promo_entitlement_expiry",
+    "label": "Create index \"promo_entitlement_expiry\" on \"promo_redemptions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "promo_entitlement_expiry",
+        "table": "promo_redemptions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"promo_entitlement_expiry\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"promo_entitlement_expiry\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"promo_entitlement_expiry\"",
+        "sql": "CREATE INDEX \"promo_entitlement_expiry\" ON \"public\".\"promo_redemptions\" (\"user_id\", \"expires_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"promo_entitlement_expiry\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"promo_entitlement_expiry\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.portal_notification_reads.portal_notification_reads_user_id_fkey",
+    "label": "Add foreign key \"portal_notification_reads_user_id_fkey\" on \"portal_notification_reads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "portal_notification_reads_user_id_fkey",
+        "table": "portal_notification_reads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"portal_notification_reads_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "portal_notification_reads_user_id_fkey",
+          "public",
+          "\"public\".\"portal_notification_reads\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"portal_notification_reads_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"portal_notification_reads\"\nADD CONSTRAINT \"portal_notification_reads_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"portal_notification_reads_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "portal_notification_reads_user_id_fkey",
+          "public",
+          "\"public\".\"portal_notification_reads\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.portal_preferences.portal_preferences_user_id_fkey",
+    "label": "Add foreign key \"portal_preferences_user_id_fkey\" on \"portal_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "portal_preferences_user_id_fkey",
+        "table": "portal_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"portal_preferences_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "portal_preferences_user_id_fkey",
+          "public",
+          "\"public\".\"portal_preferences\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"portal_preferences_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"portal_preferences\"\nADD CONSTRAINT \"portal_preferences_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"portal_preferences_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "portal_preferences_user_id_fkey",
+          "public",
+          "\"public\".\"portal_preferences\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.promo_redemptions.promo_redemptions_user_id_fkey",
+    "label": "Add foreign key \"promo_redemptions_user_id_fkey\" on \"promo_redemptions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "promo_redemptions_user_id_fkey",
+        "table": "promo_redemptions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"promo_redemptions_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "promo_redemptions_user_id_fkey",
+          "public",
+          "\"public\".\"promo_redemptions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"promo_redemptions_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"promo_redemptions\"\nADD CONSTRAINT \"promo_redemptions_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"promo_redemptions_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "promo_redemptions_user_id_fkey",
+          "public",
+          "\"public\".\"promo_redemptions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.promo_redemptions.promo_redemptions_code_fkey",
+    "label": "Add foreign key \"promo_redemptions_code_fkey\" on \"promo_redemptions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "promo_redemptions_code_fkey",
+        "table": "promo_redemptions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"promo_redemptions_code_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "promo_redemptions_code_fkey",
+          "public",
+          "\"public\".\"promo_redemptions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"promo_redemptions_code_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"promo_redemptions\"\nADD CONSTRAINT \"promo_redemptions_code_fkey\"\nFOREIGN KEY (\"code\")\nREFERENCES \"public\".\"promo_codes\" (\"code\")\nON DELETE RESTRICT\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"promo_redemptions_code_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "promo_redemptions_code_fkey",
+          "public",
+          "\"public\".\"promo_redemptions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.portal_notification_reads",
+    "label": "Enable row-level security on \"portal_notification_reads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "portal_notification_reads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"portal_notification_reads\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "portal_notification_reads"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"portal_notification_reads\"",
+        "sql": "ALTER TABLE \"public\".\"portal_notification_reads\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"portal_notification_reads\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "portal_notification_reads"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.portal_preferences",
+    "label": "Enable row-level security on \"portal_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "portal_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"portal_preferences\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "portal_preferences"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"portal_preferences\"",
+        "sql": "ALTER TABLE \"public\".\"portal_preferences\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"portal_preferences\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "portal_preferences"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.promo_codes",
+    "label": "Enable row-level security on \"promo_codes\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "promo_codes"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"promo_codes\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "promo_codes"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"promo_codes\"",
+        "sql": "ALTER TABLE \"public\".\"promo_codes\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"promo_codes\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "promo_codes"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rowLevelSecurity.public.promo_redemptions",
+    "label": "Enable row-level security on \"promo_redemptions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rowLevelSecurity",
+        "name": "promo_redemptions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "check RLS is not already enabled on \"promo_redemptions\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND NOT (\"c\".\"relrowsecurity\"))) AS \"result\"",
+        "params": [
+          "public",
+          "promo_redemptions"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "enable row-level security on \"promo_redemptions\"",
+        "sql": "ALTER TABLE \"public\".\"promo_redemptions\" ENABLE ROW LEVEL SECURITY"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify row-level security is enabled on \"promo_redemptions\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"c\".\"relrowsecurity\")) AS \"result\"",
+        "params": [
+          "public",
+          "promo_redemptions"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.portal_notification_reads.portal_notification_mark_32894381",
+    "label": "Create RLS policy \"portal_notification_mark_32894381\" on \"portal_notification_reads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "portal_notification_mark_32894381",
+        "table": "portal_notification_reads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"portal_notification_mark_32894381\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_notification_reads",
+          "portal_notification_mark_32894381"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"portal_notification_mark_32894381\"",
+        "sql": "CREATE POLICY \"portal_notification_mark_32894381\" ON \"public\".\"portal_notification_reads\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id=nullif(current_setting('vops.user_id',true),'')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"portal_notification_mark_32894381\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_notification_reads",
+          "portal_notification_mark_32894381"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.portal_notification_reads.portal_notification_read_eb9ee7c4",
+    "label": "Create RLS policy \"portal_notification_read_eb9ee7c4\" on \"portal_notification_reads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "portal_notification_read_eb9ee7c4",
+        "table": "portal_notification_reads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"portal_notification_read_eb9ee7c4\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_notification_reads",
+          "portal_notification_read_eb9ee7c4"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"portal_notification_read_eb9ee7c4\"",
+        "sql": "CREATE POLICY \"portal_notification_read_eb9ee7c4\" ON \"public\".\"portal_notification_reads\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id=nullif(current_setting('vops.user_id',true),'')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"portal_notification_read_eb9ee7c4\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_notification_reads",
+          "portal_notification_read_eb9ee7c4"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.portal_preferences.portal_preferences_create_32894381",
+    "label": "Create RLS policy \"portal_preferences_create_32894381\" on \"portal_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "portal_preferences_create_32894381",
+        "table": "portal_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"portal_preferences_create_32894381\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_preferences",
+          "portal_preferences_create_32894381"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"portal_preferences_create_32894381\"",
+        "sql": "CREATE POLICY \"portal_preferences_create_32894381\" ON \"public\".\"portal_preferences\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id=nullif(current_setting('vops.user_id',true),'')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"portal_preferences_create_32894381\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_preferences",
+          "portal_preferences_create_32894381"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.portal_preferences.portal_preferences_read_eb9ee7c4",
+    "label": "Create RLS policy \"portal_preferences_read_eb9ee7c4\" on \"portal_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "portal_preferences_read_eb9ee7c4",
+        "table": "portal_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"portal_preferences_read_eb9ee7c4\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_preferences",
+          "portal_preferences_read_eb9ee7c4"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"portal_preferences_read_eb9ee7c4\"",
+        "sql": "CREATE POLICY \"portal_preferences_read_eb9ee7c4\" ON \"public\".\"portal_preferences\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id=nullif(current_setting('vops.user_id',true),'')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"portal_preferences_read_eb9ee7c4\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_preferences",
+          "portal_preferences_read_eb9ee7c4"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.portal_preferences.portal_preferences_update_31b62e0c",
+    "label": "Create RLS policy \"portal_preferences_update_31b62e0c\" on \"portal_preferences\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "portal_preferences_update_31b62e0c",
+        "table": "portal_preferences"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"portal_preferences_update_31b62e0c\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_preferences",
+          "portal_preferences_update_31b62e0c"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"portal_preferences_update_31b62e0c\"",
+        "sql": "CREATE POLICY \"portal_preferences_update_31b62e0c\" ON \"public\".\"portal_preferences\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (user_id=nullif(current_setting('vops.user_id',true),'')::integer) WITH CHECK (user_id=nullif(current_setting('vops.user_id',true),'')::integer)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"portal_preferences_update_31b62e0c\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "portal_preferences",
+          "portal_preferences_update_31b62e0c"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.promo_codes.promo_code_create_173d0e5a",
+    "label": "Create RLS policy \"promo_code_create_173d0e5a\" on \"promo_codes\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "promo_code_create_173d0e5a",
+        "table": "promo_codes"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"promo_code_create_173d0e5a\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_codes",
+          "promo_code_create_173d0e5a"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"promo_code_create_173d0e5a\"",
+        "sql": "CREATE POLICY \"promo_code_create_173d0e5a\" ON \"public\".\"promo_codes\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (current_setting('vops.platform',true)='true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"promo_code_create_173d0e5a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_codes",
+          "promo_code_create_173d0e5a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.promo_codes.promo_code_manage_77142426",
+    "label": "Create RLS policy \"promo_code_manage_77142426\" on \"promo_codes\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "promo_code_manage_77142426",
+        "table": "promo_codes"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"promo_code_manage_77142426\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_codes",
+          "promo_code_manage_77142426"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"promo_code_manage_77142426\"",
+        "sql": "CREATE POLICY \"promo_code_manage_77142426\" ON \"public\".\"promo_codes\" AS PERMISSIVE FOR UPDATE TO PUBLIC USING (current_setting('vops.platform',true)='true') WITH CHECK (current_setting('vops.platform',true)='true')",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"promo_code_manage_77142426\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_codes",
+          "promo_code_manage_77142426"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.promo_codes.promo_code_read_30c7ca1f",
+    "label": "Create RLS policy \"promo_code_read_30c7ca1f\" on \"promo_codes\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "promo_code_read_30c7ca1f",
+        "table": "promo_codes"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"promo_code_read_30c7ca1f\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_codes",
+          "promo_code_read_30c7ca1f"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"promo_code_read_30c7ca1f\"",
+        "sql": "CREATE POLICY \"promo_code_read_30c7ca1f\" ON \"public\".\"promo_codes\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (current_setting('vops.platform',true)='true' OR code=current_setting('vops.promo_code',true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"promo_code_read_30c7ca1f\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_codes",
+          "promo_code_read_30c7ca1f"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.promo_redemptions.promo_redemption_create_3efa5144",
+    "label": "Create RLS policy \"promo_redemption_create_3efa5144\" on \"promo_redemptions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "promo_redemption_create_3efa5144",
+        "table": "promo_redemptions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"promo_redemption_create_3efa5144\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_redemptions",
+          "promo_redemption_create_3efa5144"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"promo_redemption_create_3efa5144\"",
+        "sql": "CREATE POLICY \"promo_redemption_create_3efa5144\" ON \"public\".\"promo_redemptions\" AS PERMISSIVE FOR INSERT TO PUBLIC WITH CHECK (user_id=nullif(current_setting('vops.user_id',true),'')::integer AND code=current_setting('vops.promo_code',true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"promo_redemption_create_3efa5144\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_redemptions",
+          "promo_redemption_create_3efa5144"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rlsPolicy.public.promo_redemptions.promo_redemption_read_9ee541f6",
+    "label": "Create RLS policy \"promo_redemption_read_9ee541f6\" on \"promo_redemptions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "rlsPolicy",
+        "name": "promo_redemption_read_9ee541f6",
+        "table": "promo_redemptions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure RLS policy \"promo_redemption_read_9ee541f6\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_redemptions",
+          "promo_redemption_read_9ee541f6"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create RLS policy \"promo_redemption_read_9ee541f6\"",
+        "sql": "CREATE POLICY \"promo_redemption_read_9ee541f6\" ON \"public\".\"promo_redemptions\" AS PERMISSIVE FOR SELECT TO PUBLIC USING (user_id=nullif(current_setting('vops.user_id',true),'')::integer OR current_setting('vops.platform',true)='true' OR code=current_setting('vops.promo_code',true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify RLS policy \"promo_redemption_read_9ee541f6\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_policies\" WHERE (\"schemaname\" = $1 AND \"tablename\" = $2 AND \"policyname\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "promo_redemptions",
+          "promo_redemption_read_9ee541f6"
+        ]
+      }
+    ]
+  }
+]

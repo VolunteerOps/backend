@@ -15,10 +15,10 @@ test('server checks the authenticated account using configured ops credentials a
  const names=['REVENUECAT_SECRET_API_KEY','REVENUECAT_OPS_SECRET_API_KEY','REVENUECAT_API_KEY','REVENUECAT_OPS_API_KEY'];const previous=names.map(name=>process.env[name]);
  t.after(()=>names.forEach((name,i)=>{if(previous[i]===undefined)delete process.env[name];else process.env[name]=previous[i];}));names.forEach(name=>delete process.env[name]);
  const actor={identity:{uid:'confirmed-firebase-user'}} as Actor;
- await assert.rejects(requirePro(actor,'ORG_ADMIN'),(e:any)=>e.code==='BILLING_NOT_CONFIGURED');
+ await assert.rejects(requirePro(actor,'ORG_ADMIN',undefined,async()=>null),(e:any)=>e.code==='BILLING_NOT_CONFIGURED');
  process.env.REVENUECAT_OPS_API_KEY='goog_test_fixture';let subscriber:any=promotional;
  t.mock.method(globalThis,'fetch',async(url:string,options:RequestInit)=>{assert.equal(url,'https://api.revenuecat.com/v1/subscribers/confirmed-firebase-user');assert.equal((options.headers as Record<string,string>).Authorization,'Bearer goog_test_fixture');return new Response(JSON.stringify({subscriber}),{status:200});});
- assert.equal((await subscriptionStatusForUid(actor.identity.uid,'ops')).resqops_pro,true);await requirePro(actor,'ORG_ADMIN');
+ assert.equal((await subscriptionStatusForUid(actor.identity.uid,'ops')).resqops_pro,true);await requirePro(actor,'ORG_ADMIN',undefined,async()=>null);
  subscriber={entitlements:{},subscriptions:{}};
- await assert.rejects(requirePro(actor,'ORG_ADMIN'),(e:any)=>e.code==='PRO_REQUIRED');
+ await assert.rejects(requirePro(actor,'ORG_ADMIN',undefined,async()=>null),(e:any)=>e.code==='PRO_REQUIRED');
 });

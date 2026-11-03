@@ -1591,4 +1591,80 @@ policy_update usage_server_finalize { target = UsageLedger
  using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer AND current_setting('vops.usage',true)='true'"
  withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
 }
+
+model PortalPreferences {
+ userId Int @id @map("user_id")
+ payload Json
+ version Int @default(1)
+ updatedAt Timestamp(3) @default(now()) @map("updated_at")
+ user Users @relation(fields:[userId],references:[id],onDelete:Restrict,onUpdate:Cascade,index:false)
+ @@map("portal_preferences")
+ @@rls
+}
+policy_select portal_preferences_read { target = PortalPreferences
+ using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
+policy_insert portal_preferences_create { target = PortalPreferences
+ withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
+policy_update portal_preferences_update { target = PortalPreferences
+ using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+ withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
+model PortalNotificationRead {
+ id String @id
+ userId Int @map("user_id")
+ recordId String @map("record_id")
+ readAt Timestamp(3) @default(now()) @map("read_at")
+ user Users @relation(fields:[userId],references:[id],onDelete:Restrict,onUpdate:Cascade,index:false)
+ @@unique([userId,recordId],map:"portal_notification_read_owner")
+ @@map("portal_notification_reads")
+ @@rls
+}
+policy_select portal_notification_read { target = PortalNotificationRead
+ using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
+policy_insert portal_notification_mark { target = PortalNotificationRead
+ withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer"
+}
+model PromoCode {
+ code String @id
+ payload Json
+ version Int @default(1)
+ createdAt Timestamp(3) @default(now()) @map("created_at")
+ @@map("promo_codes")
+ @@rls
+}
+policy_select promo_code_read { target = PromoCode
+ using = "current_setting('vops.platform',true)='true' OR code=current_setting('vops.promo_code',true)"
+}
+policy_insert promo_code_create { target = PromoCode
+ withCheck = "current_setting('vops.platform',true)='true'"
+}
+policy_update promo_code_manage { target = PromoCode
+ using = "current_setting('vops.platform',true)='true'"
+ withCheck = "current_setting('vops.platform',true)='true'"
+}
+model PromoRedemption {
+ id String @id
+ code String
+ userId Int @map("user_id")
+ expiresAt Timestamp(3) @map("expires_at")
+ createdAt Timestamp(3) @default(now()) @map("created_at")
+ user Users @relation(fields:[userId],references:[id],onDelete:Restrict,onUpdate:Cascade,index:false)
+ promo PromoCode @relation(fields:[code],references:[code],onDelete:Restrict,onUpdate:Cascade,index:false)
+ @@unique([code,userId],map:"promo_redemption_once")
+ @@index([userId,expiresAt],map:"promo_entitlement_expiry")
+ @@map("promo_redemptions")
+ @@rls
+}
+policy_select promo_redemption_read { target = PromoRedemption
+ using = "user_id=nullif(current_setting('vops.user_id',true),'')::integer OR current_setting('vops.platform',true)='true' OR code=current_setting('vops.promo_code',true)"
+}
+policy_select promo_sponsored_access { target = PromoRedemption
+ using = "EXISTS (SELECT 1 FROM public.pro_sponsorships s WHERE s.sponsor_id=promo_redemptions.user_id AND s.user_id=nullif(current_setting('vops.user_id',true),'')::integer AND s.organization_id=current_setting('vops.organization_id',true) AND s.active)"
+}
+policy_insert promo_redemption_create { target = PromoRedemption
+ withCheck = "user_id=nullif(current_setting('vops.user_id',true),'')::integer AND code=current_setting('vops.promo_code',true)"
+}
 }

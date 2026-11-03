@@ -7,11 +7,14 @@ export const missionSchema = z.object({
  longitude:z.number().min(-180).max(180), latitude:z.number().min(-90).max(90),
  meeting_point:z.string().trim().min(3).max(500), required_skills:z.array(z.string().min(2).max(60)).max(30).default([]),
 }).strict().refine(x=>Date.parse(x.ends_at)>Date.parse(x.starts_at),'Mission duration must be positive; use the length the coordinator stipulates');
-export const kinds = ['MISSION','APPLICATION','ASSIGNMENT','REPORT','MESSAGE','HOURS','SUPPORT','EVENT','INVENTORY','STOCK_LEDGER','RESOURCE_RESERVATION','COURSE','ENROLLMENT','CREDENTIAL','DISPATCH_CONTROL','BULLETIN'] as const;
+export const kinds = ['MISSION','APPLICATION','ASSIGNMENT','REPORT','MESSAGE','HOURS','SUPPORT','EVENT','INVENTORY','STOCK_LEDGER','RESOURCE_RESERVATION','COURSE','ENROLLMENT','CREDENTIAL','DISPATCH_CONTROL','BULLETIN','CAMPAIGN'] as const;
 export const listSchema = z.object({kind:z.enum(kinds).default('MISSION'),after:z.coerce.number().int().nonnegative().default(0),parent_id:scopeId.optional(),status:z.string().regex(/^[A-Z_]{2,40}$/).optional(),q:z.string().trim().min(2).max(100).optional()}).strict();
 const version=z.number().int().positive();
 export const commandSchema=z.discriminatedUnion('action',[
  ...trainingCommands,
+ z.object({action:z.literal('CREATE_CAMPAIGN'),title:z.string().trim().min(3).max(160),description:z.string().trim().min(10).max(3000),owner:z.string().trim().min(2).max(120),due_at:z.string().datetime(),tasks:z.array(z.string().trim().min(3).max(300)).min(1).max(30),bulletin_id:scopeId.optional()}).strict(),
+ z.object({action:z.literal('UPDATE_CAMPAIGN_TASK'),id:scopeId,expected_version:version,task_id:scopeId,completed:z.boolean()}).strict(),
+ z.object({action:z.literal('ARCHIVE_CAMPAIGN'),id:scopeId,expected_version:version,reason:z.string().trim().min(10).max(1000)}).strict(),
  z.object({action:z.literal('SET_DISPATCH'),paused:z.boolean(),expected_version:z.number().int().nonnegative(),reason:z.string().trim().min(10).max(1000)}).strict(),
  z.object({action:z.literal('PUBLISH_BULLETIN'),title:z.string().trim().min(3).max(160),body:z.string().trim().min(10).max(4000),priority:z.enum(['NOTICE','URGENT'])}).strict(),
  z.object({action:z.literal('WITHDRAW_BULLETIN'),id:scopeId,expected_version:version,reason:z.string().trim().min(10).max(1000)}).strict(),
