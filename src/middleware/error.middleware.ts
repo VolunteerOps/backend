@@ -26,13 +26,13 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     res.status(400).json({
       error: 'validation_failed',
       message: 'Request payload validation failed',
-      details: err.errors.map((e) => ({
+      details: err.issues.map((e) => ({
         path: e.path.join('.'),
         message: e.message,
         code: e.code,
-        ...('minimum' in e ? { minimum:e.minimum,type:e.type } : {}),
-        ...('maximum' in e ? { maximum:e.maximum,type:e.type } : {}),
-        ...('expected' in e ? { expected:e.expected } : {}),
+        ...('minimum' in e ? { minimum:e.minimum,type:e.origin } : {}),
+        ...('maximum' in e ? { maximum:e.maximum,type:e.origin } : {}),
+        ...('expected' in e ? { expected:e.expected === 'int' ? 'integer' : e.expected } : {}),
       })),
     });
     return;

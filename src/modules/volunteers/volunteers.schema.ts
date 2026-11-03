@@ -11,13 +11,18 @@ export const createVolunteerSchema = z.object({
   date_of_birth: z.string().optional(),
   emergency_contact: z.string().optional(),
   bio: z.string().optional(),
-  availability_schedule: z.record(z.unknown()).optional(),
+  availability_schedule: z.record(z.string(), z.unknown()).optional(),
   address: z.string().optional(),
   latitude: z.coerce.number().optional(),
   longitude: z.coerce.number().optional(),
 });
 
-export const updateVolunteerSchema = createVolunteerSchema.partial();
+// Defaults apply only when creating records; omitted update fields must remain unchanged.
+export const updateVolunteerSchema = createVolunteerSchema.extend({
+  registration_channel: createVolunteerSchema.shape.registration_channel.removeDefault(),
+  consent_given: createVolunteerSchema.shape.consent_given.removeDefault(),
+  status: createVolunteerSchema.shape.status.removeDefault(),
+}).partial();
 
 export const addSkillSchema = z.object({
   skill_id: z.coerce.number().int().positive(),

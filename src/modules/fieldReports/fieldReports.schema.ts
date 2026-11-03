@@ -24,7 +24,12 @@ export const createFieldReportSchema = z.object({
   submitted_via: z.string().default('mobile_app'),
 });
 
-export const updateFieldReportSchema = createFieldReportSchema.partial().extend({
+// Defaults apply only when creating records; omitted update fields must remain unchanged.
+export const updateFieldReportSchema = createFieldReportSchema.extend({
+  report_type: createFieldReportSchema.shape.report_type.removeDefault(),
+  priority: createFieldReportSchema.shape.priority.removeDefault(),
+  submitted_via: createFieldReportSchema.shape.submitted_via.removeDefault(),
+}).partial().extend({
   status: z.enum(['submitted', 'verified', 'actioned', 'dismissed']).optional(),
   verified_by: z.string().optional(),
 });

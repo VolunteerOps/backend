@@ -7,7 +7,10 @@ export const createSkillSchema = z.object({
   description: z.string().min(5, 'Description is required'),
 });
 
-export const updateSkillSchema = createSkillSchema.partial();
+// Defaults apply only when creating records; omitted update fields must remain unchanged.
+export const updateSkillSchema = createSkillSchema.extend({
+  demand_level: createSkillSchema.shape.demand_level.removeDefault(),
+}).partial();
 
 export const semanticMatchSchema = z.object({
   incident_description: z.string().min(5, 'Incident description is required'),

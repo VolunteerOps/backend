@@ -1,7 +1,7 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {zodToJsonSchema} from 'zod-to-json-schema';
+import {z} from 'zod';
 // Schema imports instantiate adapters lazily; never require a deployment secret to generate contracts.
 process.env.DATABASE_URL ??= 'postgresql://contract_reader@127.0.0.1:1/contracts?sslmode=verify-full';
 const routes=[
@@ -28,7 +28,7 @@ for(const [name,prefix] of routes){
    const imported=[...source.matchAll(/import\s*{([^}]+)}\s*from\s*'([^']+)'/g)].find(x=>x[1].split(',').map(t=>t.trim()).includes(schemaName));
    if(!imported)throw Error('Unresolved request schema '+schemaName);
    const module=await import(pathToFileURL(resolve(dirname(file),imported[2].replace(/\.js$/,'.ts'))));
-   const schema=zodToJsonSchema(module[schemaName],{target:'openApi3',effectStrategy:'input',$refStrategy:'none'});
+   const schema=z.toJSONSchema(module[schemaName],{target:'openapi-3.0',io:'input',reused:'inline',cycles:'throw'});
    delete schema.$schema;op.requestBody={required:true,content:{'application/json':{schema}}};
   }
   if((name==='safety'&&match[1]==='post')||(name==='operations'&&match[2]==='/commands')||(name==='sentinel'&&match[1]==='post'&&match[2].includes('/planning/'))){

@@ -1,6 +1,6 @@
 import {z} from 'zod';
 export const conversationRequest=z.object({question:z.string().trim().min(3).max(4000),mode:z.enum(['CHAT','DAILY_BRIEF']).default('CHAT'),history:z.array(z.object({role:z.enum(['user','assistant']),content:z.string().max(5000)}).strict()).max(16).default([])}).strict();
-export const missionConversationRequest=z.object({message:z.string().trim().min(1).max(4000),history:z.array(z.object({role:z.enum(['user','assistant']),content:z.string().max(5000)}).strict()).max(20).default([]),draft:z.record(z.unknown()).default({}),timezone:z.string().max(80).default('UTC')}).strict();
+export const missionConversationRequest=z.object({message:z.string().trim().min(1).max(4000),history:z.array(z.object({role:z.enum(['user','assistant']),content:z.string().max(5000)}).strict()).max(20).default([]),draft:z.record(z.string(), z.unknown()).default({}),timezone:z.string().max(80).default('UTC')}).strict();
 export const assistantAnswer=z.object({summary:z.string().min(1).max(4000),preparedness:z.array(z.string().max(800)).max(10),assumptions:z.array(z.string().max(600)).max(10),missing_inputs:z.array(z.string().max(600)).max(16),source_ids:z.array(z.string().max(500)).max(30),follow_up:z.string().max(500)}).strict();
 export const windowRequest=z.object({from:z.string().datetime(),to:z.string().datetime(),sources:z.array(z.enum(['BIGQUERY','GCS'])).min(1).max(2)}).strict();
 export function validateWindow(from:string,to:string,now=Date.now()) {

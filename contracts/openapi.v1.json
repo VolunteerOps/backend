@@ -284,17 +284,18 @@
                   },
                   "affected_user_id": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "source": {
+                    "default": "IN_APP",
                     "type": "string",
                     "enum": [
                       "IN_APP",
                       "PHONE",
                       "RADIO"
-                    ],
-                    "default": "IN_APP"
+                    ]
                   },
                   "location": {
                     "type": "object",
@@ -610,8 +611,9 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "action": {
                     "type": "string",
@@ -630,8 +632,9 @@
                   },
                   "coordinator_id": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
@@ -1144,15 +1147,17 @@
                 "properties": {
                   "user_id": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "active": {
                     "type": "boolean"
                   },
                   "expected_version": {
                     "type": "integer",
-                    "minimum": 0
+                    "minimum": 0,
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
@@ -2116,7 +2121,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "anyOf": [
+                "oneOf": [
                   {
                     "type": "object",
                     "properties": {
@@ -2142,15 +2147,18 @@
                         "maximum": 1000
                       },
                       "prerequisites": {
+                        "default": [],
+                        "maxItems": 10,
                         "type": "array",
                         "items": {
                           "type": "string",
-                          "format": "uuid"
-                        },
-                        "maxItems": 10,
-                        "default": []
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        }
                       },
                       "lessons": {
+                        "minItems": 1,
+                        "maxItems": 20,
                         "type": "array",
                         "items": {
                           "type": "object",
@@ -2171,14 +2179,14 @@
                               "maxLength": 500
                             },
                             "choices": {
+                              "minItems": 2,
+                              "maxItems": 5,
                               "type": "array",
                               "items": {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 500
-                              },
-                              "minItems": 2,
-                              "maxItems": 5
+                              }
                             },
                             "answer": {
                               "type": "integer",
@@ -2194,9 +2202,7 @@
                             "answer"
                           ],
                           "additionalProperties": false
-                        },
-                        "minItems": 1,
-                        "maxItems": 20
+                        }
                       }
                     },
                     "required": [
@@ -2219,12 +2225,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       }
                     },
                     "required": [
@@ -2245,7 +2253,8 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       }
                     },
                     "required": [
@@ -2265,12 +2274,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "lesson": {
                         "type": "integer",
@@ -2303,12 +2314,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "approved": {
                         "type": "boolean"
@@ -2320,7 +2333,8 @@
                       },
                       "valid_until": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                       }
                     },
                     "required": [
@@ -2344,12 +2358,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "reason": {
                         "type": "string",
@@ -2379,7 +2395,8 @@
                       },
                       "expected_version": {
                         "type": "integer",
-                        "minimum": 0
+                        "minimum": 0,
+                        "maximum": 9007199254740991
                       },
                       "reason": {
                         "type": "string",
@@ -2441,12 +2458,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "reason": {
                         "type": "string",
@@ -2486,11 +2505,13 @@
                           },
                           "starts_at": {
                             "type": "string",
-                            "format": "date-time"
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                           },
                           "ends_at": {
                             "type": "string",
-                            "format": "date-time"
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                           },
                           "capacity": {
                             "type": "integer",
@@ -2513,14 +2534,14 @@
                             "maxLength": 500
                           },
                           "required_skills": {
+                            "default": [],
+                            "maxItems": 30,
                             "type": "array",
                             "items": {
                               "type": "string",
                               "minLength": 2,
                               "maxLength": 60
-                            },
-                            "maxItems": 30,
-                            "default": []
+                            }
                           }
                         },
                         "required": [
@@ -2553,12 +2574,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "status": {
                         "type": "string",
@@ -2590,12 +2613,13 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "note": {
+                        "default": "",
                         "type": "string",
-                        "maxLength": 1500,
-                        "default": ""
+                        "maxLength": 1500
                       }
                     },
                     "required": [
@@ -2615,7 +2639,8 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "saved": {
                         "type": "boolean"
@@ -2639,12 +2664,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       }
                     },
                     "required": [
@@ -2665,26 +2692,32 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "user_id": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "supplies": {
+                        "default": [],
+                        "maxItems": 20,
                         "type": "array",
                         "items": {
                           "type": "object",
                           "properties": {
                             "resource_id": {
                               "type": "string",
-                              "format": "uuid"
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                             },
                             "quantity": {
                               "type": "integer",
@@ -2697,9 +2730,7 @@
                             "quantity"
                           ],
                           "additionalProperties": false
-                        },
-                        "maxItems": 20,
-                        "default": []
+                        }
                       }
                     },
                     "required": [
@@ -2721,12 +2752,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       }
                     },
                     "required": [
@@ -2747,12 +2780,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "hours": {
                         "type": "number",
@@ -2760,9 +2795,9 @@
                         "maximum": 24
                       },
                       "note": {
+                        "default": "",
                         "type": "string",
-                        "maxLength": 1500,
-                        "default": ""
+                        "maxLength": 1500
                       }
                     },
                     "required": [
@@ -2784,12 +2819,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "hours": {
                         "type": "number",
@@ -2822,7 +2859,8 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "title": {
                         "type": "string",
@@ -2854,7 +2892,8 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "body": {
                         "type": "string",
@@ -2863,7 +2902,8 @@
                       },
                       "reply_to": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       }
                     },
                     "required": [
@@ -2884,12 +2924,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "reason": {
                         "type": "string",
@@ -2916,12 +2958,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "status": {
                         "type": "string",
@@ -2938,7 +2982,8 @@
                       },
                       "related_report_id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       }
                     },
                     "required": [
@@ -3000,12 +3045,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "delta": {
                         "type": "integer",
@@ -3038,26 +3085,30 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "target_id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "target_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "quantity": {
                         "type": "integer",
-                        "exclusiveMinimum": true,
                         "minimum": 0,
+                        "exclusiveMinimum": true,
                         "maximum": 1000000
                       },
                       "reason": {
@@ -3088,12 +3139,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "body": {
                         "type": "string",
@@ -3120,12 +3173,14 @@
                       },
                       "id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "expected_version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "status": {
                         "type": "string",
@@ -3758,7 +3813,8 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
-                    "minimum": 0
+                    "minimum": 0,
+                    "maximum": 9007199254740991
                   },
                   "display_name": {
                     "type": "string",
@@ -3766,26 +3822,27 @@
                     "maxLength": 120
                   },
                   "biography": {
+                    "default": "",
                     "type": "string",
-                    "maxLength": 1000,
-                    "default": ""
+                    "maxLength": 1000
                   },
                   "region": {
+                    "default": "",
                     "type": "string",
-                    "maxLength": 80,
-                    "default": ""
+                    "maxLength": 80
                   },
                   "skills": {
+                    "default": [],
+                    "maxItems": 30,
                     "type": "array",
                     "items": {
                       "type": "string",
                       "minLength": 2,
                       "maxLength": 60
-                    },
-                    "maxItems": 30,
-                    "default": []
+                    }
                   },
                   "availability": {
+                    "default": "UNSPECIFIED",
                     "type": "string",
                     "enum": [
                       "UNSPECIFIED",
@@ -3793,10 +3850,10 @@
                       "WEEKENDS",
                       "FLEXIBLE",
                       "UNAVAILABLE"
-                    ],
-                    "default": "UNSPECIFIED"
+                    ]
                   },
                   "private_details": {
+                    "default": {},
                     "type": "object",
                     "properties": {
                       "phone": {
@@ -3809,15 +3866,15 @@
                       },
                       "date_of_birth": {
                         "type": "string",
-                        "format": "date"
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
                       },
                       "emergency_contact": {
                         "type": "string",
                         "maxLength": 500
                       }
                     },
-                    "additionalProperties": false,
-                    "default": {}
+                    "additionalProperties": false
                   }
                 },
                 "required": [
@@ -3934,8 +3991,9 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "discoverable": {
                     "type": "boolean"
@@ -4385,10 +4443,10 @@
                 "type": "object",
                 "properties": {
                   "expires_in_hours": {
+                    "default": 168,
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 720,
-                    "default": 168
+                    "maximum": 720
                   }
                 },
                 "additionalProperties": false
@@ -6584,21 +6642,22 @@
                 "type": "object",
                 "properties": {
                   "allowed_providers": {
+                    "minItems": 1,
+                    "maxItems": 12,
                     "type": "array",
                     "items": {
                       "type": "string",
                       "pattern": "^(password|google\\.com|apple\\.com|facebook\\.com|microsoft\\.com|saml\\.[a-zA-Z0-9_-]+|oidc\\.[a-zA-Z0-9_-]+)$"
-                    },
-                    "minItems": 1,
-                    "maxItems": 12
+                    }
                   },
                   "require_mfa": {
                     "type": "boolean"
                   },
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "reason": {
                     "type": "string",
@@ -7294,8 +7353,9 @@
                 "properties": {
                   "user_id": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "expires_in_minutes": {
                     "type": "integer",
@@ -7643,11 +7703,13 @@
                 "properties": {
                   "partner_organization_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "lead_organization_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "resource_reference": {
                     "type": "string",
@@ -8678,8 +8740,8 @@
                   },
                   "avatar_url": {
                     "type": "string",
-                    "format": "uri",
-                    "maxLength": 2048
+                    "maxLength": 2048,
+                    "format": "uri"
                   }
                 },
                 "additionalProperties": false
@@ -8784,7 +8846,8 @@
                 "properties": {
                   "email": {
                     "type": "string",
-                    "format": "email"
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                   },
                   "password": {
                     "type": "string",
@@ -8795,12 +8858,12 @@
                     "minLength": 2
                   },
                   "role": {
+                    "default": "VOLUNTEER",
                     "type": "string",
                     "enum": [
                       "VOLUNTEER",
                       "volunteer"
-                    ],
-                    "default": "VOLUNTEER"
+                    ]
                   },
                   "phone_number": {
                     "type": "string"
@@ -9375,8 +9438,9 @@
                 "properties": {
                   "recipient_email": {
                     "type": "string",
+                    "maxLength": 320,
                     "format": "email",
-                    "maxLength": 320
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                   },
                   "role": {
                     "type": "string",
@@ -9388,19 +9452,20 @@
                     ]
                   },
                   "region_ids": {
+                    "default": [],
+                    "maxItems": 100,
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "format": "uuid"
-                    },
-                    "maxItems": 100,
-                    "default": []
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
                   },
                   "expires_in_hours": {
+                    "default": 48,
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 168,
-                    "default": 48
+                    "maximum": 168
                   },
                   "reason": {
                     "type": "string",
@@ -9761,8 +9826,9 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "reason": {
                     "type": "string",
@@ -10121,7 +10187,8 @@
                 "properties": {
                   "installation_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "platform": {
                     "type": "string",
@@ -10266,8 +10333,9 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "location": {
                     "type": "boolean"
@@ -10529,16 +10597,19 @@
                 "properties": {
                   "message_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "consent_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "recorded_at": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                   },
                   "battery_percent": {
                     "type": "integer",
@@ -11442,17 +11513,17 @@
                     "maxLength": 160
                   },
                   "allowed_providers": {
+                    "minItems": 1,
+                    "maxItems": 12,
                     "type": "array",
                     "items": {
                       "type": "string",
                       "pattern": "^(password|google\\.com|apple\\.com|facebook\\.com|microsoft\\.com|saml\\.[a-zA-Z0-9_-]+|oidc\\.[a-zA-Z0-9_-]+)$"
-                    },
-                    "minItems": 1,
-                    "maxItems": 12
+                    }
                   },
                   "require_mfa": {
-                    "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "type": "boolean"
                   },
                   "reason": {
                     "type": "string",
@@ -11586,8 +11657,9 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "reason": {
                     "type": "string",
@@ -11725,8 +11797,9 @@
                 "properties": {
                   "recipient_email": {
                     "type": "string",
+                    "maxLength": 320,
                     "format": "email",
-                    "maxLength": 320
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                   },
                   "role": {
                     "type": "string",
@@ -11738,19 +11811,20 @@
                     ]
                   },
                   "region_ids": {
+                    "default": [],
+                    "maxItems": 100,
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "format": "uuid"
-                    },
-                    "maxItems": 100,
-                    "default": []
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
                   },
                   "expires_in_hours": {
+                    "default": 48,
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 168,
-                    "default": 48
+                    "maximum": 168
                   },
                   "reason": {
                     "type": "string",
@@ -11883,8 +11957,9 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "reason": {
                     "type": "string",
@@ -12141,14 +12216,16 @@
                     "maxLength": 4000
                   },
                   "mode": {
+                    "default": "CHAT",
                     "type": "string",
                     "enum": [
                       "CHAT",
                       "DAILY_BRIEF"
-                    ],
-                    "default": "CHAT"
+                    ]
                   },
                   "history": {
+                    "default": [],
+                    "maxItems": 16,
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -12170,9 +12247,7 @@
                         "content"
                       ],
                       "additionalProperties": false
-                    },
-                    "maxItems": 16,
-                    "default": []
+                    }
                   }
                 },
                 "required": [
@@ -12311,6 +12386,8 @@
                     "maxLength": 4000
                   },
                   "history": {
+                    "default": [],
+                    "maxItems": 20,
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -12332,19 +12409,17 @@
                         "content"
                       ],
                       "additionalProperties": false
-                    },
-                    "maxItems": 20,
-                    "default": []
+                    }
                   },
                   "draft": {
+                    "default": {},
                     "type": "object",
-                    "additionalProperties": {},
-                    "default": {}
+                    "additionalProperties": {}
                   },
                   "timezone": {
+                    "default": "UTC",
                     "type": "string",
-                    "maxLength": 80,
-                    "default": "UTC"
+                    "maxLength": 80
                   }
                 },
                 "required": [
@@ -12625,8 +12700,9 @@
                     "properties": {
                       "version": {
                         "type": "integer",
+                        "minimum": 0,
                         "exclusiveMinimum": true,
-                        "minimum": 0
+                        "maximum": 9007199254740991
                       },
                       "heat_c": {
                         "type": "number",
@@ -12644,10 +12720,10 @@
                         "maximum": 500
                       },
                       "maximum_run_age_hours": {
+                        "default": 8,
                         "type": "integer",
                         "minimum": 1,
-                        "maximum": 48,
-                        "default": 8
+                        "maximum": 48
                       }
                     },
                     "required": [
@@ -12798,10 +12874,10 @@
                 "type": "object",
                 "properties": {
                   "hours": {
+                    "default": 24,
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 48,
-                    "default": 24
+                    "maximum": 48
                   }
                 },
                 "additionalProperties": false
@@ -12933,7 +13009,8 @@
                 "properties": {
                   "init_time": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                   },
                   "from_hour": {
                     "type": "integer",
@@ -13965,11 +14042,13 @@
                 "properties": {
                   "mission_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "source_assessment_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "question": {
                     "type": "string",
@@ -13977,12 +14056,12 @@
                     "maxLength": 2000
                   },
                   "mode": {
+                    "default": "EXECUTE",
                     "type": "string",
                     "enum": [
                       "PLAN_FIRST",
                       "EXECUTE"
-                    ],
-                    "default": "EXECUTE"
+                    ]
                   }
                 },
                 "required": [
@@ -14143,27 +14222,30 @@
                   },
                   "init_time": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                   },
                   "from": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                   },
                   "to": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                   },
                   "include_station_detail": {
-                    "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "type": "boolean"
                   },
                   "mode": {
+                    "default": "EXECUTE",
                     "type": "string",
                     "enum": [
                       "PLAN_FIRST",
                       "EXECUTE"
-                    ],
-                    "default": "EXECUTE"
+                    ]
                   }
                 },
                 "required": [
@@ -14330,8 +14412,9 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "reason": {
                     "type": "string",
@@ -14515,8 +14598,9 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "reason": {
                     "type": "string",
@@ -14801,8 +14885,9 @@
                 "properties": {
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   },
                   "reason": {
                     "type": "string",
@@ -14818,14 +14903,16 @@
                         "maxLength": 3000
                       },
                       "allocations": {
+                        "maxItems": 20,
                         "type": "array",
                         "items": {
                           "type": "object",
                           "properties": {
                             "user_id": {
                               "type": "integer",
+                              "minimum": 0,
                               "exclusiveMinimum": true,
-                              "minimum": 0
+                              "maximum": 9007199254740991
                             },
                             "reason": {
                               "type": "string",
@@ -14833,13 +14920,15 @@
                               "maxLength": 800
                             },
                             "supplies": {
+                              "maxItems": 20,
                               "type": "array",
                               "items": {
                                 "type": "object",
                                 "properties": {
                                   "resource_id": {
                                     "type": "string",
-                                    "format": "uuid"
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                                   },
                                   "quantity": {
                                     "type": "integer",
@@ -14858,8 +14947,7 @@
                                   "reason"
                                 ],
                                 "additionalProperties": false
-                              },
-                              "maxItems": 20
+                              }
                             }
                           },
                           "required": [
@@ -14868,24 +14956,23 @@
                             "supplies"
                           ],
                           "additionalProperties": false
-                        },
-                        "maxItems": 20
+                        }
                       },
                       "shortages": {
+                        "maxItems": 20,
                         "type": "array",
                         "items": {
                           "type": "string",
                           "maxLength": 800
-                        },
-                        "maxItems": 20
+                        }
                       },
                       "decisions": {
+                        "maxItems": 20,
                         "type": "array",
                         "items": {
                           "type": "string",
                           "maxLength": 800
-                        },
-                        "maxItems": 20
+                        }
                       }
                     },
                     "required": [
@@ -15255,7 +15342,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "anyOf": [
+                "oneOf": [
                   {
                     "type": "object",
                     "properties": {
@@ -15276,9 +15363,9 @@
                         "maxLength": 160
                       },
                       "river": {
+                        "default": "",
                         "type": "string",
-                        "maxLength": 160,
-                        "default": ""
+                        "maxLength": 160
                       },
                       "level_m": {
                         "type": "number",
@@ -15291,22 +15378,23 @@
                         "maximum": 1000
                       },
                       "latitude": {
+                        "default": null,
+                        "nullable": true,
                         "type": "number",
                         "minimum": -90,
-                        "maximum": 90,
-                        "nullable": true,
-                        "default": null
+                        "maximum": 90
                       },
                       "longitude": {
+                        "default": null,
+                        "nullable": true,
                         "type": "number",
                         "minimum": -180,
-                        "maximum": 180,
-                        "nullable": true,
-                        "default": null
+                        "maximum": 180
                       },
                       "observed_at": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                       }
                     },
                     "required": [
@@ -15351,13 +15439,14 @@
                         ]
                       },
                       "note": {
+                        "default": "",
                         "type": "string",
-                        "maxLength": 600,
-                        "default": ""
+                        "maxLength": 600
                       },
                       "observed_at": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                       }
                     },
                     "required": [
@@ -15389,23 +15478,24 @@
                         "maximum": 10000000
                       },
                       "needs": {
+                        "default": [],
+                        "maxItems": 12,
                         "type": "array",
                         "items": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 120
-                        },
-                        "maxItems": 12,
-                        "default": []
+                        }
                       },
                       "note": {
+                        "default": "",
                         "type": "string",
-                        "maxLength": 600,
-                        "default": ""
+                        "maxLength": 600
                       },
                       "observed_at": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                       }
                     },
                     "required": [
@@ -15445,13 +15535,14 @@
                         "maxLength": 24
                       },
                       "note": {
+                        "default": "",
                         "type": "string",
-                        "maxLength": 600,
-                        "default": ""
+                        "maxLength": 600
                       },
                       "observed_at": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                       }
                     },
                     "required": [
@@ -15474,20 +15565,23 @@
                       },
                       "resource_id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "substitute_id": {
                         "type": "string",
-                        "format": "uuid"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "note": {
+                        "default": "",
                         "type": "string",
-                        "maxLength": 600,
-                        "default": ""
+                        "maxLength": 600
                       },
                       "observed_at": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                       }
                     },
                     "required": [
@@ -15627,7 +15721,8 @@
                 "properties": {
                   "assessment_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "question": {
                     "type": "string",
@@ -15766,9 +15861,9 @@
                 "type": "object",
                 "properties": {
                   "question": {
+                    "default": "Prepare a rising-water watch brief for this region.",
                     "type": "string",
-                    "maxLength": 2000,
-                    "default": "Prepare a rising-water watch brief for this region."
+                    "maxLength": 2000
                   }
                 },
                 "additionalProperties": false
@@ -16015,7 +16110,8 @@
                 "properties": {
                   "assessment_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "question": {
                     "type": "string",
@@ -16155,7 +16251,8 @@
                 "properties": {
                   "mission_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "question": {
                     "type": "string",
@@ -16432,7 +16529,8 @@
                 "properties": {
                   "assessment_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "question": {
                     "type": "string",
@@ -16572,15 +16670,15 @@
                 "type": "object",
                 "properties": {
                   "horizon_days": {
+                    "default": 60,
                     "type": "integer",
                     "minimum": 7,
-                    "maximum": 180,
-                    "default": 60
+                    "maximum": 180
                   },
                   "question": {
+                    "default": "Review upcoming credential expiries against planned missions.",
                     "type": "string",
-                    "maxLength": 2000,
-                    "default": "Review upcoming credential expiries against planned missions."
+                    "maxLength": 2000
                   }
                 },
                 "additionalProperties": false
@@ -16712,11 +16810,13 @@
                 "properties": {
                   "mission_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "base_proposal_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "capacity_override": {
                     "type": "integer",
@@ -16724,22 +16824,25 @@
                     "maximum": 1000
                   },
                   "required_skills_override": {
+                    "maxItems": 20,
                     "type": "array",
                     "items": {
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 60
-                    },
-                    "maxItems": 20
+                    }
                   },
                   "stock_adjustments": {
+                    "default": [],
+                    "maxItems": 50,
                     "type": "array",
                     "items": {
                       "type": "object",
                       "properties": {
                         "resource_id": {
                           "type": "string",
-                          "format": "uuid"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                         },
                         "delta": {
                           "type": "integer",
@@ -16752,9 +16855,7 @@
                         "delta"
                       ],
                       "additionalProperties": false
-                    },
-                    "maxItems": 50,
-                    "default": []
+                    }
                   },
                   "question": {
                     "type": "string",
@@ -16895,16 +16996,20 @@
                 "properties": {
                   "mission_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "requirements": {
+                    "minItems": 1,
+                    "maxItems": 50,
                     "type": "array",
                     "items": {
                       "type": "object",
                       "properties": {
                         "resource_id": {
                           "type": "string",
-                          "format": "uuid"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                         },
                         "quantity": {
                           "type": "integer",
@@ -16917,9 +17022,7 @@
                         "quantity"
                       ],
                       "additionalProperties": false
-                    },
-                    "minItems": 1,
-                    "maxItems": 50
+                    }
                   },
                   "question": {
                     "type": "string",
@@ -17069,7 +17172,8 @@
                   },
                   "source_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "audience": {
                     "type": "string",
@@ -17080,10 +17184,10 @@
                     ]
                   },
                   "language": {
+                    "default": "en",
                     "type": "string",
                     "minLength": 2,
-                    "maxLength": 12,
-                    "default": "en"
+                    "maxLength": 12
                   }
                 },
                 "required": [
@@ -17379,8 +17483,9 @@
                   },
                   "expected_version": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
-                    "minimum": 0
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
@@ -17516,12 +17621,13 @@
                 "properties": {
                   "mission_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "question": {
+                    "default": "Draft an after-action summary for this mission.",
                     "type": "string",
-                    "maxLength": 2000,
-                    "default": "Draft an after-action summary for this mission."
+                    "maxLength": 2000
                   }
                 },
                 "required": [
@@ -17656,7 +17762,8 @@
                 "properties": {
                   "assessment_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   }
                 },
                 "required": [
@@ -17921,11 +18028,12 @@
                     ]
                   },
                   "assignee_user_id": {
-                    "type": "integer",
-                    "exclusiveMinimum": true,
-                    "minimum": 0,
+                    "default": null,
                     "nullable": true,
-                    "default": null
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
@@ -19364,14 +19472,16 @@
                     "maxLength": 4000
                   },
                   "mode": {
+                    "default": "CHAT",
                     "type": "string",
                     "enum": [
                       "CHAT",
                       "DAILY_BRIEF"
-                    ],
-                    "default": "CHAT"
+                    ]
                   },
                   "history": {
+                    "default": [],
+                    "maxItems": 16,
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -19393,9 +19503,7 @@
                         "content"
                       ],
                       "additionalProperties": false
-                    },
-                    "maxItems": 16,
-                    "default": []
+                    }
                   }
                 },
                 "required": [
@@ -19534,6 +19642,8 @@
                     "maxLength": 4000
                   },
                   "history": {
+                    "default": [],
+                    "maxItems": 20,
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -19555,19 +19665,17 @@
                         "content"
                       ],
                       "additionalProperties": false
-                    },
-                    "maxItems": 20,
-                    "default": []
+                    }
                   },
                   "draft": {
+                    "default": {},
                     "type": "object",
-                    "additionalProperties": {},
-                    "default": {}
+                    "additionalProperties": {}
                   },
                   "timezone": {
+                    "default": "UTC",
                     "type": "string",
-                    "maxLength": 80,
-                    "default": "UTC"
+                    "maxLength": 80
                   }
                 },
                 "required": [
@@ -19717,8 +19825,8 @@
                   },
                   "byte_size": {
                     "type": "integer",
-                    "exclusiveMinimum": true,
                     "minimum": 0,
+                    "exclusiveMinimum": true,
                     "maximum": 10485760
                   },
                   "checksum_sha256": {

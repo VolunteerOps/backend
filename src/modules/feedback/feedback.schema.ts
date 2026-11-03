@@ -9,4 +9,7 @@ export const createFeedbackSchema = z.object({
   submitted_via: z.string().default('mobile_app'),
 });
 
-export const updateFeedbackSchema = createFeedbackSchema.partial();
+// Defaults apply only when creating records; omitted update fields must remain unchanged.
+export const updateFeedbackSchema = createFeedbackSchema.extend({
+  submitted_via: createFeedbackSchema.shape.submitted_via.removeDefault(),
+}).partial();

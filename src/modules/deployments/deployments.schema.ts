@@ -9,7 +9,10 @@ export const createDeploymentSchema = z.object({
   notes: z.string().optional(),
 });
 
-export const updateDeploymentSchema = createDeploymentSchema.partial();
+// Defaults apply only when creating records; omitted update fields must remain unchanged.
+export const updateDeploymentSchema = createDeploymentSchema.extend({
+  status: createDeploymentSchema.shape.status.removeDefault(),
+}).partial();
 
 export const checkInSchema = z.object({
   latitude: z.coerce.number().optional(),

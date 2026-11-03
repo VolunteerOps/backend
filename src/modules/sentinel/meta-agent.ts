@@ -1,5 +1,4 @@
-import { z, type ZodTypeAny } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
+import { z, type ZodType } from 'zod';
 import { ApiError } from '../../core/errors.js';
 import { boundedJson } from './providers/http.js';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -9,7 +8,7 @@ export const metaModels = { weather: 'muse-wonder-1.0', planning: 'muse-spark-1.
 export interface ControlledTool {
   name: string;
   description: string;
-  arguments: ZodTypeAny;
+  arguments: ZodType;
   execute: (arguments_: unknown) => Promise<unknown>;
 }
 type ToolCall = {id: string; type: 'function'; function: {name: string; arguments: string}};
@@ -66,15 +65,15 @@ const planArguments=z.object({steps:z.array(z.object({title:z.string().min(1).ma
 const noteArguments=z.object({note:z.string().min(1).max(600)}).strict();
 
 /** No model-selected network, SQL, workspace, or mutation tools. */
-export async function runMetaAgent<T extends ZodTypeAny>(options:{
+export async function runMetaAgent<T extends ZodType>(options:{
   model:typeof metaModels[keyof typeof metaModels]; instruction:string; question:string;
   tools:ControlledTool[]; requiredTools:string[]; output:T; signal:AbortSignal;
   fetcher?:typeof fetch; key?:string; maxTokens?:number; stream?:boolean; onEvent?:(event:AgentEvent)=>void;
   harness?:{planFirst?:boolean;maxRounds?:number;maxToolCalls?:number;verify?:(result:z.infer<T>)=>Promise<string[]>|string[]};
 }):Promise<{result:z.infer<T>;model:string;tool_calls:string[];harness:HarnessState}> {
   const key=options.key??configuredMetaKey();
-  const schema=(value:ZodTypeAny)=>{
-    const result=zodToJsonSchema(value,{$refStrategy:'none',target:'jsonSchema7'});
+  const schema=(value:ZodType)=>{
+    const result=z.toJSONSchema(value,{target:'draft-07',io:'input',reused:'inline',cycles:'throw'});
     delete result.$schema;return result;
   };
   const harnessEnabled=options.harness!==undefined;

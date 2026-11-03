@@ -13,4 +13,9 @@ export const createLocationSchema = z.object({
   radius_meters: z.coerce.number().int().default(5000),
 });
 
-export const updateLocationSchema = createLocationSchema.partial();
+// Defaults apply only when creating records; omitted update fields must remain unchanged.
+export const updateLocationSchema = createLocationSchema.extend({
+  country: createLocationSchema.shape.country.removeDefault(),
+  hazard_level: createLocationSchema.shape.hazard_level.removeDefault(),
+  radius_meters: createLocationSchema.shape.radius_meters.removeDefault(),
+}).partial();

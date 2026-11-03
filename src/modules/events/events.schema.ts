@@ -15,4 +15,10 @@ export const createEventSchema = z.object({
   tags: z.array(z.string()).default([]),
 });
 
-export const updateEventSchema = createEventSchema.partial();
+// Defaults apply only when creating records; omitted update fields must remain unchanged.
+export const updateEventSchema = createEventSchema.extend({
+  priority: createEventSchema.shape.priority.removeDefault(),
+  status: createEventSchema.shape.status.removeDefault(),
+  required_volunteers: createEventSchema.shape.required_volunteers.removeDefault(),
+  tags: createEventSchema.shape.tags.removeDefault(),
+}).partial();
