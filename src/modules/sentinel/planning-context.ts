@@ -15,7 +15,7 @@ export async function readPlanningContext(actor:Actor,org:string,region:string,m
   const applications=await tx.operationRecord.findMany({where:{...scope,parentId:missionId,kind:'APPLICATION',...statusWhere(['APPLIED','WAITLISTED'])},orderBy:{sequence:'asc'},take:101});
   const ids=applications.slice(0,100).map(a=>a.ownerId);
   await tx.$queryRaw`SELECT set_config('vops.roster','true',true)`;
-  const members=await tx.organizationMembership.findMany({where:{organizationId:org,userId:{in:ids},status:'ACTIVE'},select:{userId:true,regionIds:true}});
+  const members=await tx.organizationMembership.findMany({where:{organizationId:org,userId:{in:ids},status:'ACTIVE'},select:{userId:true,regionIds:true,user:{select:{fullName:true}}}});
   await tx.$queryRaw`SELECT set_config('vops.roster','',true)`;
   const credentials=await tx.operationRecord.findMany({where:{...scope,kind:'CREDENTIAL',ownerId:{in:ids},...statusWhere(['VERIFIED'])},take:3001});
   if(credentials.length>3000)throw new ApiError(422,'PLANNING_SCOPE_TOO_LARGE','Narrow the candidate pool before planning');
@@ -43,10 +43,10 @@ export async function readPlanningContext(actor:Actor,org:string,region:string,m
    const restHours=lastEnd?Math.round(((missionStart-lastEnd)/3600000)*10)/10:null;
    const recentRounded=Math.round(recentHours*10)/10;
    const fatigueEligible=!(restHours!==null&&restHours<8)&&recentRounded<60;
-   return {user_id:a.ownerId,application_id:a.id,application_version:a.version,eligible:active&&!missing.length&&!conflicts&&fatigueEligible,missing_skills:missing,skills:validSkills,visible_commitments:conflicts,scope_active:active,recent_shift_hours_7d:recentRounded,rest_hours_before_mission:restHours,fatigue_eligible:fatigueEligible};
+   return {user_id:a.ownerId,display_name:member?.user?.fullName??"Volunteer",application_id:a.id,application_version:a.version,eligible:active&&!missing.length&&!conflicts&&fatigueEligible,missing_skills:missing,skills:validSkills,visible_commitments:conflicts,scope_active:active,recent_shift_hours_7d:recentRounded,rest_hours_before_mission:restHours,fatigue_eligible:fatigueEligible};
   });
   return {mission:{id:mission.id,version:mission.version,title:p.title,status:p.status,capacity:p.capacity,assigned_count:p.assigned_count,required_skills:skillList,starts_at:p.starts_at,ends_at:p.ends_at,meeting_point:p.meeting_point},candidates,
-   resources:stock.slice(0,200).map(r=>{const p=r.payload as Record<string,any>;return{id:r.id,version:r.version,title:p.title,location:p.location,unit:p.unit,available:Math.max(0,p.quantity-p.reserved)};}),
+   resources:stock.slice(0,200).map(r=>{const p=r.payload as Record<string,any>;return{id:r.id,version:r.version,title:p.title,vehicle_model:p.vehicle_model,plate_number:p.plate_number,location:p.location,unit:p.unit,available:Math.max(0,p.quantity-p.reserved)};}),
    limitations:['Cross-workspace commitments are rechecked transactionally at approval. A visible absence of commitments does not prove availability.','Fatigue guardrails exclude responders with under 8 hours rest before this mission or already at 60 shift hours in the prior 7 days. Longer missions are staffed in shifts, so mission length itself does not disqualify.','Routes and current hazard restrictions require coordinator review.',...(applications.length>100?['Only the oldest 100 pending applications are included.']:[]),...(stock.length>200?['Only the first 200 inventory records are included.']:[])],
   };
  });

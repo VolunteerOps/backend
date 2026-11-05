@@ -164,7 +164,7 @@ export async function runMetaAgent<T extends ZodType>(options:{
      throw new ApiError(503,'AGENT_UNAVAILABLE','The assistant provider could not complete this request. Try again shortly.');
     }
     let message:Message;
-    if(streaming&&response.body){
+    if(streaming&&response.body&&response.headers.get('content-type')?.includes('text/event-stream')){
       message=await readStreamedMessage(response,options);
     }else{
       const data=completion.parse(await boundedJson(response,192000));
@@ -225,7 +225,11 @@ export async function runMetaAgent<T extends ZodType>(options:{
       continue;
     }
     if(options.requiredTools.some(name=>!used.includes(name)))throw new Error('AGENT_EVIDENCE_REQUIRED');
-    if(!message.content||message.content.length>16000)throw new Error('AGENT_OUTPUT_REQUIRED');
+    if(!message.content){
+      if(harnessEnabled&&!repairUsed){repairUsed=true;messages.push({role:'user',content:'The response was empty. Return the requested structured answer using the evidence already gathered. State any gaps; do not repeat evidence calls.'});continue;}
+      throw new Error('AGENT_OUTPUT_REQUIRED');
+    }
+    if(message.content.length>16000)throw new Error('AGENT_OUTPUT_REQUIRED');
     let parsed:z.infer<T>;
     try{parsed=options.output.parse(JSON.parse(message.content));}
     catch(error){

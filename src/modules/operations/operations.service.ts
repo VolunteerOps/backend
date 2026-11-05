@@ -112,7 +112,7 @@ export async function executeOperationalCommand(tx:TenantTransaction,actor:Actor
    }else if(parsed.action==='CREATE_MISSION'){
     coordinator(memberRole);result=await create('MISSION',{...parsed.mission,status:'DRAFT',assigned_count:0});
    }else if(parsed.action==='CREATE_RESOURCE'){
-    coordinator(memberRole);result=await create('INVENTORY',{title:parsed.title,unit:parsed.unit,location:parsed.location,quantity:parsed.quantity,reserved:0});
+    coordinator(memberRole);result=await create('INVENTORY',{title:parsed.title,unit:parsed.unit,location:parsed.location,quantity:parsed.quantity,reserved:0,...(parsed.vehicle_model?{vehicle_model:parsed.vehicle_model}:{}),...(parsed.plate_number?{plate_number:parsed.plate_number}:{})});
     await create('STOCK_LEDGER',{action:'OPENING',delta:parsed.quantity,balance:parsed.quantity,reason:'Opening stock count'},result.id);
    }else if(parsed.action==='SUPPORT'){
     result=await create('SUPPORT',{title:parsed.title,body:parsed.body,status:'OPEN'});

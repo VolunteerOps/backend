@@ -15,8 +15,8 @@ export const planEdit=z.object({expected_version:z.number().int().positive(),rea
 export const planRejection=z.object({expected_version:z.number().int().positive(),reason:z.string().trim().min(10).max(1500)}).strict();
 export interface PlanningSnapshot {
  mission:{id:string;version:number;title:string;status:string;capacity:number;assigned_count:number;required_skills:string[];starts_at:string;ends_at:string;meeting_point:string};
- candidates:Array<{user_id:number;application_id:string;application_version:number;eligible:boolean;missing_skills:string[];skills:string[];visible_commitments:number;scope_active:boolean;recent_shift_hours_7d:number;rest_hours_before_mission:number|null;fatigue_eligible:boolean}>;
- resources:Array<{id:string;version:number;title:string;location:string;unit:string;available:number}>;
+ candidates:Array<{user_id:number;display_name?:string;application_id:string;application_version:number;eligible:boolean;missing_skills:string[];skills:string[];visible_commitments:number;scope_active:boolean;recent_shift_hours_7d:number;rest_hours_before_mission:number|null;fatigue_eligible:boolean}>;
+ resources:Array<{id:string;version:number;title:string;vehicle_model?:string;plate_number?:string;location:string;unit:string;available:number}>;
  limitations:string[];
 }
 /** Never persist a model-selected allocation that exceeds the trusted tool snapshot. */

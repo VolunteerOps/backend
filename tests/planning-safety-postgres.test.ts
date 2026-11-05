@@ -33,6 +33,7 @@ test('proposal atomicity, approval replay, demotion privacy and assistance owner
   const stock:any=await service.command(admin,a.id,a.region,randomUUID(),{action:'CREATE_RESOURCE',title:'Water',unit:'pack',location:'Depot',quantity:4});
   for(const person of [one,two])await service.command(person,a.id,a.region,randomUUID(),{action:'APPLY',id:mission.id});
   const snapshot=await readPlanningContext(admin,a.id,a.region,mission.id);
+  assert.equal(snapshot.candidates.find(candidate=>candidate.user_id===one.userId)?.display_name,'applicant-one','Planning context resolves authorized volunteer names');
   const recommendation={summary:'Allocate the two applicants',allocations:[one,two].map(p=>({user_id:p.userId,reason:'Confirmed applicant',supplies:[{resource_id:stock.id,quantity:2,reason:'Team supply'}]})),shortages:[],decisions:[]};
   const {assessmentEvidence}=await import('../src/modules/sentinel/planning-evidence.js');
   const policy={version:2,heat_c:35,wind_mps:12,hourly_rain_mm:10,maximum_run_age_hours:8},bounds={west:36,east:37,south:-2,north:-1};
@@ -78,15 +79,15 @@ test('proposal atomicity, approval replay, demotion privacy and assistance owner
   try{
    assert.equal((await fetch(endpoint)).status,401);
    const response=await fetch(endpoint,{headers});assert.equal(response.status,200,await response.clone().text());
-   const initial=await response.json();assert.equal(initial.validation,'UNVALIDATED_INDICATOR');assert.equal(initial.operational_warning,false);
-   const cached=await fetch(endpoint,{headers});assert.equal((await cached.json()).source_id,initial.source_id);
+   const initial=await response.json() as {validation:string;operational_warning:boolean;source_id:string};assert.equal(initial.validation,'UNVALIDATED_INDICATOR');assert.equal(initial.operational_warning,false);
+   const cached=await fetch(endpoint,{headers});assert.equal((await cached.json() as {source_id:string}).source_id,initial.source_id);
    await owner.query("UPDATE organization_memberships SET role='VOLUNTEER' WHERE organization_id=$1 AND user_id=$2",[a.id,admin.userId]);
    assert.equal((await fetch(endpoint,{headers})).status,403,'Cached predictions must recheck a demoted coordinator');
    await owner.query("UPDATE organization_memberships SET role='ORG_ADMIN' WHERE organization_id=$1 AND user_id=$2",[a.id,admin.userId]);
    const persisted=await fetch(endpoint+'/refresh',{method:'POST',headers,body:'{}'});assert.equal(persisted.status,200,await persisted.clone().text());
    assert.equal((await owner.query("SELECT count(*)::int n FROM operation_records WHERE organization_id=$1 AND kind='HAZARD_PREDICTION'",[a.id])).rows[0].n,1);
    await owner.query('UPDATE organization_units SET forecast_policy=$1 WHERE id=$2',[JSON.stringify({...policy,version:3}),a.region]);
-   const changed=await (await fetch(endpoint,{headers})).json();assert.equal(changed.policy_version,3);assert.notEqual(changed.source_id,initial.source_id);
+   const changed=await (await fetch(endpoint,{headers})).json() as {policy_version:number;source_id:string};assert.equal(changed.policy_version,3);assert.notEqual(changed.source_id,initial.source_id);
    await owner.query('UPDATE organization_units SET forecast_policy=$1 WHERE id=$2',[JSON.stringify(policy),a.region]);
   }finally{await new Promise<void>(resolve=>server.close(()=>resolve()));for(const flag of flags){if(savedFlags[flag]===undefined)delete process.env[flag];else process.env[flag]=savedFlags[flag];}}
 

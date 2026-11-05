@@ -8,6 +8,20 @@ const response=(message:any)=>Response.json({choices:[{message:{role:'assistant'
 const call=(name:string,id=name,args={})=>({id,type:'function',function:{name,arguments:JSON.stringify(args)}});
 const answer=(source_ids:string[]=[])=>({summary:'No weather data was retrieved. These are general checks, not a forecast.',preparedness:['Check local reports and drainage.'],assumptions:[],missing_inputs:['WeatherNext access'],source_ids,follow_up:''});
 const base={instruction:'Test only',question:'Compare the previous three days with the next week.',signal:AbortSignal.timeout(5000),key:'fixture'};
+test('a provider returning JSON to a streaming request is still decoded',async()=>{
+ const result=await runWeatherExplanation({...base,stream:true,signal:AbortSignal.timeout(5000),tools:[],requiredTools:[],sourceIds:()=>[],fetcher:(async()=>response({content:JSON.stringify(answer())})) as typeof fetch});
+ assert.equal(result.result.summary,answer().summary);
+});
+test('an empty final answer gets one bounded repair without rerunning evidence',async()=>{
+ let turns=0,reads=0;
+ const result=await runWeatherExplanation({...base,signal:AbortSignal.timeout(5000),sourceIds:()=>[],requiredTools:['read'],tools:[{name:'read',description:'Read',arguments:z.object({}),execute:async()=>{reads++;return {available:false};}}],fetcher:(async()=>{turns++;return turns===1?response({tool_calls:[call('read')]}):response({content:turns===2?null:JSON.stringify(answer())});}) as typeof fetch});
+ assert.equal(reads,1);assert.equal(turns,3);assert.equal(result.result.summary,answer().summary);
+});
+test('repeated empty answers stop after the bounded repair',async()=>{
+ let turns=0;
+ await assert.rejects(runWeatherExplanation({...base,signal:AbortSignal.timeout(5000),sourceIds:()=>[],requiredTools:[],tools:[],fetcher:(async()=>{turns++;return response({content:null});}) as typeof fetch}),/AGENT_OUTPUT_REQUIRED/);
+ assert.equal(turns,2);
+});
 test('weather gathers required evidence then removes tools and finishes even when sources are unavailable',async()=>{
  const requests:any[]=[];let executions=0;
  const tools=['analyze_weather_window','read_local_reports'].map(name=>({name,description:'Read evidence',arguments:z.object({}).strict(),execute:async()=>{executions++;return {status:'UNAVAILABLE',code:'WEATHER_ACCESS_DENIED'};}}));

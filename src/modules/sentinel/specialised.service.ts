@@ -89,7 +89,7 @@ export const SpecialisedService={
     {name:'read_gauges',description:'Read latest gauge levels, watch levels and crossings.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return {gauges:local.gauges,crossings};}},
     {name:'read_forecast',description:'Read the latest weather assessment and its rainfall indicators, or its absence.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return assessment??{status:'NO_ASSESSMENT'};}},
    ];
-   const result=await runMetaAgent({harness:{},model:metaModels.weather,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.weather,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
     instruction:'Prepare a rising-water watch brief. State which gauges are at or above their coordinator-set watch levels and what forecast rainfall adds. Watch levels are local screening levels, not flood predictions. Recommend checks and escalation to the coordinator; issue no warnings.',requiredTools:tools.map(t=>t.name),tools});
    return {title:'Rising-water watch brief',model:result.model,tool_calls:result.tool_calls,harness:result.harness,result:result.result,
     crossings,alert:crossings.length>0,flood_impact_estimate:null,limitation:floodLimitation};});
@@ -112,7 +112,7 @@ export const SpecialisedService={
     {name:'read_heat_assessment',description:'Read sustained-heat indicators and regional thresholds from the weather assessment.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return assessment??{status:'NO_ASSESSMENT',missing_inputs:['Run a weather assessment first']};}},
     {name:'read_vulnerability',description:'Read coordinator-recorded vulnerability profiles: groups, counts and stated needs.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return {profiles:local.vulnerability,missing_inputs:local.vulnerability.length?[]:['No vulnerability profiles recorded; heat advice stays general']};}},
    ];
-   const result=await runMetaAgent({harness:{},model:metaModels.planning,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.planning,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
     instruction:'Prepare heat-health preparation proposals: shade, water, rest cycles and staffing adjustments, weighed against recorded vulnerability profiles. This is preparation guidance, not medical advice. Do not invent population counts; use only recorded profiles and say when none exist.',requiredTools:tools.map(t=>t.name),tools});
    return {title:'Heat-health preparation',model:result.model,tool_calls:result.tool_calls,harness:result.harness,result:result.result,assessment_id:assessment?.assessment_id??null};});
  },
@@ -126,7 +126,7 @@ export const SpecialisedService={
     {name:'read_road_status',description:'Read recorded road, bridge and ferry access status for this region.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return {access:local.roads,missing_inputs:local.roads.length?[]:['No access status recorded; every route needs a manual check']};}},
     {name:'read_mission_context',description:'Read the mission window, meeting point, capacity and candidate context.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return snapshot.mission;}},
    ];
-   const result=await runMetaAgent({harness:{},model:metaModels.planning,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.planning,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
     instruction:'Assess wind and access risk for this mission. Flag every assignment assumption that depends on a restricted or closed access record, or on strong-wind durations at or above threshold. You cannot verify routes; list exactly what the coordinator must re-check before any approval. Issue no movement orders.',requiredTools:tools.map(t=>t.name),tools});
    return {title:'Wind & access assessment',model:result.model,tool_calls:result.tool_calls,harness:result.harness,result:result.result,
     access_concerns:local.roads.filter(r=>r.status!=='OPEN'),mission_id:request.mission_id};});
@@ -143,7 +143,7 @@ export const SpecialisedService={
        indicators:summary&&(summary as any).evidence?(summary as any).evidence.indicators:null,thresholds:summary&&(summary as any).evidence?(summary as any).evidence.thresholds:null});}
      return {regions:summaries};}},
    ];
-   const result=await runMetaAgent({harness:{},model:metaModels.weather,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.weather,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
     instruction:'Compare preparedness concern across regions using only the returned indicator peaks, thresholds and evidence status. Rank attention by threshold exceedance, and say plainly where evidence is missing or stale instead of ranking those regions. Cite region names, not invented scores.',requiredTools:['read_all_regions'],tools});
    return {title:'Multi-region comparison',model:result.model,tool_calls:result.tool_calls,harness:result.harness,result:result.result,region_count:regions.length};});
  },
@@ -161,7 +161,7 @@ export const SpecialisedService={
     {name:'read_assessment',description:'Read the earlier assessment narrative, indicators and source.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return assessment??{status:'NO_ASSESSMENT'};}},
     {name:'read_observations',description:'Read recorded field observations and the deterministic forecast-versus-observed comparison.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return {observations,comparison,missing_inputs:observations.length?[]:['No field observations recorded within this assessment window']};}},
    ];
-   const result=await runMetaAgent({harness:{},model:metaModels.weather,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.weather,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
     instruction:'Review forecast versus outcome. Compare the earlier assessment with recorded observations, report where indicators over- or under-stated conditions, and name calibration gaps. Never rewrite the earlier forecast as if it had been an observation.',requiredTools:tools.map(t=>t.name),tools});
    return {title:'Forecast-versus-outcome review',model:result.model,tool_calls:result.tool_calls,harness:result.harness,result:result.result,comparison,assessment_id:request.assessment_id};});
  },
@@ -178,7 +178,7 @@ export const SpecialisedService={
     {name:'read_expiring_credentials',description:'Read skills with credentials expiring in the horizon and missions they affect.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return {horizon_days:request.horizon_days,findings:data.findings,missing_inputs:data.findings.length?[]:['No credentials expire in this horizon']};}},
     {name:'read_mission_pipeline',description:'Read upcoming staged and active missions and required skills.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return data.missions;}},
    ];
-   const result=await runMetaAgent({harness:{},model:metaModels.planning,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.planning,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
     instruction:'Highlight roles that will become unstaffable as credentials expire, which missions are affected, and renewal scheduling the coordinator should start. Use only the returned findings; do not invent volunteers or expiry dates.',requiredTools:tools.map(t=>t.name),tools});
    return {title:'Credential-expiry foresight',model:result.model,tool_calls:result.tool_calls,harness:result.harness,result:result.result,findings:data.findings,horizon_days:request.horizon_days};});
  },
@@ -195,7 +195,7 @@ export const SpecialisedService={
     {name:'read_base_snapshot',description:'Read the current validated mission snapshot before scenario overrides.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return base;}},
     {name:'read_scenario_snapshot',description:'Read the snapshot after coordinator scenario overrides: capacity, skills and stock adjustments applied, eligibility recomputed.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return scenario;}},
    ];
-   const result=await runMetaAgent({harness:{},model:metaModels.planning,question:request.question,output:resourcePlanOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.planning,question:request.question,output:resourcePlanOutput,signal:AbortSignal.timeout(90000),
     instruction:'Prepare an allocation for the SCENARIO snapshot only. Choose only eligible candidate IDs and known resource IDs in that snapshot, within its capacity and adjusted stock. State shortages and decisions. This is a what-if draft; it reserves nothing.',requiredTools:tools.map(t=>t.name),tools});
    validateResourcePlan(result.result,scenario);
    return {title:'What-if scenario: '+scenario.mission.title,model:result.model,tool_calls:result.tool_calls,harness:result.harness,recommendation:result.result,
@@ -211,7 +211,7 @@ export const SpecialisedService={
     {name:'read_shortage_options',description:'Read deterministic shortage options: shortfalls, splits across same-title stock locations and recorded substitutes.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return {options,limitations:snapshot.limitations};}},
     {name:'read_stock',description:'Read current stock with locations and available quantities.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return snapshot.resources;}},
    ];
-   const result=await runMetaAgent({harness:{},model:metaModels.planning,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.planning,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
     instruction:'Explain the shortage options the tool computed: what is short, what can be split across storage locations, what recorded substitutes exist, and what remains unmet. Recommend only option IDs and quantities the tool returned; every option still needs coordinator approval and stock revalidation.',requiredTools:tools.map(t=>t.name),tools});
    return {title:'Supply-shortage options',model:result.model,tool_calls:result.tool_calls,harness:result.harness,result:result.result,options,mission_id:request.mission_id};});
  },
@@ -241,7 +241,7 @@ export const SpecialisedService={
     if(payload(row.payload).status!=='APPROVED')throw ApiError.conflict('Approve the briefing before translating it','BRIEFING_NOT_APPROVED');
     return payload(row.payload);});
    const tools:ControlledTool[]=[{name:'read_approved_briefing',description:'Read the approved briefing to translate.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return source.briefing;}}];
-   const result=await runMetaAgent({harness:{},model:metaModels.planning,question:'Translate this approved briefing into language "'+request.language+'".',output:briefingOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.planning,question:'Translate this approved briefing into language "'+request.language+'".',output:briefingOutput,signal:AbortSignal.timeout(90000),
     instruction:'Translate faithfully into the requested language. Preserve every number, source citation and limitation exactly in meaning. Add nothing. The translation is a new draft and needs its own coordinator approval before use.',requiredTools:['read_approved_briefing'],tools});
    return {title:result.result.headline,model:result.model,tool_calls:result.tool_calls,harness:result.harness,briefing:result.result,
     audience:source.audience,language:request.language,source_kind:source.source_kind,source_id:source.source_id,translation_of:id};});
@@ -277,7 +277,7 @@ export const SpecialisedService={
    const tools:ControlledTool[]=[
     {name:'read_mission_record',description:'Read the mission, assignments and related resource proposals.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return record;}},
    ];
-   const result=await runMetaAgent({harness:{},model:metaModels.planning,question:request.question,output:afterActionOutput,signal:AbortSignal.timeout(90000),
+   const result=await runMetaAgent({harness:{bookkeeping:false,finishAfterEvidence:true},model:metaModels.planning,question:request.question,output:afterActionOutput,signal:AbortSignal.timeout(90000),
     instruction:'Draft an after-action summary from the record: what happened, what worked, issues, lessons and follow-ups. Use only the record; do not invent outcomes, attendance or impacts. This is a draft for coordinator review and does not change operational history.',requiredTools:['read_mission_record'],tools});
    return {title:'After-action: '+record.mission.title,model:result.model,tool_calls:result.tool_calls,harness:result.harness,result:result.result,mission_id:request.mission_id};});
  },

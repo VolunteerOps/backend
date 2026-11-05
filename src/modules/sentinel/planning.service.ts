@@ -106,7 +106,7 @@ export const PlanningService={
    }):null;
    let engineEvidence:DisasterEngineResult|undefined;
    const check=()=>withRegion(actor,org,region,false,tx=>coordinator(tx,actor,org));
-   const result=await runMetaAgent({harness:{planFirst:request.mode==='PLAN_FIRST',verify:(plan)=>{try{validateResourcePlan(plan,snapshot);return [];}catch(error){return [error instanceof Error?error.message:'Plan failed validation'];}}},model:metaModels.planning,question:request.question,output:resourcePlanOutput,signal:AbortSignal.timeout(60000),
+   const result=await runMetaAgent({harness:{bookkeeping:request.mode==='PLAN_FIRST',finishAfterEvidence:true,planFirst:request.mode==='PLAN_FIRST',verify:(plan)=>{try{validateResourcePlan(plan,snapshot);return [];}catch(error){return [error instanceof Error?error.message:'Plan failed validation'];}}},model:metaModels.planning,question:request.question,output:resourcePlanOutput,signal:AbortSignal.timeout(60000),
     instruction:'You prepare a resource allocation proposal for a humanitarian coordinator. Read mission requirements, candidate qualifications, stock and commitments using all four tools. Choose only eligible candidate IDs and known resource IDs. Account for location; do not assume transport or safe access. Do not exceed capacity or available stock across assignments. State shortages and decisions. When weather evidence is linked, weigh its indicators against the regional thresholds it reports and say what preparation it changes; weather evidence never authorizes travel or deployment. Read the current disaster indicators before making recommendations; match their times and locations to the mission, explicitly state gaps, and never interpret risk scores as disaster probabilities. No recommendation is a reservation or permission to travel.',
     requiredTools:['read_mission','read_candidates','read_stock','read_commitments','read_disaster_indicators',...(weatherEvidence?['read_weather_assessment']:[])],
     tools:[
@@ -139,7 +139,7 @@ export const PlanningService={
    let reported:unknown;
    let station:Awaited<ReturnType<WeatherNextStationBigQuery['fetch']>>|undefined;
    const signal=AbortSignal.timeout(120000);
-   const result=await runMetaAgent({harness:{planFirst:request.mode==='PLAN_FIRST'},model:metaModels.weather,question:request.question,output:weatherNarrative,signal,
+   const result=await runMetaAgent({harness:{bookkeeping:request.mode==='PLAN_FIRST',finishAfterEvidence:true,planFirst:request.mode==='PLAN_FIRST'},model:metaModels.weather,question:request.question,output:weatherNarrative,signal,
     instruction:'Analyze weather preparedness using numerical services and the selected WeatherNext 3 forecast. Call query_weather_indicators and read_reported_hazards. Never calculate disaster probabilities, flood depth, affected populations or safe routes from language alone. Cite the exact source_id. Explain assumptions, missing inputs and limits. The tool computes rainfall from hourly means, and heat/wind durations from medians; do not call accumulated rainfall a percentile. Compare every indicator with the regional thresholds returned by the tool and name each threshold met or not met. State explicitly that rainfall evidence alone does not produce a local flood-impact estimate when the listed local inputs are missing. Reported earthquakes do not corroborate a flood prediction. No warning or deployment is issued.',
     requiredTools:['query_weather_indicators','read_reported_hazards',...(request.include_station_detail?['query_station_temperature']:[])],tools:[
      ...(request.include_station_detail?[{name:'query_station_temperature',description:'Read independent 0.05 degree station-head temperature and dew-point statistics in Celsius. No rain or wind is available from this table.',arguments:noArguments,execute:async()=>{
@@ -199,6 +199,7 @@ export const PlanningService={
    const row=await tx.operationRecord.findFirst({where:{id,organizationId:org,regionId:region,kind:'RESOURCE_PLAN'}});
    if(!row)throw ApiError.notFound('Resource proposal');
    const p=payload(row.payload);
+   if(p.recorded_demo)throw ApiError.conflict('This is a recorded example. Generate a fresh proposal before allocating resources.','PLAN_ONLY');
    if(p.request?.mode==='PLAN_FIRST')throw ApiError.conflict('This was a plan-first run. Create an execution proposal before approving allocations','PLAN_ONLY');
    const approvalFingerprint=createHash('sha256').update(JSON.stringify(request)).digest('hex');
    if(p.status==='APPROVED'&&p.approval_key===key&&p.approved_by===actor.userId){if(p.approval_fingerprint!==approvalFingerprint)throw ApiError.conflict('Approval key reused with a different request','IDEMPOTENCY_CONFLICT');return row;}

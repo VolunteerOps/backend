@@ -31,7 +31,7 @@ export const commandSchema=z.discriminatedUnion('action',[
  z.object({action:z.literal('MESSAGE'),id:scopeId,body:z.string().trim().min(1).max(4000),reply_to:scopeId.optional()}).strict(),
  z.object({action:z.literal('MODERATE_MESSAGE'),id:scopeId,expected_version:version,reason:z.string().trim().min(10).max(1500)}).strict(),
  z.object({action:z.literal('TRIAGE_REPORT'),id:scopeId,expected_version:version,status:z.enum(['REVIEWING','ACTION_REQUIRED','RESOLVED']),reason:z.string().trim().min(10).max(1500),related_report_id:scopeId.optional()}).strict(),
- z.object({action:z.literal('CREATE_RESOURCE'),title:z.string().trim().min(3).max(160),unit:z.string().trim().min(1).max(40),location:z.string().trim().min(3).max(300),quantity:z.number().int().nonnegative().max(1000000)}).strict(),
+ z.object({action:z.literal('CREATE_RESOURCE'),vehicle_model:z.string().trim().min(1).max(120).optional(),plate_number:z.string().trim().min(1).max(40).optional(),title:z.string().trim().min(3).max(160),unit:z.string().trim().min(1).max(40),location:z.string().trim().min(3).max(300),quantity:z.number().int().nonnegative().max(1000000)}).strict(),
  z.object({action:z.literal('ADJUST_STOCK'),id:scopeId,expected_version:version,delta:z.number().int().min(-1000000).max(1000000).refine(x=>x!==0),reason:z.string().trim().min(10).max(1500)}).strict(),
  z.object({action:z.literal('TRANSFER_STOCK'),id:scopeId,expected_version:version,target_id:scopeId,target_version:version,quantity:z.number().int().positive().max(1000000),reason:z.string().trim().min(10).max(1500)}).strict(),
  z.object({action:z.literal('REPLY_SUPPORT'),id:scopeId,expected_version:version,body:z.string().trim().min(1).max(4000)}).strict(),
