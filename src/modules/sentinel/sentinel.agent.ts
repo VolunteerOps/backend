@@ -1,4 +1,6 @@
-import {runMetaAgent,configuredMetaKey,metaModels} from './meta-agent.js';
+import {engineAssistantEvidence,DisasterEngineService} from './disaster.service.js';
+import {metaTransport} from './meta-transport.js';
+import {runMetaAgent,metaModels} from './meta-agent.js';
 import {reserveUsage,finishUsage} from '../billing/usage.service.js';
 import {featureCatalog} from '../billing/feature-catalog.js';
 import { webcrypto as crypto } from 'node:crypto';
@@ -50,17 +52,19 @@ export async function runEvidenceAgent(question: string, generate: AgentGenerato
 export async function askSentinel(actor: Actor, organizationId: string, regionId: string, input: { question: string }) {
   const { question } = agentQuestionSchema.parse(input);
   const {role}=await authorizeCapability(actor,organizationId,regionId,'agent.chat');
-  configuredMetaKey();
+  metaTransport();
   const reservation=await reserveUsage(actor,{key:crypto.randomUUID(),bucket:'agent.chat',limit:role==='VOLUNTEER'?featureCatalog.assistant.volunteer_daily_attempts:featureCatalog.assistant.ops_daily_attempts,fingerprint:JSON.stringify([organizationId,regionId,question])});
   const sources = new Map<string, unknown>();
   try {
-    const generated = await runMetaAgent({harness:{},model:metaModels.planning,question,signal:AbortSignal.timeout(60000),output:z.object({answer:z.string().min(1).max(6000)}).strict(),instruction:'Explain current scoped evidence and preparation options. Cite source IDs, source time, gaps and uncertainty. Do not invent disaster probabilities, safe routes, allocations or warning authority.',requiredTools:['read_sentinel_forecast'],tools:[{name:'read_sentinel_forecast',description:'Read the current authorized forecast and operational context.',arguments:toolArguments,execute:async arguments_ => {
+    const generated = await runMetaAgent({harness:{},model:metaModels.weather,question,signal:AbortSignal.timeout(60000),output:z.object({answer:z.string().min(1).max(6000)}).strict(),instruction:'Explain current scoped evidence and preparation options. Cite source IDs, source time, gaps and uncertainty. Use experimental weather probability ranges only for the stated threshold, place and time, explicitly labelled uncalibrated; risk scores and source weights are not probabilities. Engine snapshots are current, not historical or seasonal evidence. Do not invent disaster probabilities, safe routes, allocations or warning authority.',requiredTools:['read_sentinel_forecast'],tools:[{name:'read_sentinel_forecast',description:'Read the current authorized forecast and operational context.',arguments:toolArguments,execute:async arguments_ => {
       const {view}=toolArguments.parse(arguments_);
       await withRegion(actor, organizationId, regionId, false, async () => {});
       const latest = await SentinelService.latest(actor, organizationId, regionId);
       if (latest.run) sources.set(latest.run.id, latest.run);
+      const engine=['ORG_ADMIN','COORDINATOR'].includes(role)?await DisasterEngineService.predictions(actor,organizationId,regionId).catch(error=>{if(error instanceof ApiError&&[401,403].includes(error.statusCode))throw error;return null;}):null;
+      if(engine)sources.set(engine.source_id,engine);
       const operations=await OperationsService.assistantContext(actor,organizationId,regionId);
-      return { operations, status: latest.status, source_id: latest.run?.id ?? null, source: latest.run,
+      return { operations, engine_evidence:engine?engineAssistantEvidence(engine):null, status: latest.status, source_id: latest.run?.id ?? null, source: latest.run,
         region: latest.region.name, validation: 'UNVALIDATED_INDICATORS',
         missing_values: latest.assessment?.missing_values ?? null,
         stale_cells: latest.assessment?.stale_cells ?? null,

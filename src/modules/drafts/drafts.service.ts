@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {ApiError} from '../../core/errors.js';
 
 import {withActor,type Actor} from '../organizations/context.js';
 
@@ -34,15 +35,24 @@ export const DraftsService={
  async put(actor:Actor,key:string,input:z.infer<typeof draftPut>):Promise<DraftView> {
   const parsed=draftPut.parse(input);
   const parsedKey=draftKey.parse(key);
-  const row=await withActor(actor,tx=>tx.userDraft.upsert({
-   where:{userId_key:{userId:actor.userId,key:parsedKey}},
-   create:{userId:actor.userId,key:parsedKey,payload:parsed.payload as never,version:1},
-   update:{payload:parsed.payload as never,version:{increment:1}},
-  }));
+  const row=await withActor(actor,async tx=>{
+   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${actor.userId+':draft:'+parsedKey},0))::text`;
+   const where={userId_key:{userId:actor.userId,key:parsedKey}};
+   const current=await tx.userDraft.findUnique({where});
+   if((current?.version??0)!==parsed.base_version)throw ApiError.conflict('This draft changed on another device. Reload it before saving again.','DRAFT_CONFLICT');
+   return tx.userDraft.upsert({where,
+    create:{userId:actor.userId,key:parsedKey,payload:parsed.payload as never,version:1},
+    update:{payload:parsed.payload as never,version:{increment:1}},
+   });
+  });
   return view(row);
  },
  async remove(actor:Actor,key:string):Promise<{deleted:boolean}> {
-  const result=await withActor(actor,tx=>tx.userDraft.deleteMany({where:{userId:actor.userId,key:draftKey.parse(key)}}));
+  const parsedKey=draftKey.parse(key);
+  const result=await withActor(actor,async tx=>{
+   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${actor.userId+':draft:'+parsedKey},0))::text`;
+   return tx.userDraft.deleteMany({where:{userId:actor.userId,key:parsedKey}});
+  });
   return {deleted:result.count>0};
  },
 };

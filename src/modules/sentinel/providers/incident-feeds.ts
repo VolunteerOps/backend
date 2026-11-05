@@ -15,13 +15,13 @@ export type IncidentType=typeof incidentTypes[number];
 export interface FeedIncident {
   external_id:string; title:string; type:IncidentType; category:'NATURAL'|'WEATHER'|'ARTIFICIAL';
   severity:'LOW'|'MODERATE'|'HIGH'|'SEVERE'; description:string; source_name:string; source_url:string;
-  published_at:string; latitude:number|null; longitude:number|null;
+  published_at:string|null; latitude:number|null; longitude:number|null;
 }
 const gdacsTypes:Record<string,IncidentType>={EQ:'EARTHQUAKE',FL:'FLOOD',TC:'STORM',DR:'DROUGHT',WF:'WILDFIRE',VO:'OTHER'};
 const artificial:[RegExp,IncidentType][]=[
-  [/building|bridge|structure|dam|wall|roof[^.]{0,60}collaps|collaps[^.]{0,60}(building|bridge|structure|dam|tower|apartment|school|hospital)/i,'BUILDING_COLLAPSE'],
+  [/\b(building|bridge|structure|dam|wall|roof)\b[^.]{0,60}collaps|collaps[^.]{0,60}(building|bridge|structure|dam|tower|apartment|school|hospital)/i,'BUILDING_COLLAPSE'],
   [/explosion|exploded|blast/i,'EXPLOSION'],
-  [/industrial|factory|chemical|warehouse|plant[^.]{0,60}(accident|fire|leak|explosion)/i,'INDUSTRIAL_ACCIDENT'],
+  [/\b(industrial|factory|chemical|warehouse|plant)\b[^.]{0,60}(accident|fire|leak|explosion)/i,'INDUSTRIAL_ACCIDENT'],
   [/(structure|building|warehouse|market|hotel|factory)[^.]{0,40}fire|fire[^.]{0,40}(building|warehouse|market|factory)/i,'STRUCTURE_FIRE'],
   [/(train|bus|ferry|plane|truck)[^.]{0,40}(crash|collision|derail|capsiz)|crash[^.]{0,40}(train|bus|ferry|plane)/i,'TRANSPORT_ACCIDENT'],
 ];
@@ -52,6 +52,7 @@ export function parseIncidentFeed(xml:string,sourceName:string):FeedIncident[] {
     const block=raw.slice(0,20000);
     const title=field(block,'title');const link=field(block,'link')||block.match(/<link[^>]*href="([^"]+)"/i)?.[1]||'';
     if(!title||!link)continue;
+    try{if(!['https:','http:'].includes(new URL(link).protocol))continue;}catch{continue;}
     const description=field(block,'description').slice(0,1200);
     const point=block.match(/<geo:Point>[\s\S]*?<geo:lat>(-?[\d.]+)<\/geo:lat>[\s\S]*?<geo:long>(-?[\d.]+)<\/geo:long>/i)
       ??block.match(/<georss:point>\s*(-?[\d.]+)\s+(-?[\d.]+)\s*<\/georss:point>/i);
@@ -64,7 +65,7 @@ export function parseIncidentFeed(xml:string,sourceName:string):FeedIncident[] {
       title:title.slice(0,300),type,category,
       severity:alert==='RED'?'SEVERE':alert==='ORANGE'?'HIGH':category==='ARTIFICIAL'?'HIGH':'MODERATE',
       description,source_name:sourceName,source_url:link.slice(0,1000),
-      published_at:Number.isFinite(Date.parse(published))?new Date(published).toISOString():new Date().toISOString(),
+      published_at:Number.isFinite(Date.parse(published))?new Date(published).toISOString():null,
       latitude:Number.isFinite(latitude as number)&&(latitude as number)>=-90&&(latitude as number)<=90?latitude:null,
       longitude:Number.isFinite(longitude as number)&&(longitude as number)>=-180&&(longitude as number)<=180?longitude:null});
   }
@@ -93,9 +94,11 @@ export async function fetchIncidentFeeds(signal:AbortSignal,fetcher:typeof fetch
   return {incidents,feeds};
 }
 async function boundedJsonText(response:Response):Promise<string> {
-  // Feeds are XML, not JSON: reuse the bounded reader through a text pass.
-  const text=await response.text();
-  if(text.length>2_000_000)throw new Error('FEED_TOO_LARGE');
-  return text;
+  const reader=response.body?.getReader();if(!reader)return '';
+  const decoder=new TextDecoder();let bytes=0,text='';
+  try{for(;;){const {done,value}=await reader.read();if(done)break;
+   bytes+=value.byteLength;if(bytes>2_000_000)throw new Error('FEED_TOO_LARGE');
+   text+=decoder.decode(value,{stream:true});
+  }return text+decoder.decode();}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
 }
 

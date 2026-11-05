@@ -8,8 +8,7 @@ import { executeJob, PostgresJobStore, type JobHandler } from '../core/jobs.js';
 import { workerHealth } from '../core/worker-health.js';
 import { fetchUsgs } from '../modules/sentinel/providers/usgs.js';
 import { fetchIncidentFeeds } from '../modules/sentinel/providers/incident-feeds.js';
-import { insertFeedIncidents } from '../modules/sentinel/incidents.service.js';
-import { boundsSchema } from '../modules/sentinel/providers/weathernext3.contract.js';
+import { importWorkerIncidents } from '../modules/sentinel/incidents.service.js';
 
 if (process.env.SENTINEL_USGS_ENABLED !== 'true') throw new Error('USGS_WORKER_DISABLED');
 const pool = new Pool({ ...databasePoolConfig(config), max: 1 }), store = new PostgresJobStore(pool);
@@ -19,15 +18,9 @@ const incidentHandler: JobHandler = async (_payload, signal) => {
   if (process.env.INCIDENT_FEEDS_ENABLED !== 'true') return;
   const { incidents } = await fetchIncidentFeeds(signal);
   if (!incidents.length) return;
-  const units = await prisma.organizationUnit.findMany({ where: { active: true }, take: 100 });
-  for (const unit of units) {
-    const bounds = boundsSchema.safeParse(unit.forecastBounds);
-    if (!bounds.success) continue;
-    await prisma.$transaction(async tx => {
-      await tx.$queryRaw`SELECT set_config('vops.operations','true',true), set_config('vops.region_id', ${unit.id}, true), set_config('vops.all_regions','',true)`;
-      await insertFeedIncidents(tx as never, unit.organizationId, unit.id, incidents, bounds.data);
-    }, { timeout: 15000 }).catch(() => {});
-  }
+  if(!Number.isSafeInteger(Number(process.env.INCIDENT_FEED_OWNER_USER_ID))||Number(process.env.INCIDENT_FEED_OWNER_USER_ID)<=0)throw new Error('INCIDENT_FEED_OWNER_REQUIRED');
+  await prisma.$transaction(tx=>importWorkerIncidents(tx as never,Number(process.env.INCIDENT_FEED_OWNER_USER_ID),incidents),{timeout:30000});
+
 };
 const handlers = new Map<string, JobHandler>([['INCIDENT_PULL', incidentHandler], ['USGS_PULL', async (_payload, signal, job) => {
   const revisions = await fetchUsgs(signal);

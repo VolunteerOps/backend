@@ -1,3 +1,4 @@
+import {withParentRun,followUpContext} from './run-lifecycle.js';
 import {z} from 'zod';
 import {ApiError} from '../../core/errors.js';
 import type {Actor,TenantTransaction} from '../organizations/context.js';
@@ -36,18 +37,21 @@ export const AgentRunsService={
    if(!row)throw ApiError.notFound('Agent run');const p=payload(row.payload);
    if(p.status!=='RUNNING')throw ApiError.conflict('Only a running agent run can be cancelled','INVALID_TRANSITION');
    await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
-   return tx.operationRecord.update({where:{id},data:{version:{increment:1},updatedAt:new Date(),payload:json({...p,status:'FAILED',error_code:'CANCELLED_BY_COORDINATOR',message:'This run was cancelled by a coordinator. Start a new run or branch a follow-up from a completed run.'})}});});
+   return tx.operationRecord.update({where:{id,version:row.version},data:{version:{increment:1},updatedAt:new Date(),payload:json({...p,status:'FAILED',error_code:'CANCELLED_BY_COORDINATOR',message:'This run was cancelled by a coordinator. Start a new run or branch a follow-up from a completed run.'})}});});
  },
  async followUp(actor:Actor,org:string,region:string,id:string,key:string,input:z.infer<typeof followUpRequest>){
   const request=followUpRequest.parse(input);
   const parent=await findRun(actor,org,region,id);
-  const p=payload(parent.payload);const prior=payload(p.request);
-  const context=['Follow-up to an earlier '+parent.kind+' run.',prior.question?('Original question: '+prior.question):'',p.result?.summary||p.narrative?.summary||p.recommendation?.summary?('Earlier summary: '+(p.result?.summary??p.narrative?.summary??p.recommendation?.summary)):'',...(p.harness?.notes??[]).map((n:string)=>'Earlier note: '+n),'Follow-up: '+request.question].filter(Boolean).join('\n');
+  const p=payload(parent.payload);const prior=payload(p.request??{});
+  if(['RUNNING','FAILED'].includes(p.status))throw ApiError.conflict('Choose a completed run before asking a follow-up.','FOLLOW_UP_UNAVAILABLE');
+  const summary=String(p.result?.summary??p.narrative?.summary??p.recommendation?.summary??'');
+  const context=followUpContext(id,request.question,String(prior.question??''),summary);
+  return withParentRun(id,async()=>{
   let run:any;
   if(parent.kind==='RESOURCE_PLAN'){
    run=await PlanningService.resourcePlan(actor,org,region,key,{mission_id:p.mission_id,question:context,mode:prior.mode??'EXECUTE',...(p.weather_evidence?.assessment_id?{source_assessment_id:p.weather_evidence.assessment_id}:{})});
   }else if(parent.kind==='WEATHER_ANALYSIS'&&(p.workflow==='WEATHER_CONVERSATION'||prior.mode==='CHAT'||prior.mode==='DAILY_BRIEF')){
-   const history=[...(prior.history??[]),{role:'user',content:request.question}].slice(-16);
+   const history=[...(prior.history??[]),{role:'user',content:String(prior.question??'Earlier weather question').slice(0,4000)},{role:'assistant',content:('Earlier run '+id+': '+summary).slice(0,4000)}].slice(-16);
    run=await weatherConversation(actor,org,region,key,{question:request.question,mode:'CHAT',history});
   }else if(parent.kind==='WEATHER_ANALYSIS'){
    run=await PlanningService.weather(actor,org,region,key,{question:context,init_time:prior.init_time,from:prior.from,to:prior.to,include_station_detail:!!prior.include_station_detail,mode:prior.mode??'EXECUTE'});
@@ -67,10 +71,7 @@ export const AgentRunsService={
     default:throw ApiError.conflict('Follow-up branching is not available for this run type. Create a new run instead.','FOLLOW_UP_UNSUPPORTED');
    }
   }
-  const child=await withRegion(actor,org,region,false,async tx=>{await coordinator(tx,actor,org);
-   await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
-   const row=await tx.operationRecord.findUniqueOrThrow({where:{id:run.id}});
-   return tx.operationRecord.update({where:{id:run.id},data:{payload:json({...payload(row.payload),parent_run_id:id})}});});
-  return child;
+  return run;
+  });
  },
 };

@@ -15,3 +15,11 @@ test('linked weather evidence rejects stale forecasts, changed regional policy a
  assert.throws(()=>assessmentEvidence(row,{...region,forecastBounds:{...region.forecastBounds,west:35}},now),{code:'ASSESSMENT_POLICY_CHANGED'});
  assert.throws(()=>assessmentEvidence({...row,payload:{...payload,evidence:{...payload.evidence,points:[]}}},region,now),{code:'ASSESSMENT_UNAVAILABLE'});
 });
+
+test('historical review preserves old policy and evidence without allowing stale allocation approval',()=>{
+ const region={forecastPolicy:{version:3,heat_c:35,wind_mps:12,hourly_rain_mm:10,maximum_run_age_hours:8},forecastBounds:{west:36,east:37,south:-2,north:-1}};
+ const row={id:'old',version:1,payload:{status:'DRAFT',source:{init_time:'2026-10-01T00:00:00Z',bounds:{west:35,east:37,south:-2,north:-1}},evidence:{policy_version:1,from:'2026-10-01T01:00:00Z',to:'2026-10-02T00:00:00Z',points:[{expected_rainfall_mm:10}]}}};
+ const now=Date.parse('2026-11-05T00:00:00Z');
+ assert.throws(()=>assessmentEvidence(row,region,now),{code:'ASSESSMENT_STALE'});
+ const old=assessmentEvidence(row,region,now,true);assert.equal(old.policy_version,1);assert.equal(old.thresholds,null);assert.equal(old.indicators.maximum_expected_rainfall_mm,10);
+});

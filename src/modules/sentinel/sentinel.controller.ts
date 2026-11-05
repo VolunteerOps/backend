@@ -18,6 +18,7 @@ import { validateBody } from '../../middleware/validator.js';
 import { requestActor } from '../organizations/context.js';
 import { serialize } from '../../lib/serialize.js';
 import { SentinelService, regionConfigSchema, refreshSchema, latestRefreshSchema } from './sentinel.service.js';
+import { DisasterEngineService } from './disaster.service.js';
 
 const router = Router({ mergeParams: true });
 const uuid = z.string().uuid();
@@ -43,6 +44,9 @@ router.get('/regions/:regionId/forecasts/latest', ah(async (req, res) => {
 router.get('/regions/:regionId/insights', ah(async (req, res) => {
   res.json(serialize(await SentinelService.insights(requestActor(req), uuid.parse(req.params.orgId), uuid.parse(req.params.regionId))));
 }));
+router.get('/regions/:regionId/predictions', ah(async (req, res) => { res.json(serialize(await DisasterEngineService.predictions(requestActor(req), uuid.parse(req.params.orgId), uuid.parse(req.params.regionId)))); }));
+router.post('/regions/:regionId/predictions/refresh', authRateLimiter, ah(async (req, res) => { res.json(serialize(await DisasterEngineService.refresh(requestActor(req), uuid.parse(req.params.orgId), uuid.parse(req.params.regionId)))); }));
+router.get('/regions/:regionId/sources', ah(async (req, res) => { res.json(serialize(await DisasterEngineService.sourceHealth(requestActor(req), uuid.parse(req.params.orgId), uuid.parse(req.params.regionId)))); }));
 router.get('/regions/:regionId/jobs/:jobId', ah(async (req, res) => {
   res.json(await SentinelService.job(requestActor(req), uuid.parse(req.params.orgId), uuid.parse(req.params.regionId), uuid.parse(req.params.jobId)));
 }));

@@ -91,7 +91,7 @@ test('harness verifier sends an unsupported draft back for one revision',async()
  const result=await runMetaAgent({model:'muse-spark-1.3',instruction:'Plan',question:'Review',tools:[tool],requiredTools:['read_evidence'],output:answer,signal:AbortSignal.timeout(5000),fetcher:staged,key:'fixture',
   harness:{verify:(draft)=>{verifyCalls++;return draft.summary==='Unsupported draft'?['Claim is not in the evidence']:[];}}});
  assert.equal(result.result.summary,'Revised draft');
- assert.equal(verifyCalls,1);
+ assert.equal(verifyCalls,2);
 });
 test('identical evidence calls are deduplicated and tools in one round run in parallel',async()=>{
  let executions=0,active=0,maxConcurrent=0;
@@ -143,4 +143,26 @@ test('linked weather planning can consume all five required tools in one bounded
    return calls++===0?response({role:'assistant',tool_calls:names.map((name,i)=>({id:'call-'+i,type:'function',function:{name,arguments:'{}'}}))}):response({role:'assistant',content:'{"summary":"All evidence reviewed"}'});
   }) as typeof fetch});
  assert.deepEqual(executed,names);assert.deepEqual(result.tool_calls,names);
+});
+
+test('cancelled runs stop before another provider call or evidence tool',async()=>{
+ const {withRunCheck,assertRunning}=await import('../src/modules/sentinel/run-lifecycle.js');let status='RUNNING',tools=0,calls=0;
+ const fetcher=(async()=>{calls++;status='FAILED';return response({role:'assistant',tool_calls:[{id:'read',type:'function',function:{name:'read_evidence',arguments:'{}'}}]});}) as typeof fetch;
+ await assert.rejects(withRunCheck(async()=>assertRunning(status),()=>runMetaAgent({model:'muse-spark-1.3',instruction:'Review',question:'Review',output:answer,signal:AbortSignal.timeout(5000),key:'fixture',fetcher,requiredTools:['read_evidence'],tools:[{...tool,execute:async()=>{tools++;return {};}}]})),{code:'CANCELLED_BY_COORDINATOR'});
+ assert.equal(calls,1);assert.equal(tools,0);
+});
+
+test('follow-up lineage stays request-local and long questions remain valid',async()=>{
+ const {withParentRun,currentParentRun,followUpContext}=await import('../src/modules/sentinel/run-lifecycle.js');
+ const values=await Promise.all(['one','two'].map(id=>withParentRun(id,async()=>{await new Promise(r=>setTimeout(r,2));return currentParentRun();})));
+ assert.deepEqual(values,['one','two']);assert.equal(currentParentRun(),undefined);
+ const question='q'.repeat(2000);assert.equal(followUpContext('parent',question,'old','summary'),question);
+ assert.match(followUpContext('parent','Next question','Earlier question','Earlier answer'),/Earlier answer/);
+});
+
+test('all citation-bearing assistant outputs reject invented source IDs',async()=>{
+ let calls=0;
+ const fetcher=(async()=>++calls===1?response({role:'assistant',tool_calls:[{id:'read',type:'function',function:{name:'read_evidence',arguments:'{}'}}]}):response({role:'assistant',content:JSON.stringify({summary:'Claim',source_ids:['invented']})})) as typeof fetch;
+ await assert.rejects(runMetaAgent({model:'muse-spark-1.3',instruction:'Review',question:'Review',output:z.object({summary:z.string(),source_ids:z.array(z.string())}),signal:AbortSignal.timeout(5000),key:'fixture',fetcher,requiredTools:['read_evidence'],tools:[{...tool,execute:async()=>({id:'real-source'})}]}),/AGENT_UNSUPPORTED_ANSWER/);
+ assert.equal(calls,3);
 });

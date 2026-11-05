@@ -1,3 +1,8 @@
+import {engineAssistantEvidence,DisasterEngineService,type DisasterEngineResult} from './disaster.service.js';
+import {withRunCheck,assertRunning,currentParentRun} from './run-lifecycle.js';
+import {describeAgentFailure} from './agent-failure.js';
+import {logger} from '../../core/logger.js';
+import {metaTransport} from './meta-transport.js';
 import {createHash,randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {ApiError} from '../../core/errors.js';
@@ -9,7 +14,7 @@ import {featureCatalog} from '../billing/feature-catalog.js';
 import {withRegion} from './sentinel.context.js';
 import {requireCoordinator} from '../operations/workspace-policy.js';
 import {executeOperationalCommand} from '../operations/operations.service.js';
-import {runMetaAgent,configuredMetaKey,metaModels} from './meta-agent.js';
+import {runMetaAgent,metaModels} from './meta-agent.js';
 import {assessmentEvidence} from './planning-evidence.js';
 import {readPlanningContext} from './planning-context.js';
 import {resourcePlanOutput,resourcePlanRequest,validateResourcePlan,planApproval,planRejection,planEdit,type PlanningSnapshot} from './planning-contract.js';
@@ -24,9 +29,9 @@ const payload=(v:unknown)=>v as Record<string,any>;
 const json=(v:unknown)=>JSON.parse(JSON.stringify(v)) as Prisma.InputJsonValue;
 const noArguments=z.object({}).strict();
 function abandoned(value:Record<string,any>){return value.status==='RUNNING'&&(!Number.isFinite(Date.parse(value.requested_at))||Date.now()-Date.parse(value.requested_at)>5*60000);}
-async function expireAbandoned(tx:TenantTransaction,row:{id:string;payload:unknown}){
+async function expireAbandoned(tx:TenantTransaction,row:{id:string;version:number;payload:unknown}){
  await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
- return tx.operationRecord.update({where:{id:row.id},data:{version:{increment:1},updatedAt:new Date(),payload:json({...payload(row.payload),status:'FAILED',error_code:'ANALYSIS_INTERRUPTED',message:'This analysis did not finish within its processing window. Review provider status before creating a new request.'})}});
+ return tx.operationRecord.update({where:{id:row.id,version:row.version},data:{version:{increment:1},updatedAt:new Date(),payload:json({...payload(row.payload),status:'FAILED',error_code:'ANALYSIS_INTERRUPTED',message:'This analysis did not finish within its processing window. Review provider status before creating a new request.'})}});
 }
 // Explicit request shape; extra caller-controlled scope and model fields are rejected.
 export const weatherRequest=z.object({question:z.string().trim().min(3).max(2000),init_time:z.string().datetime(),from:z.string().datetime(),to:z.string().datetime(),include_station_detail:z.boolean().default(false),mode:z.enum(['PLAN_FIRST','EXECUTE']).default('EXECUTE')}).strict();
@@ -34,8 +39,10 @@ async function coordinator(tx:TenantTransaction,actor:Actor,org:string){
  const member=await tx.organizationMembership.findUniqueOrThrow({where:{organizationId_userId:{organizationId:org,userId:actor.userId}}});requireCoordinator(member.role);
 }
 export async function runStored(actor:Actor,org:string,region:string,key:string,type:'RESOURCE_PLAN'|'WEATHER_ANALYSIS'|'SPECIALISED',input:unknown,compute:()=>Promise<Record<string,unknown>>) {
- const {role}=await authorizeCapability(actor,org,region,'agent.chat');requireCoordinator(role);configuredMetaKey();
- const fingerprint=createHash('sha256').update(JSON.stringify([type,input])).digest('hex');
+ const {role}=await authorizeCapability(actor,org,region,'agent.chat');requireCoordinator(role);metaTransport();
+ const parent=currentParentRun();
+ const lineage=parent?{parent_run_id:parent}:{};
+ const fingerprint=createHash('sha256').update(JSON.stringify([type,input,...(parent?[parent]:[])])).digest('hex');
  const prior=await withRegion(actor,org,region,false,async tx=>{
   await coordinator(tx,actor,org);
   const existing=await tx.operationRecord.findFirst({where:{id:key,organizationId:org,regionId:region,kind:type,ownerId:actor.userId}});
@@ -46,29 +53,35 @@ export async function runStored(actor:Actor,org:string,region:string,key:string,
    return existing;
   }
   await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
-  await tx.operationRecord.create({data:{id:key,organizationId:org,regionId:region,kind:type,ownerId:actor.userId,payload:json({status:'RUNNING',request:input,fingerprint,requested_at:new Date().toISOString()})}});
+  await tx.operationRecord.create({data:{id:key,organizationId:org,regionId:region,kind:type,ownerId:actor.userId,payload:json({...lineage,status:'RUNNING',request:input,fingerprint,requested_at:new Date().toISOString()})}});
   return null;
  });
  if(prior)return prior;
  let usageId:string|undefined;
  try {
   const usage=await reserveUsage(actor,{key,bucket:'agent.chat',limit:featureCatalog.assistant.ops_daily_attempts,fingerprint:createHash('sha256').update(JSON.stringify([org,region,type,input])).digest('hex')});usageId=usage.entry.id;
-  const result=await compute();
+  const result=await withRunCheck(async()=>{await withRegion(actor,org,region,false,async tx=>{
+   await coordinator(tx,actor,org);
+   const current=await tx.operationRecord.findFirst({where:{id:key,organizationId:org,regionId:region}});
+   assertRunning(current?payload(current.payload).status:null);
+  });},compute);
   return await withRegion(actor,org,region,false,async tx=>{
    await coordinator(tx,actor,org);await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
    const current=await tx.operationRecord.findUniqueOrThrow({where:{id:key}});
    if(payload(current.payload).status!=='RUNNING')throw ApiError.conflict('The processing window has closed. Review history before starting again','ANALYSIS_INTERRUPTED');
-   return tx.operationRecord.update({where:{id:key},data:{version:{increment:1},updatedAt:new Date(),payload:json({...result,request:input,fingerprint,status:'DRAFT',created_at:new Date().toISOString(),expires_at:new Date(Date.now()+30*60000).toISOString(),actions_executed:[]})}});
+   return tx.operationRecord.update({where:{id:key,version:current.version},data:{version:{increment:1},updatedAt:new Date(),payload:json({...result,...lineage,request:input,fingerprint,status:'DRAFT',created_at:new Date().toISOString(),expires_at:new Date(Date.now()+30*60000).toISOString(),actions_executed:[]})}});
   });
  } catch(error) {
+  const failure=describeAgentFailure(error);
+  logger.error('SENTINEL_ANALYSIS_FAILED',{run_id:key,kind:type,code:failure.error_code,model:failure.model,phase:failure.diagnostic.phase,rounds:failure.diagnostic.rounds});
   await withRegion(actor,org,region,false,async tx=>{
    await coordinator(tx,actor,org);await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
    const current=await tx.operationRecord.findUnique({where:{id:key}});
    if(!current||payload(current.payload).status!=='RUNNING')return;
-   await tx.operationRecord.update({where:{id:key},data:{version:{increment:1},updatedAt:new Date(),payload:json({request:input,status:'FAILED',fingerprint,error_code:error instanceof ApiError?error.code:'ANALYSIS_FAILED',message:error instanceof ApiError&&error.code==='FORECAST_QUERY_BUDGET_EXCEEDED'?error.message:'The analysis did not complete. Submit a new request after reviewing the source and configuration.'})}});
+   await tx.operationRecord.update({where:{id:key,version:current.version},data:{version:{increment:1},updatedAt:new Date(),payload:json({...lineage,request:input,status:'FAILED',fingerprint,...failure})}});
   }).catch(()=>{});
   if(error instanceof ApiError)throw error;
-  throw new ApiError(503,'ANALYSIS_FAILED','The model could not complete an evidence-grounded assessment');
+  throw new ApiError(503,failure.error_code,failure.message);
  } finally {if(usageId)await finishUsage(actor,usageId,'FINALIZED');}
 }
 
@@ -91,11 +104,13 @@ export const PlanningService={
     const unit=await tx.organizationUnit.findUniqueOrThrow({where:{id:region}});
     return assessmentEvidence(assessment,unit);
    }):null;
+   let engineEvidence:DisasterEngineResult|undefined;
    const check=()=>withRegion(actor,org,region,false,tx=>coordinator(tx,actor,org));
    const result=await runMetaAgent({harness:{planFirst:request.mode==='PLAN_FIRST',verify:(plan)=>{try{validateResourcePlan(plan,snapshot);return [];}catch(error){return [error instanceof Error?error.message:'Plan failed validation'];}}},model:metaModels.planning,question:request.question,output:resourcePlanOutput,signal:AbortSignal.timeout(60000),
-    instruction:'You prepare a resource allocation proposal for a humanitarian coordinator. Read mission requirements, candidate qualifications, stock and commitments using all four tools. Choose only eligible candidate IDs and known resource IDs. Account for location; do not assume transport or safe access. Do not exceed capacity or available stock across assignments. State shortages and decisions. When weather evidence is linked, weigh its indicators against the regional thresholds it reports and say what preparation it changes; weather evidence never authorizes travel or deployment. No recommendation is a reservation or permission to travel.',
-    requiredTools:['read_mission','read_candidates','read_stock','read_commitments',...(weatherEvidence?['read_weather_assessment']:[])],
+    instruction:'You prepare a resource allocation proposal for a humanitarian coordinator. Read mission requirements, candidate qualifications, stock and commitments using all four tools. Choose only eligible candidate IDs and known resource IDs. Account for location; do not assume transport or safe access. Do not exceed capacity or available stock across assignments. State shortages and decisions. When weather evidence is linked, weigh its indicators against the regional thresholds it reports and say what preparation it changes; weather evidence never authorizes travel or deployment. Read the current disaster indicators before making recommendations; match their times and locations to the mission, explicitly state gaps, and never interpret risk scores as disaster probabilities. No recommendation is a reservation or permission to travel.',
+    requiredTools:['read_mission','read_candidates','read_stock','read_commitments','read_disaster_indicators',...(weatherEvidence?['read_weather_assessment']:[])],
     tools:[
+     {name:'read_disaster_indicators',description:'Read current regional preparedness indicators and source limitations. No indication of safe access or deployment approval.',arguments:noArguments,execute:async()=>{await check();try{engineEvidence=await DisasterEngineService.predictions(actor,org,region);return engineAssistantEvidence(engineEvidence);}catch(error){if(error instanceof ApiError&&[401,403].includes(error.statusCode))throw error;return {status:'UNAVAILABLE',missing_inputs:['Regional disaster engine evidence']};}}},
      ...(weatherEvidence?[{name:'read_weather_assessment',description:'Read linked weather preparedness evidence and its limitations. Weather evidence is not a safe-route or deployment authorization.',arguments:noArguments,execute:async()=>{await check();return weatherEvidence;}}]:[]),
      {name:'read_mission',description:'Read the current mission requirements and capacity.',arguments:noArguments,execute:async()=>{await check();return snapshot.mission;}},
      {name:'read_candidates',description:'Read consenting applicants and verified skill checks. Never invent people.',arguments:noArguments,execute:async()=>{await check();return snapshot.candidates;}},
@@ -104,7 +119,7 @@ export const PlanningService={
     ],
    });
    validateResourcePlan(result.result,snapshot);
-   return {title:snapshot.mission.title,mission_id:request.mission_id,model:result.model,tool_calls:result.tool_calls,harness:result.harness,recommendation:result.result,snapshot,weather_evidence:weatherEvidence};
+   return {title:snapshot.mission.title,mission_id:request.mission_id,model:result.model,tool_calls:result.tool_calls,harness:result.harness,recommendation:result.result,snapshot,weather_evidence:weatherEvidence,engine_evidence:engineEvidence};
   });
  },
  async weather(actor:Actor,org:string,region:string,key:string,input:z.infer<typeof weatherRequest>){
@@ -155,7 +170,7 @@ export const PlanningService={
    if(p.status!=='DRAFT'||Date.parse(p.expires_at)<=Date.now())throw ApiError.conflict('Recompute this expired proposal','PROPOSAL_EXPIRED');
    try{validateResourcePlan(request.recommendation,p.snapshot as PlanningSnapshot);}catch{throw ApiError.badRequest('The edited allocation exceeds the eligible candidates, capacity or stock in this proposal');}
    await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
-   const result=await tx.operationRecord.update({where:{id},data:{version:{increment:1},updatedAt:new Date(),payload:json({...p,recommendation:request.recommendation,original_recommendation:p.original_recommendation??p.recommendation,edited_by:actor.userId,edited_at:new Date().toISOString(),edit_reason:request.reason})}});
+   const result=await tx.operationRecord.update({where:{id,version:row.version},data:{version:{increment:1},updatedAt:new Date(),payload:json({...p,recommendation:request.recommendation,original_recommendation:p.original_recommendation??p.recommendation,edited_by:actor.userId,edited_at:new Date().toISOString(),edit_reason:request.reason})}});
    await tx.organizationAudit.createMany({data:{id:randomUUID(),organizationId:org,actorUserId:actor.userId,action:'RESOURCE_PROPOSAL_EDITED',reason:request.reason,metadata:{region_id:region,proposal_id:id,version:result.version}}});
    await tx.operationReceipt.create({data:{id:randomUUID(),organizationId:org,regionId:region,userId:actor.userId,key,fingerprint,result:json(result)}});
    return result;
@@ -174,7 +189,7 @@ export const PlanningService={
    if(p.status!=='DRAFT')throw ApiError.conflict('Only a draft proposal can be rejected','INVALID_TRANSITION');
    await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
    await tx.organizationAudit.createMany({data:{id:randomUUID(),organizationId:org,actorUserId:actor.userId,action:'RESOURCE_PROPOSAL_REJECTED',reason:request.reason,metadata:{region_id:region,proposal_id:id}}});
-   return tx.operationRecord.update({where:{id},data:{version:{increment:1},updatedAt:new Date(),payload:json({...p,status:'REJECTED',rejection_key:key,rejection_fingerprint:fingerprint,rejected_by:actor.userId,rejected_at:new Date().toISOString(),rejection_reason:request.reason})}});
+   return tx.operationRecord.update({where:{id,version:row.version},data:{version:{increment:1},updatedAt:new Date(),payload:json({...p,status:'REJECTED',rejection_key:key,rejection_fingerprint:fingerprint,rejected_by:actor.userId,rejected_at:new Date().toISOString(),rejection_reason:request.reason})}});
   });
  },
  async approve(actor:Actor,org:string,region:string,id:string,key:string,input:z.infer<typeof planApproval>){
@@ -209,7 +224,7 @@ export const PlanningService={
     assignments.push(await executeOperationalCommand(tx,actor,org,region,randomUUID(),{action:'ASSIGN',id:mission.id,expected_version:version,user_id:allocation.user_id,supplies:allocation.supplies.map(s=>({resource_id:s.resource_id,quantity:s.quantity}))}));version++;
    }
    await tx.organizationAudit.createMany({data:{id:randomUUID(),organizationId:org,actorUserId:actor.userId,action:'RESOURCE_PROPOSAL_APPROVED',reason:request.reason,metadata:{region_id:region,proposal_id:id,mission_id:mission.id,assignment_count:assignments.length}}});
-   return tx.operationRecord.update({where:{id},data:{version:{increment:1},payload:json({...p,status:'APPROVED',approval_key:key,approval_fingerprint:approvalFingerprint,approved_by:actor.userId,approved_at:new Date().toISOString(),approval_reason:request.reason,actions_executed:assignments})}});
+   return tx.operationRecord.update({where:{id,version:row.version},data:{version:{increment:1},payload:json({...p,status:'APPROVED',approval_key:key,approval_fingerprint:approvalFingerprint,approved_by:actor.userId,approved_at:new Date().toISOString(),approval_reason:request.reason,actions_executed:assignments})}});
   });
  },
 };

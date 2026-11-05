@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {ApiError} from '../../core/errors.js';
 import type {Actor,TenantTransaction} from '../organizations/context.js';
@@ -33,13 +33,13 @@ async function localEvidence(actor:Actor,org:string,region:string){
   return {gauges:gaugeCrossings(by('GAUGE_READING')),roads:by('ROAD_STATUS'),vulnerability:by('VULNERABILITY_PROFILE'),
    observations:by('FIELD_OBSERVATION'),substitutes:by('SUBSTITUTE_LINK')};});
 }
-async function assessmentContext(actor:Actor,org:string,region:string,assessmentId?:string){
+async function assessmentContext(actor:Actor,org:string,region:string,assessmentId?:string,historical=false){
  return withRegion(actor,org,region,false,async tx=>{await coordinator(tx,actor,org);
   const row=assessmentId?await tx.operationRecord.findFirst({where:{id:assessmentId,organizationId:org,regionId:region,kind:'WEATHER_ANALYSIS'}})
    :await tx.operationRecord.findFirst({where:{organizationId:org,regionId:region,kind:'WEATHER_ANALYSIS'},orderBy:{sequence:'desc'}});
   if(!row)return null;
   const unit=await tx.organizationUnit.findUniqueOrThrow({where:{id:region}});
-  try{const evidence=assessmentEvidence(row,unit);const p=payload(row.payload);
+  try{const evidence=assessmentEvidence(row,unit,Date.now(),historical);const p=payload(row.payload);
    return {assessment_id:row.id,evidence,narrative:p.narrative??null,points:payload(row.payload).evidence?.points??[],limitations:payload(row.payload).evidence?.missing_inputs??[]};}
   catch{return {assessment_id:row.id,status:'STALE_OR_CHANGED',note:'The latest assessment no longer matches current regional policy, bounds or freshness. Run a new assessment.'};}});
 }
@@ -150,14 +150,16 @@ export const SpecialisedService={
  async outcome(actor:Actor,org:string,region:string,key:string,input:z.infer<typeof outcomeRequest>){
   const request=outcomeRequest.parse(input);
   return analysis(actor,org,region,key,'OUTCOME_REVIEW',request,async()=>{
-   const local=await localEvidence(actor,org,region);const assessment=await assessmentContext(actor,org,region,request.assessment_id);
+   const local=await localEvidence(actor,org,region);const assessment=await assessmentContext(actor,org,region,request.assessment_id,true);
+   const window=assessment&&'evidence' in assessment?assessment.evidence?.window:null;
+   const observations=local.observations.filter(o=>window&&Date.parse(o.observed_at)>=Date.parse(window.from)&&Date.parse(o.observed_at)<Date.parse(window.to));
    const comparison=(()=>{if(!assessment||!('evidence' in assessment))return null;
-    const observedMax=(variable:string)=>{const values=local.observations.filter(o=>o.variable===variable).map(o=>Number(o.value));return values.length?Math.max(...values):null;};
+    const observedMax=(variable:string)=>{const values=observations.filter(o=>o.variable===variable&&o.unit===({RAINFALL_MM:'mm',TEMPERATURE_C:'C',WIND_MPS:'m/s',RIVER_LEVEL_M:'m'} as Record<string,string>)[variable]).map(o=>Number(o.value));return values.length?Math.max(...values):null;};
     return {observed:{maximum_rainfall_mm:observedMax('RAINFALL_MM'),maximum_temperature_c:observedMax('TEMPERATURE_C'),maximum_wind_mps:observedMax('WIND_MPS'),maximum_river_level_m:observedMax('RIVER_LEVEL_M')},
-     forecast_indicators:(assessment as any).evidence.indicators,thresholds:(assessment as any).evidence.thresholds,note:'Observed maxima are recorded field observations; forecast values are grid indicators. Differences are calibration evidence, not proof either was wrong.'};})();
+     forecast_indicators:(assessment as any).evidence.indicators,thresholds:(assessment as any).evidence.thresholds,note:'Observed maxima are recorded field observations; forecast values are grid indicators. Rainfall accumulation periods and station locations are not recorded, so these maxima cannot establish forecast accuracy or numerical bias.'};})();
    const tools:ControlledTool[]=[
     {name:'read_assessment',description:'Read the earlier assessment narrative, indicators and source.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return assessment??{status:'NO_ASSESSMENT'};}},
-    {name:'read_observations',description:'Read recorded field observations and the deterministic forecast-versus-observed comparison.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return {observations:local.observations,comparison,missing_inputs:local.observations.length?[]:['No field observations recorded for comparison']};}},
+    {name:'read_observations',description:'Read recorded field observations and the deterministic forecast-versus-observed comparison.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return {observations,comparison,missing_inputs:observations.length?[]:['No field observations recorded within this assessment window']};}},
    ];
    const result=await runMetaAgent({harness:{},model:metaModels.weather,question:request.question,output:specialisedOutput,signal:AbortSignal.timeout(90000),
     instruction:'Review forecast versus outcome. Compare the earlier assessment with recorded observations, report where indicators over- or under-stated conditions, and name calibration gaps. Never rewrite the earlier forecast as if it had been an observation.',requiredTools:tools.map(t=>t.name),tools});
@@ -187,7 +189,8 @@ export const SpecialisedService={
    const scenario=applyScenario(base,request);
    const basePlan=request.base_proposal_id?await withRegion(actor,org,region,false,async tx=>{await coordinator(tx,actor,org);
     const row=await tx.operationRecord.findFirst({where:{id:request.base_proposal_id,organizationId:org,regionId:region,kind:'RESOURCE_PLAN'}});
-    return row?payload(row.payload).recommendation as z.infer<typeof resourcePlanOutput>:null;}):null;
+    if(!row||payload(row.payload).mission_id!==request.mission_id||!payload(row.payload).recommendation)throw ApiError.conflict('Choose a completed proposal for this mission.','BASE_PROPOSAL_MISMATCH');
+    return payload(row.payload).recommendation as z.infer<typeof resourcePlanOutput>;}):null;
    const tools:ControlledTool[]=[
     {name:'read_base_snapshot',description:'Read the current validated mission snapshot before scenario overrides.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return base;}},
     {name:'read_scenario_snapshot',description:'Read the snapshot after coordinator scenario overrides: capacity, skills and stock adjustments applied, eligibility recomputed.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return scenario;}},
@@ -218,7 +221,9 @@ export const SpecialisedService={
    const source=await withRegion(actor,org,region,false,async tx=>{await coordinator(tx,actor,org);
     const kind=request.source_kind==='ASSESSMENT'?'WEATHER_ANALYSIS':request.source_kind==='PROPOSAL'?'RESOURCE_PLAN':'SPECIALISED';
     const row=await tx.operationRecord.findFirst({where:{id:request.source_id,organizationId:org,regionId:region,kind}});
-    if(!row)throw ApiError.notFound('Briefing source');return payload(row.payload);});
+    if(!row)throw ApiError.notFound('Briefing source');
+    if(!['DRAFT','APPROVED'].includes(payload(row.payload).status))throw ApiError.conflict('Choose a completed source for this briefing.','FOLLOW_UP_UNAVAILABLE');
+    return {source_id:row.id,...payload(row.payload)};});
    const model=request.source_kind==='ASSESSMENT'?metaModels.weather:metaModels.planning;
    const audienceGuide={COORDINATOR:'a coordinator making decisions: full detail, decisions and gaps first',VOLUNTEER:'volunteers preparing to help: what to bring, when and where to report, safety checks, no internal deliberation',PUBLIC:'the public: plain language, what is known, what to do, what is not known, no internal detail'}[request.audience];
    const tools:ControlledTool[]=[{name:'read_source',description:'Read the source assessment, proposal or analysis to brief from.',arguments:noArguments,execute:async()=>{await check(actor,org,region);return source;}}];
@@ -247,12 +252,16 @@ export const SpecialisedService={
    const row=await tx.operationRecord.findFirst({where:{id,organizationId:org,regionId:region,kind:'SPECIALISED'}});
    if(!row)throw ApiError.notFound('Specialised record');const p=payload(row.payload);
    if(!['BRIEFING','AFTER_ACTION'].includes(p.analysis_type))throw ApiError.conflict('Only briefings and after-action drafts can be approved here','INVALID_TRANSITION');
-   if(p.status==='APPROVED'&&p.approval_key===key)return row;
+   const fingerprint=createHash('sha256').update(JSON.stringify([actor.userId,request])).digest('hex');
+   if(p.status==='APPROVED'&&p.approval_key===key){
+    if(p.approval_fingerprint!==fingerprint)throw ApiError.conflict('This approval key was already used for a different request.','IDEMPOTENCY_CONFLICT');
+    return row;
+   }
    if(row.version!==request.expected_version)throw ApiError.conflict('Record changed. Review it again','VERSION_CONFLICT');
    if(p.status!=='DRAFT')throw ApiError.conflict('Only a draft can be approved','INVALID_TRANSITION');
    await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
    await tx.organizationAudit.createMany({data:{id:randomUUID(),organizationId:org,actorUserId:actor.userId,action:'SPECIALISED_APPROVED',reason:request.reason,metadata:{region_id:region,record_id:id,analysis_type:p.analysis_type}}});
-   return tx.operationRecord.update({where:{id},data:{version:{increment:1},updatedAt:new Date(),payload:json({...p,status:'APPROVED',approval_key:key,approved_by:actor.userId,approved_at:new Date().toISOString(),approval_reason:request.reason})}});});
+   return tx.operationRecord.update({where:{id,version:row.version},data:{version:{increment:1},updatedAt:new Date(),payload:json({...p,status:'APPROVED',approval_key:key,approval_fingerprint:fingerprint,approved_by:actor.userId,approved_at:new Date().toISOString(),approval_reason:request.reason})}});});
  },
  async afterAction(actor:Actor,org:string,region:string,key:string,input:z.infer<typeof afterActionRequest>){
   const request=afterActionRequest.parse(input);
@@ -260,6 +269,7 @@ export const SpecialisedService={
    const record=await withRegion(actor,org,region,false,async tx=>{await coordinator(tx,actor,org);
     const mission=await tx.operationRecord.findFirst({where:{id:request.mission_id,organizationId:org,regionId:region,kind:'MISSION'}});
     if(!mission)throw ApiError.notFound('Mission');
+    if(!['COMPLETED','CANCELLED'].includes(payload(mission.payload).status))throw ApiError.conflict('Close the mission before preparing its after-action summary.','MISSION_NOT_CLOSED');
     const assignments=await tx.operationRecord.findMany({where:{organizationId:org,regionId:region,kind:'ASSIGNMENT',parentId:request.mission_id},take:501});
     const proposals=await tx.operationRecord.findMany({where:{organizationId:org,regionId:region,kind:'RESOURCE_PLAN'},orderBy:{sequence:'desc'},take:51});
     return {mission:{id:mission.id,...payload(mission.payload)} as Record<string,any>,assignments:assignments.map(a=>({user_id:a.ownerId,...payload(a.payload)})),
@@ -275,9 +285,11 @@ export const SpecialisedService={
   const request=gapWorklistRequest.parse(input);
   const assessment=await assessmentContext(actor,org,region,request.assessment_id);
   if(!assessment)throw ApiError.notFound('Weather assessment');
+  if(!assessment.evidence)throw ApiError.conflict('Refresh the weather assessment before making a worklist.','ASSESSMENT_STALE');
   const missing=[...new Set([...(('evidence' in assessment)?(assessment as any).evidence.missing_inputs:[]),...(assessment.narrative?.missing_inputs??[]),...(assessment.limitations??[])])].slice(0,16);
   return withRegion(actor,org,region,true,async tx=>{await coordinator(tx,actor,org);
    await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
+   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${'gap-tasks:'+request.assessment_id},0))::text`;
    const existing=await tx.operationRecord.findMany({where:{organizationId:org,regionId:region,kind:'SPECIAL_TASK',parentId:request.assessment_id},take:100});
    const known=new Set(existing.map(r=>payload(r.payload).title));
    const created=[];
@@ -296,8 +308,12 @@ export const SpecialisedService={
   return withRegion(actor,org,region,true,async tx=>{await coordinator(tx,actor,org);
    const row=await tx.operationRecord.findFirst({where:{id,organizationId:org,regionId:region,kind:'SPECIAL_TASK'}});
    if(!row)throw ApiError.notFound('Worklist task');
+   if(request.assignee_user_id!=null){
+    const member=await tx.organizationMembership.findFirst({where:{organizationId:org,userId:request.assignee_user_id,status:'ACTIVE'}});
+    if(!member||(member.regionIds.length&&!member.regionIds.includes(region)))throw ApiError.conflict('Choose an active member who can work in this region.','ASSIGNEE_UNAVAILABLE');
+   }
    await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;
-   return tx.operationRecord.update({where:{id},data:{version:{increment:1},updatedAt:new Date(),payload:json({...payload(row.payload),status:request.status,assignee_user_id:request.assignee_user_id,updated_by:actor.userId})}});});
+   return tx.operationRecord.update({where:{id,version:row.version},data:{version:{increment:1},updatedAt:new Date(),payload:json({...payload(row.payload),status:request.status,assignee_user_id:request.assignee_user_id,updated_by:actor.userId})}});});
  },
 };
 export async function generateWatchBrief(actor:Actor,org:string,region:string,key:string){

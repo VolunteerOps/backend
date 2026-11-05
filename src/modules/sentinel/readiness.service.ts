@@ -1,3 +1,4 @@
+import {ENGINE_VERSION,ENGINE_MODE,SOURCE_REGISTRY} from './engine.js';
 import type {Actor} from '../organizations/context.js';
 import {withRegion} from './sentinel.context.js';
 import {requireCoordinator} from '../operations/workspace-policy.js';
@@ -18,6 +19,7 @@ export async function regionalReadiness(actor:Actor,org:string,region:string){
   const configured=!!process.env.WEATHERNEXT_PROJECT_ID&&!!process.env.WEATHERNEXT_DATASET_ID&&Number.isFinite(max)&&max>0;
   return{as_of:new Date().toISOString(),forecast:{configuration_present:configured,access_enabled:process.env.WEATHERNEXT_ACCESS_ENABLED==='true',maximum_bytes_per_query:Number.isFinite(max)?max:null,latest_run:run,jobs,counts:counts.map(c=>({state:c.state,count:c._count})),validation:'UNVALIDATED_WEATHER_INDICATORS'},
    earthquake_source:{source:'USGS',enabled:process.env.SENTINEL_USGS_ENABLED==='true',last_observation_received_at:source?.receivedAt??null,limitation:'An observation timestamp is not a worker heartbeat. No observation is not evidence of safety.'},
+   disaster_engine:{version:ENGINE_VERSION,mode:ENGINE_MODE,validation:'UNVALIDATED_INDICATOR',operational_warning:false,predictions_endpoint:'predictions',sources_endpoint:'sources',sources:SOURCE_REGISTRY.map(source=>({source:source.id,enabled:source.envFlag?(process.env[source.envFlag]===undefined?source.enabledByDefault:process.env[source.envFlag]==='true'):source.enabledByDefault,configured_weight:source.authority,note:source.note})),weight_interpretation:'Weights are configuration preferences, not measured source accuracy or disaster probabilities.'},
    agents:{configuration_present:!!(process.env.META_MODEL_API_KEY||process.env.MODEL_API_KEY),weather_model:metaModels.weather,resource_model:metaModels.planning,allocation_approval:'HUMAN_REQUIRED'},
    coverage_gaps:['River gauges and catchment impact modelling','Authoritative flood and severe-weather warnings','Road access and exposure estimates','Device sensing and coverage validation']};
  });

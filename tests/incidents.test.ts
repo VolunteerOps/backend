@@ -37,3 +37,18 @@ test('configured feeds always include GDACS and only accept https additions',()=
  assert.equal(feeds.length,2);
  assert.equal(feeds[1]!.name,'Agency');
 });
+
+test('ordinary buildings and factories are not classified as disasters',()=>{
+ for(const title of ['New school building opens','Bridge repairs announced','Factory expands workforce','Chemical safety training'])assert.equal(classifyIncident(title,'').type,'OTHER');
+ assert.equal(classifyIncident('School building fire reported','').type,'STRUCTURE_FIRE');
+ assert.equal(classifyIncident('Bridge collapses during flooding','').type,'BUILDING_COLLAPSE');
+});
+test('feed links cannot contain active script schemes',()=>{
+ assert.equal(parseIncidentFeed('<item><title>Report</title><link>javascript:alert(1)</link></item>','Test').length,0);
+});
+test('oversized feed streams stop reading at the byte limit',async()=>{
+ const {fetchIncidentFeeds}=await import('../src/modules/sentinel/providers/incident-feeds.js');let cancelled=false;
+ const stream=new ReadableStream({pull(c){c.enqueue(new Uint8Array(1_100_000));},cancel(){cancelled=true;}});
+ const result=await fetchIncidentFeeds(AbortSignal.timeout(2000),(async()=>new Response(stream)) as typeof fetch,{});
+ assert.equal(result.feeds[0]?.status,'UNAVAILABLE');assert.equal(cancelled,true);
+});

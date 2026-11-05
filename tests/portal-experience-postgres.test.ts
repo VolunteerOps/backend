@@ -35,7 +35,8 @@ test('portal preferences, notification isolation, campaign versions and promotio
   assert.deepEqual((await DraftsService.list(two)).items,[]);
   assert.equal((await withActor(two,tx=>tx.$queryRaw<any[]>`SELECT * FROM public.user_drafts`)).length,0);
   assert.equal((await DraftsService.remove(two,draftKey)).deleted,false);
-  assert.equal((await DraftsService.put(one,draftKey,{payload:{question:'Updated question'},base_version:0})).version,2);
+  await assert.rejects(DraftsService.put(one,draftKey,{payload:{question:'Stale edit'},base_version:0}),{code:'DRAFT_CONFLICT'});
+  assert.equal((await DraftsService.put(one,draftKey,{payload:{question:'Updated question'},base_version:1})).version,2);
   assert.equal((await DraftsService.remove(one,draftKey)).deleted,true);
   const a=await org(admin),b=await org(two);await member(one,a.id);await member(two,a.id,'COORDINATOR');
   const pref={expected_version:0,name:'Portal Coordinator',role:'Logistics',organization:'Test',coverage:'Mombasa, Kenya',briefings:true,reminders:true,step:1,completed:false,pro_tour_completed:false};

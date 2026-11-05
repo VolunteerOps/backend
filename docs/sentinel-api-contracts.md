@@ -81,4 +81,52 @@ Delivery contract distinguishes queued, provider-accepted, device-received, huma
 
 Required shared fixtures: A/B organizations, unassigned identity, tech admin; wrong issuer/assurance/revoked membership; UID/link collisions; cookie/CSRF; domain/invite replay and concurrent acceptance; scoped import/removal/global-delete separation; duplicate direct/relay batches with partial rejection; clock/location/feature bounds; stale/cancelled CAP/weather/arrival; geometry/dateline/zero coordinates; stream gap/revocation; concurrent cross-org responder approval and rollback; assistance dedup; campaign supersession and second-reviewer bulletin gate.
 
-Publish runnable Firebase/Sentinel contract tests and OpenAPI when routes/schemas exist; the implemented foundation checks do not complete that backlog. No tests ran in this documentation task. **Blocked:** Firebase HTTP identity/session/CSRF integration, UID mapping/migration, organization/RLS and reused operational/storage/export/stream scoping, durable jobs/outbox/receipts/workers, remaining route/schema implementation, finalized limits/protocol formats, client workspace inspection and actual provider/device evidence. Owner configuration alone does not implement these contracts.
+Publish runnable Firebase/Sentinel contract tests and OpenAPI when routes/schemas exist; the implemented foundation checks do not complete that backlog. No tests ran in this documentation task. **Blocked:** Firebase HTTP identity/session/CSRF integration, UID mapping/migration, organization/RLS and reused operational/storage/export/stream scoping, durable jobs/outbox/receipts/workers, remaining route/schema implementation, finalized limits/protocol formats, client workspace inspection and actual provider/device evidence. Owner configuration alone does not implement these contracts.# Sentinel API contracts (disaster engine)
+
+Base mount: `/api/organizations/:orgId/sentinel` (auth required, `Cache-Control: no-store`).
+This reconciles `volunteerops-sentinel-disaster-engine.md` unscoped routes with the
+roadmap org-scoped register: the org-scoped mount above is canonical.
+
+## Disaster engine endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/regions/:regionId/predictions` | Multi-source fused hazard predictions (cached 10 min). Runs without WeatherNext. |
+| POST | `/regions/:regionId/predictions/refresh` | Coordinator only. Forces a fresh run, persists a `HAZARD_PREDICTION` snapshot + audit. |
+| GET | `/regions/:regionId/sources` | Per-source health: enabled, status, observation count, keyless, reliability note. |
+| GET | `/regions/:regionId/readiness` | Includes `disaster_engine` block (version, SHADOW mode, source registry). |
+| GET | `/regions/:regionId/radar` | Pins include disaster-engine predictions (category `PREDICTION`). |
+| GET | `/regions/:regionId/insights` | Existing WeatherNext indicator counts. Pair with `/predictions` for engine output. |
+
+### Prediction shape
+
+```json
+{
+  "status": "AVAILABLE|PARTIAL|UNAVAILABLE",
+  "mode": "SHADOW", "validation": "UNVALIDATED_INDICATOR", "operationalWarning": false,
+  "engineVersion": "disaster-engine/1.0.0", "generatedAt": "ISO-8601",
+  "region": { "id": "uuid", "name": "Nairobi" },
+  "predictions": [{
+    "id": "pred-…", "hazard": "FLOOD|HEAVY_RAIN|HEAT|STRONG_WIND|STORM|WILDFIRE_WEATHER|LANDSLIDE|EARTHQUAKE",
+    "kind": "PREDICTED|OBSERVED", "level": "MONITOR|WATCH|WARNING|SEVERE",
+    "severity": 0.0, "confidence": 0.0, "evidenceScore": 0.0, "calibratedProbability": null,
+    "longitude": 0, "latitude": 0, "validFrom": "ISO-8601", "validTo": "ISO-8601",
+    "sources": ["OPEN_METEO"], "independentSources": 1,
+    "explanation": ["rain 24h 62mm"], "missingInputs": ["river discharge / gauge level"], "evidence": ["OPEN_METEO:…"]
+  }],
+  "sources": [{ "source": "OPEN_METEO", "status": "OK|UNAVAILABLE|DISABLED|NOT_CONFIGURED", "observations": 5, "keyless": true }],
+  "coverageGaps": ["…"], "disclaimer": "…"
+}
+```
+
+## Sources and reliability
+
+WeatherNext 3 (0.90, private, highest model weight) > USGS observed (0.95) / NWS official (1.00) >
+GDACS (0.85) > ReliefWeb (0.80) > GloFAS (0.70) > Open-Meteo (0.60) > community (0.30).
+Correlated copies (same upstream/external id, e.g. WeatherNext BigQuery + GCS) count once.
+Contradictory evidence lowers confidence. `calibratedProbability` stays `null` and
+`operationalWarning` stays `false` until held-out calibration + reviewer sign-off.
+
+Keyless now: Open-Meteo forecast, Open-Meteo Flood/GloFAS, USGS, GDACS RSS, NWS (US only).
+Needs config: WeatherNext (BigQuery/GCS access pending), ReliefWeb (approved appname).
+Deferred: NASA FIRMS (MAP_KEY), Google Weather (licence review).

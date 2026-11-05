@@ -34,6 +34,8 @@ export const SafetyService={
    const currentRole=await role(tx,actor,org),owner=request.affected_user_id??actor.userId;
    if(owner!==actor.userId||request.source!=='IN_APP')requireCoordinator(currentRole);
    if(owner!==actor.userId)await member(tx,org,region,owner);
+   // Serialize intake and decisions in this region before reading receipts or case state.
+   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${org+':'+region+':assistance'},0))::text`;
    const fingerprint=createHash('sha256').update(JSON.stringify([org,region,'INTAKE',request])).digest('hex');
    const receipt=await tx.operationReceipt.findUnique({where:{userId_key:{userId:actor.userId,key}}});
    if(receipt){if(receipt.fingerprint!==fingerprint)throw ApiError.conflict('Request key was used with different input','IDEMPOTENCY_CONFLICT');return receipt.result;}
@@ -59,6 +61,8 @@ export const SafetyService={
   return withRegion(actor,org,region,false,async tx=>{
    const currentRole=await role(tx,actor,org);requireCoordinator(currentRole);
    const scope={organizationId:org,regionId:region};
+   // Serialize intake and decisions in this region before reading receipts or case state.
+   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${org+':'+region+':assistance'},0))::text`;
    const fingerprint=createHash('sha256').update(JSON.stringify([org,region,id,request])).digest('hex');
    const receipt=await tx.operationReceipt.findUnique({where:{userId_key:{userId:actor.userId,key}}});
    if(receipt){if(receipt.fingerprint!==fingerprint)throw ApiError.conflict('Request key was used with different input','IDEMPOTENCY_CONFLICT');return receipt.result;}

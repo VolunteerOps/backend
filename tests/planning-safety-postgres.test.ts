@@ -42,6 +42,54 @@ test('proposal atomicity, approval replay, demotion privacy and assistance owner
   const weather_evidence=assessmentEvidence({id:assessmentId,version:1,payload:assessmentPayload},{forecastPolicy:policy,forecastBounds:bounds});
   const planId=randomUUID();
   await owner.query('INSERT INTO operation_records(id,organization_id,region_id,kind,owner_id,payload,updated_at) VALUES($1,$2,$3,$4,$5,$6,now())',[planId,a.id,a.region,'RESOURCE_PLAN',admin.userId,JSON.stringify({title:'Test proposal',status:'DRAFT',expires_at:new Date(Date.now()+1800000).toISOString(),snapshot,recommendation,weather_evidence})]);
+
+  const {DraftsService:drafts}=await import('../src/modules/drafts/drafts.service.js');
+  const draftKey='qa:'+randomUUID();
+  const initial=await drafts.put(admin,draftKey,{payload:{question:'Original'},base_version:0});
+  const edits=await Promise.allSettled(['Device A','Device B'].map(question=>drafts.put(admin,draftKey,{payload:{question},base_version:initial.version})));
+  assert.equal(edits.filter(r=>r.status==='fulfilled').length,1);
+  assert.equal(edits.filter(r=>r.status==='rejected'&&r.reason.code==='DRAFT_CONFLICT').length,1);
+  assert.equal(await drafts.get(other,draftKey),null);
+  await drafts.remove(admin,draftKey);
+  const {insertFeedIncidents}=await import('../src/modules/sentinel/incidents.service.js');
+  const feed={external_id:'qa-feed',title:'Bridge collapse',type:'BUILDING_COLLAPSE' as const,category:'ARTIFICIAL' as const,severity:'HIGH' as const,description:'Report',source_name:'Test',source_url:'https://example.org',published_at:new Date().toISOString(),latitude:-1.5,longitude:36.5};
+  const ingest=()=>withRegion(admin,a.id,a.region,true,async tx=>{await tx.$queryRaw`SELECT set_config('vops.operations','true',true)`;return insertFeedIncidents(tx,a.id,a.region,[feed,feed,{...feed,external_id:'unlocated',latitude:null}],bounds,admin.userId);});
+  const imports=await Promise.all([ingest(),ingest()]);assert.equal(imports.reduce((n,v)=>n+v,0),1);
+  assert.equal((await owner.query("SELECT count(*)::int n FROM operation_records WHERE organization_id=$1 AND kind='INCIDENT'",[a.id])).rows[0].n,1);
+  const {importWorkerIncidents}=await import('../src/modules/sentinel/incidents.service.js');
+  const workerResult=await prisma.$transaction(tx=>importWorkerIncidents(tx as never,admin.userId,[{...feed,external_id:'worker-feed'}]));
+  assert.equal(workerResult.created,1);assert.equal(workerResult.regions,1);
+  await assert.rejects(prisma.$transaction(tx=>importWorkerIncidents(tx as never,one.userId,[feed])),/NO_AUTHORIZED_REGIONS/);
+  // Actual HTTP routing + live PostgreSQL/RLS. Firebase verification is a fixture,
+  // not a real Railway/Firebase session; database identity and grants are real test rows.
+  const {default:express}=await import('express');
+  const {default:sentinelRouter}=await import('../src/modules/sentinel/sentinel.controller.js');
+  const {createFirebaseAuthenticator}=await import('../src/middleware/firebase-auth.middleware.js');
+  const flags=['SENTINEL_OPEN_METEO_ENABLED','SENTINEL_NWS_ENABLED','SENTINEL_RELIEFWEB_ENABLED','SENTINEL_USGS_ENABLED'];
+  const savedFlags=Object.fromEntries(flags.map(k=>[k,process.env[k]]));for(const flag of flags)process.env[flag]='false';
+  const app=express();app.use(express.json());
+  const testCredential=randomUUID();
+  app.use(createFirebaseAuthenticator(()=>({verifyIdToken:async token=>{assert.equal(token,testCredential);return admin.identity;},verifySessionCookie:async()=>{throw new Error('No cookie fixture');}}),async()=>({id:admin.userId,email:admin.identity.email!,fullName:'Test coordinator',role:'VOLUNTEER',isActive:true,revokedBefore:null})));
+  app.use('/organizations/:orgId/sentinel',sentinelRouter);
+  app.use((error:any,_req:any,res:any,_next:any)=>res.status(error.statusCode??500).json({code:error.code??'UNEXPECTED'}));
+  const server=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>server.once('listening',resolve));
+  const endpoint=`http://127.0.0.1:${(server.address() as any).port}/organizations/${a.id}/sentinel/regions/${a.region}/predictions`;
+  const headers={authorization:'Bearer '+testCredential,'content-type':'application/json'};
+  try{
+   assert.equal((await fetch(endpoint)).status,401);
+   const response=await fetch(endpoint,{headers});assert.equal(response.status,200,await response.clone().text());
+   const initial=await response.json();assert.equal(initial.validation,'UNVALIDATED_INDICATOR');assert.equal(initial.operational_warning,false);
+   const cached=await fetch(endpoint,{headers});assert.equal((await cached.json()).source_id,initial.source_id);
+   await owner.query("UPDATE organization_memberships SET role='VOLUNTEER' WHERE organization_id=$1 AND user_id=$2",[a.id,admin.userId]);
+   assert.equal((await fetch(endpoint,{headers})).status,403,'Cached predictions must recheck a demoted coordinator');
+   await owner.query("UPDATE organization_memberships SET role='ORG_ADMIN' WHERE organization_id=$1 AND user_id=$2",[a.id,admin.userId]);
+   const persisted=await fetch(endpoint+'/refresh',{method:'POST',headers,body:'{}'});assert.equal(persisted.status,200,await persisted.clone().text());
+   assert.equal((await owner.query("SELECT count(*)::int n FROM operation_records WHERE organization_id=$1 AND kind='HAZARD_PREDICTION'",[a.id])).rows[0].n,1);
+   await owner.query('UPDATE organization_units SET forecast_policy=$1 WHERE id=$2',[JSON.stringify({...policy,version:3}),a.region]);
+   const changed=await (await fetch(endpoint,{headers})).json();assert.equal(changed.policy_version,3);assert.notEqual(changed.source_id,initial.source_id);
+   await owner.query('UPDATE organization_units SET forecast_policy=$1 WHERE id=$2',[JSON.stringify(policy),a.region]);
+  }finally{await new Promise<void>(resolve=>server.close(()=>resolve()));for(const flag of flags){if(savedFlags[flag]===undefined)delete process.env[flag];else process.env[flag]=savedFlags[flag];}}
+
   const review={expected_version:1,reason:'Checked access and current local conditions.',route_reviewed:true as const,conditions_reviewed:true as const};
   await assert.rejects(planning.approve(one,a.id,a.region,planId,randomUUID(),review),{code:'CAPABILITY_REQUIRED'});
   await assert.rejects(planning.approve(other,b.id,b.region,planId,randomUUID(),review),{statusCode:404});
@@ -76,11 +124,13 @@ test('proposal atomicity, approval replay, demotion privacy and assistance owner
   assert.equal(history.items[0]!.id,abandonedId);
   assert.equal((history.items[0]!.payload as any).error_code,'ANALYSIS_INTERRUPTED');
   const intake={summary:'I need assistance returning to the community hall.',severity:'HIGH' as const,source:'IN_APP' as const};
+  const concurrent=await Promise.all([1,2].map(()=>safety.intake(two,a.id,a.region,randomUUID(),intake)));
+  assert.equal((concurrent[0] as any).id,(concurrent[1] as any).id,'Concurrent requests must share one open assistance case');
   const intakeKey=randomUUID();
   let incident:any=await safety.intake(one,a.id,a.region,intakeKey,intake);
   assert.equal((await safety.intake(one,a.id,a.region,intakeKey,intake) as any).id,incident.id);
   await assert.rejects(safety.timeline(two,a.id,a.region,incident.id),{statusCode:404});
-  assert.equal(await withRegion(two,a.id,a.region,false,tx=>tx.operationRecord.count({where:{kind:{in:['ASSISTANCE_CASE','ASSISTANCE_EVENT']}}})),0);
+  assert.equal(await withRegion(two,a.id,a.region,false,tx=>tx.operationRecord.count({where:{kind:{in:['ASSISTANCE_CASE','ASSISTANCE_EVENT']},ownerId:one.userId}})),0);
   const duplicate:any=await safety.intake(one,a.id,a.region,randomUUID(),{...intake,severity:'URGENT'});
   assert.equal(duplicate.id,incident.id);assert.equal(duplicate.version,incident.version+1);assert.equal(duplicate.payload.severity,'URGENT');
   const decision={expected_version:duplicate.version,action:'ACKNOWLEDGE' as const,reason:'Contact confirmed; I am coordinating the response.'};
@@ -89,7 +139,7 @@ test('proposal atomicity, approval replay, demotion privacy and assistance owner
   incident=(await safety.timeline(admin,a.id,a.region,incident.id)).case;
   const keeper=(incident.payload as any).coordinator_id===admin.userId?admin:other;
   const nonkeeper=keeper===admin?other:admin;
-  await assert.rejects(safety.decide(nonkeeper,a.id,a.region,incident.id,randomUUID(),{expected_version:incident.version,action:'RESOLVE',reason:'Attempting another coordinator’s case resolution.'}),{code:'CASE_OWNER_REQUIRED'});
+  await assert.rejects(safety.decide(nonkeeper,a.id,a.region,incident.id,randomUUID(),{expected_version:incident.version,action:'RESOLVE',reason:'Attempting another coordinatorâ€™s case resolution.'}),{code:'CASE_OWNER_REQUIRED'});
   const resolved:any=await safety.decide(keeper,a.id,a.region,incident.id,randomUUID(),{expected_version:incident.version,action:'RESOLVE',reason:'The member confirmed arrival and no further help needed.'});
   assert.equal(resolved.payload.status,'RESOLVED');
   assert.equal((await safety.timeline(one,a.id,a.region,incident.id)).items.length,4);
